@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学習用語句振り返りアプリ</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>学習用語句振り返りアプリ</h1>
+            <p>英語・応用情報・高度情報・G検定の用語を効率的に学習</p>
+        </header>
+
+        <nav class="category-nav">
+            <button class="category-btn active" data-category="all">全て</button>
+            <button class="category-btn" data-category="english">英語</button>
+            <button class="category-btn" data-category="applied">応用情報</button>
+            <button class="category-btn" data-category="advanced">高度情報</button>
+            <button class="category-btn" data-category="gkentei">G検定</button>
+            <a href="data-manager.html" style="text-decoration: none;">
+                <button style="background: #6c757d;">📊 データ管理</button>
+            </a>
+        </nav>
+
+        <div class="main-content">
+            <!-- 語句追加セクション -->
+            <section class="add-section">
+                <h2>新しい語句を追加</h2>
+                <form id="addTermForm">
+                    <div class="form-group">
+                        <label for="category">カテゴリ:</label>
+                        <select id="category" required>
+                            <option value="english">英語</option>
+                            <option value="applied">応用情報</option>
+                            <option value="advanced">高度情報</option>
+                            <option value="gkentei">G検定</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="term">用語:</label>
+                        <input type="text" id="term" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="meaning">意味・説明:</label>
+                        <textarea id="meaning" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="example">例文・使用例:</label>
+                        <textarea id="example"></textarea>
+                    </div>
+                    <button type="submit">追加</button>
+                </form>
+            </section>
+
+            <!-- 学習セクション -->
+            <section class="study-section">
+                <h2>語句学習</h2>
+                <div class="study-info">
+                    <div class="progress-info">
+                        <span id="studyProgress">学習する語句を選択してください</span>
+                    </div>
+                </div>
+                <div class="study-controls">
+                    <button id="randomTermBtn">ランダム表示</button>
+                    <button id="showAnswerBtn" style="display: none;">答えを表示</button>
+                    <button id="nextTermBtn" style="display: none;">次の語句</button>
+                    <button id="endStudyBtn" style="display: none; background: #dc3545;">学習終了</button>
+                </div>
+                <div id="studyCard" class="study-card" style="display: none;">
+                    <div class="card-front">
+                        <h3 id="currentTerm"></h3>
+                        <span id="currentCategory" class="category-tag"></span>
+                    </div>
+                    <div class="card-back" style="display: none;">
+                        <h4>意味・説明:</h4>
+                        <p id="currentMeaning"></p>
+                        <h4>例文・使用例:</h4>
+                        <p id="currentExample"></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 語句一覧セクション -->
+            <section class="list-section">
+                <h2>語句一覧</h2>
+                <div class="search-controls">
+                    <input type="text" id="searchInput" placeholder="語句を検索...">
+                    <span id="termCount">0個の語句</span>
+                </div>
+                <div id="termsList" class="terms-list"></div>
+            </section>
+        </div>
+    </div>
+
+    <!-- 編集モーダル -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>語句を編集</h3>
+            <form id="editTermForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editCategory">カテゴリ:</label>
+                    <select id="editCategory" required>
+                        <option value="english">英語</option>
+                        <option value="applied">応用情報</option>
+                        <option value="advanced">高度情報</option>
+                        <option value="gkentei">G検定</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editTerm">用語:</label>
+                    <input type="text" id="editTerm" required>
+                </div>
+                <div class="form-group">
+                    <label for="editMeaning">意味・説明:</label>
+                    <textarea id="editMeaning" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editExample">例文・使用例:</label>
+                    <textarea id="editExample"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">更新</button>
+                    <button type="button" id="cancelEdit">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簡単テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        .success {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .error {
+            background-color: #f44336;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 ブラウザテスト</h1>
+    <p>このページが正常に表示されていれば、ブラウザとHTMLファイルの読み込みは問題ありません。</p>
+    
+    <div class="success">
+        ✅ HTMLとCSSは正常に動作しています
+    </div>
+
+    <h2>次のステップ：</h2>
+    <ol>
+        <li>このページが見えていることを確認</li>
+        <li>コマンドプロンプトまたはPowerShellでプロジェクトフォルダに移動</li>
+        <li><code>npm start</code>を実行</li>
+        <li><code>http://localhost:3000</code>をブラウザで開く</li>
+    </ol>
+
+    <div id="js-test"></div>
+
+    <script>
+        document.getElementById('js-test').innerHTML = 
+            '<div class="success">✅ JavaScriptも正常に動作しています</div>';
+    </script>
+</body>
+</html>

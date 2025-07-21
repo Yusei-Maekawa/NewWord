@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データ管理 - 学習用語句振り返りアプリ</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .action-group {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+        }
+        .action-group h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .danger-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .success-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        input[type="file"] {
+            margin: 10px 0;
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+        #notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            display: none;
+        }
+        .notification-success {
+            background: #28a745;
+        }
+        .notification-error {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 データ管理</h1>
+        
+        <div class="action-group">
+            <h3>📈 現在の統計</h3>
+            <div id="currentStats" class="stats">
+                <div class="stats-row">
+                    <span>総語句数:</span>
+                    <span id="totalCount">0</span>
+                </div>
+                <div class="stats-row">
+                    <span>英語:</span>
+                    <span id="englishCount">0</span>
+                </div>
+                <div class="stats-row">
+                    <span>応用情報:</span>
+                    <span id="appliedCount">0</span>
+                </div>
+                <div class="stats-row">
+                    <span>高度情報:</span>
+                    <span id="advancedCount">0</span>
+                </div>
+                <div class="stats-row">
+                    <span>G検定:</span>
+                    <span id="gkenteiCount">0</span>
+                </div>
+            </div>
+            <button onclick="updateStats()">統計を更新</button>
+        </div>
+
+        <div class="action-group">
+            <h3>📥 サンプルデータ</h3>
+            <p>英語、応用情報、高度情報、G検定のサンプル語句を追加します。</p>
+            <button class="success-btn" onclick="addSampleData()">サンプルデータを追加</button>
+        </div>
+
+        <div class="action-group">
+            <h3>💾 データエクスポート</h3>
+            <p>現在の語句データをJSONファイルとしてダウンロードします。</p>
+            <button onclick="exportData()">データをエクスポート</button>
+        </div>
+
+        <div class="action-group">
+            <h3>📁 データインポート</h3>
+            <p>JSONファイルから語句データを読み込みます。既存のデータは保持されます。</p>
+            <input type="file" id="importFile" accept=".json" />
+            <button onclick="importData()">データをインポート</button>
+        </div>
+
+        <div class="action-group">
+            <h3>🧹 データクリア</h3>
+            <p><strong>注意:</strong> 全ての語句データが削除されます。この操作は取り消せません。</p>
+            <button class="danger-btn" onclick="clearAllData()">全データを削除</button>
+        </div>
+
+        <div class="back-link">
+            <a href="index.html">← メインアプリに戻る</a>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <script>
+        function updateStats() {
+            const terms = JSON.parse(localStorage.getItem('studyTerms')) || [];
+            
+            document.getElementById('totalCount').textContent = terms.length;
+            document.getElementById('englishCount').textContent = terms.filter(t => t.category === 'english').length;
+            document.getElementById('appliedCount').textContent = terms.filter(t => t.category === 'applied').length;
+            document.getElementById('advancedCount').textContent = terms.filter(t => t.category === 'advanced').length;
+            document.getElementById('gkenteiCount').textContent = terms.filter(t => t.category === 'gkentei').length;
+        }
+
+        function addSampleData() {
+            if (!confirm('サンプルデータを追加しますか？')) return;
+            
+            fetch('sample-data.json')
+                .then(response => response.json())
+                .then(sampleData => {
+                    const existingTerms = JSON.parse(localStorage.getItem('studyTerms')) || [];
+                    const maxId = existingTerms.length > 0 ? Math.max(...existingTerms.map(t => t.id)) : 0;
+                    
+                    // IDの重複を避ける
+                    sampleData.forEach((term, index) => {
+                        term.id = maxId + index + 1;
+                        term.createdAt = new Date().toISOString();
+                    });
+                    
+                    const mergedTerms = [...existingTerms, ...sampleData];
+                    localStorage.setItem('studyTerms', JSON.stringify(mergedTerms));
+                    
+                    showNotification(`${sampleData.length}個のサンプル語句を追加しました！`, 'success');
+                    updateStats();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('サンプルデータの読み込みに失敗しました。', 'error');
+                });
+        }
+
+        function exportData() {
+            const terms = JSON.parse(localStorage.getItem('studyTerms')) || [];
+            if (terms.length === 0) {
+                showNotification('エクスポートするデータがありません。', 'error');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(terms, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `study-terms-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            showNotification('データをエクスポートしました！', 'success');
+        }
+
+        function importData() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showNotification('ファイルを選択してください。', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedTerms = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedTerms)) {
+                        throw new Error('Invalid format');
+                    }
+                    
+                    if (!confirm(`${importedTerms.length}個の語句をインポートしますか？既存のデータは保持されます。`)) {
+                        return;
+                    }
+                    
+                    const existingTerms = JSON.parse(localStorage.getItem('studyTerms')) || [];
+                    const maxId = existingTerms.length > 0 ? Math.max(...existingTerms.map(t => t.id)) : 0;
+                    
+                    // 新しいIDを割り当て
+                    importedTerms.forEach((term, index) => {
+                        term.id = maxId + index + 1;
+                        term.importedAt = new Date().toISOString();
+                    });
+                    
+                    const mergedTerms = [...existingTerms, ...importedTerms];
+                    localStorage.setItem('studyTerms', JSON.stringify(mergedTerms));
+                    
+                    showNotification(`${importedTerms.length}個の語句をインポートしました！`, 'success');
+                    updateStats();
+                    fileInput.value = ''; // ファイル選択をクリア
+                    
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showNotification('ファイルの形式が正しくありません。', 'error');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            const terms = JSON.parse(localStorage.getItem('studyTerms')) || [];
+            
+            if (terms.length === 0) {
+                showNotification('削除するデータがありません。', 'error');
+                return;
+            }
+            
+            if (!confirm(`本当に${terms.length}個の全ての語句を削除しますか？この操作は取り消せません。`)) {
+                return;
+            }
+            
+            if (!confirm('最終確認: 全データを削除します。よろしいですか？')) {
+                return;
+            }
+            
+            localStorage.removeItem('studyTerms');
+            showNotification('全てのデータを削除しました。', 'success');
+            updateStats();
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification-${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        // ページ読み込み時に統計を更新
+        updateStats();
+
+        // ドラッグ&ドロップでのファイル読み込み
+        document.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/json') {
+                document.getElementById('importFile').files = files;
+                showNotification('ファイルが選択されました。インポートボタンを押してください。', 'success');
+            }
+        });
+    </script>
+</body>
+</html>
