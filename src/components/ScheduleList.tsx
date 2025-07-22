@@ -7,6 +7,7 @@ export interface ScheduleListProps {
   terms: Term[];
   studyLogs: StudyLog[];
   onBack: () => void;
+  onDeleteLog?: (date: string, category: string) => void;
 }
 
 function getScheduleSummary(terms: Term[], studyLogs: StudyLog[]) {
@@ -26,7 +27,8 @@ function getScheduleSummary(terms: Term[], studyLogs: StudyLog[]) {
   return summary;
 }
 
-const ScheduleList: React.FC<ScheduleListProps> = ({ terms, studyLogs, onBack }) => {
+const ScheduleList: React.FC<ScheduleListProps> = ({ terms, studyLogs, onBack, onDeleteLog }) => {
+  const [deleteMode, setDeleteMode] = React.useState(false);
   const summary = getScheduleSummary(terms, studyLogs);
   const dates = Object.keys(summary).sort((a, b) => b.localeCompare(a));
   return (
@@ -34,6 +36,9 @@ const ScheduleList: React.FC<ScheduleListProps> = ({ terms, studyLogs, onBack })
       <section className="section">
         <h2>スケジュール一覧</h2>
         <button className="btn" onClick={onBack} style={{ marginBottom: '1em' }}>戻る</button>
+        <button className="btn btn-danger" onClick={() => setDeleteMode(m => !m)} style={{ marginBottom: '1em', marginLeft: '1em' }}>
+          {deleteMode ? '削除モード解除' : '削除モード'}
+        </button>
         <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', borderRadius: '8px', overflow: 'hidden' }}>
           <thead>
             <tr style={{ background: '#e0e7ef' }}>
@@ -41,6 +46,7 @@ const ScheduleList: React.FC<ScheduleListProps> = ({ terms, studyLogs, onBack })
               <th style={{ padding: '8px' }}>科目</th>
               <th style={{ padding: '8px' }}>語句追加数</th>
               <th style={{ padding: '8px' }}>勉強時間(分)</th>
+              {deleteMode && <th style={{ padding: '8px' }}>削除</th>}
             </tr>
           </thead>
           <tbody>
@@ -51,6 +57,13 @@ const ScheduleList: React.FC<ScheduleListProps> = ({ terms, studyLogs, onBack })
                   <td style={{ padding: '8px', textAlign: 'center' }}>{categories.find(c => c.key === category)?.name || category}</td>
                   <td style={{ padding: '8px', textAlign: 'center' }}>{summary[date][category].terms}</td>
                   <td style={{ padding: '8px', textAlign: 'center' }}>{summary[date][category].time}</td>
+                  {deleteMode && (
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      <button className="btn btn-danger" onClick={() => onDeleteLog && onDeleteLog(date, category)}>
+                        削除
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             ))}

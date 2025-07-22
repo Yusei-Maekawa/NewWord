@@ -85,7 +85,15 @@ const App: React.FC = () => {
       <StudyTimeInput onRecord={handleRecordTime} />
       <button className="btn" style={{ margin: '20px' }} onClick={() => setShowSchedule(true)}>スケジュール一覧へ</button>
       {showSchedule ? (
-        <SchedulePage terms={terms} onBack={() => setShowSchedule(false)} />
+        <SchedulePage
+          terms={terms}
+          onBack={() => setShowSchedule(false)}
+          studyLogs={studyLogs}
+          onDeleteLog={(date, category) => {
+            setStudyLogs(prev => prev.filter(log => !(log.date === date && log.category === category)));
+            setNotification({ message: '勉強記録を削除しました', type: 'success' });
+          }}
+        />
       ) : (
         <>
           <CategoryNav
