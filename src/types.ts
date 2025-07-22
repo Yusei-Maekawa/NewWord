@@ -1,6 +1,8 @@
+import { CategoryKey } from './data/categories';
+
 export interface Term {
   id: number;
-  category: 'english' | 'applied' | 'advanced' | 'gkentei';
+  category: CategoryKey;
   term: string;
   meaning: string;
   example?: string;

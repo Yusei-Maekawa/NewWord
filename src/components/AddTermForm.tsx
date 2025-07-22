@@ -1,17 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Term } from '../types';
+import { categories } from '../data/categories';
 
 interface AddTermFormProps {
   onAddTerm: (termData: Omit<Term, 'id' | 'createdAt'>) => void;
+  activeCategory?: string;
+  categories: { key: string; name: string; color: string }[];
 }
 
-const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm }) => {
+const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, categories }) => {
   const [formData, setFormData] = useState({
-    category: 'english' as Term['category'],
+    category: activeCategory && activeCategory !== 'all' ? activeCategory : (categories.length > 0 ? categories[0].key : 'english'),
     term: '',
     meaning: '',
     example: ''
   });
+
+  // activeCategoryが変更されたらカテゴリも自動で変更
+  useEffect(() => {
+    if (activeCategory && activeCategory !== 'all') {
+      setFormData(prev => ({ ...prev, category: activeCategory }));
+    }
+  }, [activeCategory]);
+
+  // カテゴリ一覧が変わったら、選択肢も更新
+  useEffect(() => {
+    if (!categories.some(c => c.key === formData.category)) {
+      setFormData(prev => ({ ...prev, category: categories.length > 0 ? categories[0].key : 'english' }));
+    }
+  }, [categories]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,10 +70,9 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm }) => {
             onChange={(e) => handleInputChange('category', e.target.value)}
             required
           >
-            <option value="english">英語</option>
-            <option value="applied">応用情報</option>
-            <option value="advanced">高度情報</option>
-            <option value="gkentei">G検定</option>
+            {categories.map(cat => (
+              <option key={cat.key} value={cat.key}>{cat.name}</option>
+            ))}
           </select>
         </div>
         
