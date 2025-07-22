@@ -13,7 +13,8 @@ import SchedulePage from './components/SchedulePage';
 import EditTermModal from './components/EditTermModal';
 import Notification from './components/Notification';
 import { useTerms } from './hooks/useTerms';
-import { Term } from './types';
+import { Term, StudyLog } from './types';
+import StudyTimeInput from './components/StudyTimeInput';
 import './styles/App.css';
 
 const App: React.FC = () => {
@@ -23,6 +24,7 @@ const App: React.FC = () => {
   const [editTerm, setEditTerm] = useState<Term | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showSchedule, setShowSchedule] = useState(false);
+  const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
 
   const handleAddTerm = (termData: Omit<Term, 'id' | 'createdAt'>) => {
     addTerm(termData);
@@ -48,8 +50,26 @@ const App: React.FC = () => {
   const today = format(new Date(), 'yyyy-MM-dd');
   // 今日の語句追加数
   const todayTerms = terms.filter(t => t.createdAt?.slice(0, 10) === today).length;
-  // 今日の勉強時間（ダミー: 例として30分固定）
-  const todayTime = 30; // 本来はstudyLogsから集計
+  // 今日の勉強時間（studyLogsから集計）
+  const todayTime = studyLogs.filter(log => log.date === today).reduce((sum, log) => sum + log.amount, 0);
+
+  // 勉強時間記録（ストップウォッチ・手動入力）
+  const handleRecordTime = (minutes: number) => {
+    // 例: カテゴリは現在選択中のもの、なければ'all'
+    const category = activeCategory === 'all' ? 'all' : activeCategory;
+    // 既存の同日・同カテゴリがあれば加算
+    setStudyLogs(prev => {
+      const idx = prev.findIndex(log => log.date === today && log.category === category);
+      if (idx !== -1) {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], amount: updated[idx].amount + minutes };
+        return updated;
+      } else {
+        return [...prev, { date: today, category, amount: minutes }];
+      }
+    });
+    setNotification({ message: `勉強時間を${minutes}分記録しました！`, type: 'success' });
+  };
 
   return (
     <div className="app-container">
@@ -62,6 +82,7 @@ const App: React.FC = () => {
           今日の勉強時間: <span style={{ color: '#28a745', fontWeight: 700 }}>{todayTime}分</span>
         </div>
       </div>
+      <StudyTimeInput onRecord={handleRecordTime} />
       <button className="btn" style={{ margin: '20px' }} onClick={() => setShowSchedule(true)}>スケジュール一覧へ</button>
       {showSchedule ? (
         <SchedulePage terms={terms} onBack={() => setShowSchedule(false)} />
