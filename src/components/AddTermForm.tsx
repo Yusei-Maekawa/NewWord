@@ -45,9 +45,9 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       example: formData.example.trim() || undefined
     });
 
-    // フォームリセット
+    // フォームリセット（カテゴリはactiveCategoryで固定）
     setFormData({
-      category: 'english',
+      category: activeCategory && activeCategory !== 'all' ? activeCategory : (categories.length > 0 ? categories[0].key : 'english'),
       term: '',
       meaning: '',
       example: ''
