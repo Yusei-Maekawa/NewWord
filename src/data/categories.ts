@@ -3,7 +3,8 @@ export const categories = [
   { key: 'english', name: '英語', color: '#007bff' },
   { key: 'applied', name: '応用情報', color: '#28a745' },
   { key: 'advanced', name: '高度情報', color: '#dc3545' },
-  { key: 'gkentei', name: 'G検定', color: '#ffc107' }
+  { key: 'gkentei', name: 'G検定', color: '#ffc107' },
+  { key: 'ycne', name: 'YCNE', color: '#6c757d' }
 ];
 
 export type CategoryKey = typeof categories[number]['key'];
