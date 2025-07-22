@@ -31,6 +31,16 @@ const StudyTimeInput: React.FC<StudyTimeInputProps> = ({ onRecord }) => {
     }
   };
 
+
+  // ストップウォッチリセット
+  const handleReset = () => {
+    setSeconds(0);
+    setIsRunning(false);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  };
+
   // 記録（ストップウォッチ）
   const handleRecord = () => {
     const minutes = Math.floor(seconds / 60);
@@ -59,6 +69,7 @@ const StudyTimeInput: React.FC<StudyTimeInputProps> = ({ onRecord }) => {
         <span style={{ fontWeight: 'bold', fontSize: '1.2em' }}>{Math.floor(seconds / 60)}:{('0' + (seconds % 60)).slice(-2)}</span>
         <button className="btn" onClick={handleStart} disabled={isRunning} style={{ marginLeft: '1em' }}>開始</button>
         <button className="btn" onClick={handleStop} disabled={!isRunning} style={{ marginLeft: '0.5em' }}>停止</button>
+        <button className="btn" onClick={handleReset} style={{ marginLeft: '0.5em' }}>リセット</button>
         <button className="btn" onClick={handleRecord} disabled={seconds < 60} style={{ marginLeft: '0.5em' }}>記録</button>
       </div>
       <div>
