@@ -30,7 +30,12 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.term.trim() || !formData.meaning.trim()) {
+    // undefined チェックを追加してエラーを防ぐ
+    const termValue = formData.term || '';
+    const meaningValue = formData.meaning || '';
+    const exampleValue = formData.example || '';
+    
+    if (!termValue.trim() || !meaningValue.trim()) {
       alert('用語と意味は必須項目です。');
       return;
     }
@@ -38,9 +43,9 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
     if (term) {
       onSave(term.id, {
         category: formData.category,
-        term: formData.term.trim(),
-        meaning: formData.meaning.trim(),
-        example: formData.example.trim() || undefined
+        term: termValue.trim(),
+        meaning: meaningValue.trim(),
+        example: exampleValue.trim() || undefined
       });
       onClose();
     }

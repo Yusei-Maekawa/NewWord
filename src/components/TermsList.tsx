@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { Term } from '../types';
 import { getCategoryName } from '../utils/helpers';
+
 
 interface TermsListProps {
   terms: Term[];
@@ -8,17 +10,19 @@ interface TermsListProps {
   onDeleteTerm: (id: number) => void;
 }
 
+
 const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
+
   const filteredTerms = terms.filter(term =>
-    term.term.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    term.meaning.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (term.example && term.example.toLowerCase().includes(searchQuery.toLowerCase()))
+    (term.term?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      term.meaning?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (term.example && term.example.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
-  const handleDelete = (id: number, term: string) => {
-    if (window.confirm(`「${term}」を削除してもよろしいですか？`)) {
+  const handleDelete = (id: number, termName: string) => {
+    if (window.confirm(`「${termName}」を削除してもよろしいですか？`)) {
       onDeleteTerm(id);
     }
   };
@@ -26,7 +30,6 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
   return (
     <section className="section">
       <h2>語句一覧</h2>
-      
       <div className="search-controls">
         <input
           type="text"

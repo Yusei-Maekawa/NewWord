@@ -12,13 +12,14 @@ import StudySection from './components/StudySection';
 import SchedulePage from './components/SchedulePage';
 import EditTermModal from './components/EditTermModal';
 import Notification from './components/Notification';
-import { useTerms } from './hooks/useTerms';
 import { Term, StudyLog } from './types';
 import StudyTimeInput from './components/StudyTimeInput';
 import './styles/App.css';
 
+
 const App: React.FC = () => {
-  const { terms, addTerm, updateTerm, deleteTerm } = useTerms();
+  // 語句一覧の状態
+  const [terms, setTerms] = useState<Term[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [categories, setCategories] = useState([...initialCategories]);
   const [editTerm, setEditTerm] = useState<Term | null>(null);
@@ -26,24 +27,99 @@ const App: React.FC = () => {
   const [showSchedule, setShowSchedule] = useState(false);
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
 
+  // 初回マウント時にAPIから取得
+  React.useEffect(() => {
+    fetch('http://localhost:4000/api/terms')
+      .then(res => res.json())
+      .then(data => setTerms(data));
+  }, []);
+
+  // 語句追加（API）
   const handleAddTerm = (termData: Omit<Term, 'id' | 'createdAt'>) => {
-    addTerm(termData);
-    setNotification({ message: '用語を追加しました！', type: 'success' });
+    // DBのカラム名は「word」なので、React側の「term」を「word」に変換して送信
+    const apiData = {
+      word: termData.term,  // React側「term」→DB側「word」
+      meaning: termData.meaning,
+      example: termData.example,
+      category: termData.category
+    };
+    
+    console.log('送信データ:', apiData); // デバッグ用：送信内容を確認
+    
+    fetch('http://localhost:4000/api/terms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(apiData)
+    })
+      .then(res => {
+        console.log('APIレスポンス:', res.status); // デバッグ用：レスポンス確認
+        return res.json();
+      })
+      .then(newTerm => {
+        console.log('追加成功:', newTerm); // デバッグ用：追加結果確認
+        setTerms(prev => [...prev, { ...termData, id: newTerm.id, createdAt: new Date().toISOString() }]);
+        setNotification({ message: '用語を追加しました！', type: 'success' });
+      })
+      .catch(error => {
+        console.error('追加エラー:', error); // エラーハンドリング
+        setNotification({ message: '追加に失敗しました', type: 'error' });
+      });
   };
 
+  // 編集開始
   const handleEditTerm = (term: Term) => {
     setEditTerm(term);
   };
 
+  // 語句編集（API）
   const handleSaveEdit = (id: number, termData: Omit<Term, 'id' | 'createdAt'>) => {
-    updateTerm(id, termData);
-    setEditTerm(null);
-    setNotification({ message: '用語を更新しました！', type: 'success' });
+    // DBのカラム名は「word」なので、React側の「term」を「word」に変換して送信
+    const apiData = {
+      word: termData.term,  // React側「term」→DB側「word」
+      meaning: termData.meaning,
+      example: termData.example,
+      category: termData.category
+    };
+    
+    console.log('編集データ:', apiData); // デバッグ用：送信内容を確認
+    
+    fetch(`http://localhost:4000/api/terms/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(apiData)
+    })
+      .then(res => {
+        console.log('編集APIレスポンス:', res.status); // デバッグ用
+        return res.json();
+      })
+      .then(() => {
+        setTerms(prev => prev.map(t => t.id === id ? { ...t, ...termData } : t));
+        setEditTerm(null);
+        setNotification({ message: '用語を更新しました！', type: 'success' });
+      })
+      .catch(error => {
+        console.error('編集エラー:', error); // エラーハンドリング
+        setNotification({ message: '更新に失敗しました', type: 'error' });
+      });
   };
 
+  // 語句削除（API）
   const handleDeleteTerm = (id: number) => {
-    deleteTerm(id);
-    setNotification({ message: '用語を削除しました！', type: 'success' });
+    console.log('削除ID:', id); // デバッグ用：削除対象ID確認
+    
+    fetch(`http://localhost:4000/api/terms/${id}`, { method: 'DELETE' })
+      .then(res => {
+        console.log('削除APIレスポンス:', res.status); // デバッグ用
+        return res.json();
+      })
+      .then(() => {
+        setTerms(prev => prev.filter(t => t.id !== id));
+        setNotification({ message: '用語を削除しました！', type: 'success' });
+      })
+      .catch(error => {
+        console.error('削除エラー:', error); // エラーハンドリング
+        setNotification({ message: '削除に失敗しました', type: 'error' });
+      });
   };
 
   // 今日の日付
