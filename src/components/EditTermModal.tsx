@@ -15,6 +15,7 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
     meaning: '',
     example: ''
   });
+  const [showRichTextHelp, setShowRichTextHelp] = useState(false);
 
   useEffect(() => {
     if (term) {
@@ -98,12 +99,49 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
           
           <div className="form-group">
             <label htmlFor="editMeaning">意味・説明:</label>
+            <div className="rich-text-info">
+              <button 
+                type="button" 
+                className="help-button"
+                onClick={() => setShowRichTextHelp(!showRichTextHelp)}
+              >
+                💡 書式設定ヘルプ
+              </button>
+              {showRichTextHelp && (
+                <div className="rich-text-help">
+                  <p><strong>使用可能な書式:</strong></p>
+                  <ul>
+                    <li><code>**太字**</code> → <strong>太字</strong></li>
+                    <li><code>*斜体*</code> → <em>斜体</em></li>
+                    <li><code>`コード`</code> → <code>コード</code></li>
+                    <li><code>~~取り消し~~</code> → <del>取り消し</del></li>
+                    <li>改行はそのまま反映されます</li>
+                  </ul>
+                </div>
+              )}
+            </div>
             <textarea
               id="editMeaning"
               value={formData.meaning}
               onChange={(e) => handleInputChange('meaning', e.target.value)}
+              placeholder="**重要**な概念です。`コード`や*斜体*も使えます。&#10;改行も反映されます。"
+              rows={6}
               required
             />
+            <div className="preview-section">
+              <h4>プレビュー:</h4>
+              <div 
+                className="rich-text-preview"
+                dangerouslySetInnerHTML={{ 
+                  __html: formData.meaning
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    .replace(/~~(.*?)~~/g, '<del>$1</del>')
+                }}
+              />
+            </div>
           </div>
           
           <div className="form-group">
@@ -112,7 +150,25 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
               id="editExample"
               value={formData.example}
               onChange={(e) => handleInputChange('example', e.target.value)}
+              placeholder="例文やコードサンプルなど。&#10;**太字**や`コード`も使えます。"
+              rows={4}
             />
+            {formData.example && (
+              <div className="preview-section">
+                <h4>プレビュー:</h4>
+                <div 
+                  className="rich-text-preview"
+                  dangerouslySetInnerHTML={{ 
+                    __html: formData.example
+                      .replace(/\n/g, '<br>')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      .replace(/`(.*?)`/g, '<code>$1</code>')
+                      .replace(/~~(.*?)~~/g, '<del>$1</del>')
+                  }}
+                />
+              </div>
+            )}
           </div>
           
           <div className="form-actions">

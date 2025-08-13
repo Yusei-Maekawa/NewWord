@@ -507,6 +507,28 @@ app.put('/api/terms/:id', (req, res) => {
 });
 ```
 
+#### ❌ 問題7: 語句一覧が表示されない・再読み込み後に消える
+
+**原因**: APIから取得したデータのプロパティ名変換不足
+- DB側: `word` カラム
+- React側: `term` プロパティ
+
+**解決方法**: データ取得時にプロパティ名を変換
+```tsx
+// App.tsx のuseEffect内
+.then(data => {
+  const convertedData = data.map((item: any) => ({
+    id: item.id,
+    term: item.word,  // DB「word」→React「term」
+    meaning: item.meaning,
+    example: item.example,
+    category: item.category,
+    createdAt: item.created_at
+  }));
+  setTerms(convertedData);
+})
+```
+
 #### 🛠️ デバッグ方法
 
 1. **ブラウザのDevTools → Network タブ**でAPI リクエスト/レスポンスを確認

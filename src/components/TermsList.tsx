@@ -13,6 +13,7 @@ interface TermsListProps {
 
 const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTerm, setSelectedTerm] = useState<Term | null>(null);
 
 
   const filteredTerms = terms.filter(term =>
@@ -25,6 +26,31 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
     if (window.confirm(`「${termName}」を削除してもよろしいですか？`)) {
       onDeleteTerm(id);
     }
+  };
+
+  const handleTermClick = (term: Term) => {
+    setSelectedTerm(term);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedTerm(null);
+  };
+
+  // リッチテキストを安全にレンダリングする関数
+  const renderRichText = (text: string) => {
+    if (!text) return '';
+    
+    // 改行をHTMLの<br>タグに変換
+    let formattedText = text.replace(/\n/g, '<br>');
+    
+    // マークダウン風記法をHTMLに変換
+    formattedText = formattedText
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **太字**
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // *斜体*
+      .replace(/`(.*?)`/g, '<code>$1</code>') // `コード`
+      .replace(/~~(.*?)~~/g, '<del>$1</del>'); // ~~取り消し線~~
+    
+    return formattedText;
   };
 
   return (
@@ -47,24 +73,34 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
           </p>
         </div>
       ) : (
-        <div className="terms-list">
+        <div className="terms-grid">
           {filteredTerms.map(term => (
-            <div key={term.id} className="term-item">
-              <h4>{term.term}</h4>
-              <span className={`category category-${term.category}`}>
-                {getCategoryName(term.category)}
-              </span>
-              <p><strong>意味:</strong> {term.meaning}</p>
-              {term.example && <p><strong>例文:</strong> {term.example}</p>}
-              <div className="term-actions">
+            <div key={term.id} className="term-card" onClick={() => handleTermClick(term)}>
+              <div className="term-card-header">
+                <h4 className="term-title">{term.term}</h4>
+                <span className={`category-badge category-${term.category}`}>
+                  {getCategoryName(term.category)}
+                </span>
+              </div>
+              <div className="term-card-content">
+                <div 
+                  className="term-meaning-preview"
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderRichText(term.meaning || '').length > 100 
+                      ? renderRichText(term.meaning || '').substring(0, 100) + '...' 
+                      : renderRichText(term.meaning || '')
+                  }}
+                />
+              </div>
+              <div className="term-card-actions" onClick={(e) => e.stopPropagation()}>
                 <button 
-                  className="btn btn-success"
+                  className="btn btn-success btn-sm"
                   onClick={() => onEditTerm(term)}
                 >
                   編集
                 </button>
                 <button 
-                  className="btn btn-danger"
+                  className="btn btn-danger btn-sm"
                   onClick={() => handleDelete(term.id, term.term)}
                 >
                   削除
@@ -72,6 +108,68 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 詳細モーダル */}
+      {selectedTerm && (
+        <div className="modal-overlay" onClick={handleCloseDetail}>
+          <div className="modal-content term-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedTerm.term}</h3>
+              <span className={`category-badge category-${selectedTerm.category}`}>
+                {getCategoryName(selectedTerm.category)}
+              </span>
+              <button className="modal-close" onClick={handleCloseDetail}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="detail-section">
+                <h4>意味・説明</h4>
+                <div 
+                  className="rich-text-content"
+                  dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.meaning || '') }}
+                />
+              </div>
+              {selectedTerm.example && (
+                <div className="detail-section">
+                  <h4>例文・使用例</h4>
+                  <div 
+                    className="rich-text-content"
+                    dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.example) }}
+                  />
+                </div>
+              )}
+              {selectedTerm.createdAt && (
+                <div className="detail-section">
+                  <h4>追加日時</h4>
+                  <p>{new Date(selectedTerm.createdAt).toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button 
+                className="btn btn-success"
+                onClick={() => {
+                  onEditTerm(selectedTerm);
+                  handleCloseDetail();
+                }}
+              >
+                編集
+              </button>
+              <button 
+                className="btn btn-danger"
+                onClick={() => {
+                  handleDelete(selectedTerm.id, selectedTerm.term);
+                  handleCloseDetail();
+                }}
+              >
+                削除
+              </button>
+              <button className="btn btn-secondary" onClick={handleCloseDetail}>
+                閉じる
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

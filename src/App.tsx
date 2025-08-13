@@ -31,7 +31,22 @@ const App: React.FC = () => {
   React.useEffect(() => {
     fetch('http://localhost:4000/api/terms')
       .then(res => res.json())
-      .then(data => setTerms(data));
+      .then(data => {
+        // DBの「word」フィールドをReactの「term」プロパティに変換
+        const convertedData = data.map((item: any) => ({
+          id: item.id,
+          term: item.word,  // DB「word」→React「term」
+          meaning: item.meaning,
+          example: item.example,
+          category: item.category,
+          createdAt: item.created_at
+        }));
+        setTerms(convertedData);
+      })
+      .catch(error => {
+        console.error('データ取得エラー:', error);
+        setNotification({ message: 'データの取得に失敗しました', type: 'error' });
+      });
   }, []);
 
   // 語句追加（API）
