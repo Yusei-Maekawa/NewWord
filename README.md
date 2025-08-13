@@ -388,8 +388,12 @@ src/
 // 例：マークダウン記法対応
 meaning: "**重要**な概念です。`コード`や*斜体*も使える"
 
-// 例：カラーコード対応
-meaning: "赤色で<span style='color:red'>強調</span>したい部分"
+// 例：色指定対応
+meaning: "[red]重要[/red]な概念で、[blue]青色[/blue]で強調したい部分"
+
+// 使用可能な色：
+// [red]赤色[/red], [blue]青色[/blue], [green]緑色[/green]
+// [orange]オレンジ[/orange], [purple]紫色[/purple], [pink]ピンク[/pink], [gray]グレー[/gray]
 ```
 
 #### 語句一覧の改善案

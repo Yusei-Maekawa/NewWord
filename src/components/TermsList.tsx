@@ -43,6 +43,16 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
     // 改行をHTMLの<br>タグに変換
     let formattedText = text.replace(/\n/g, '<br>');
     
+    // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
+    formattedText = formattedText
+      .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c; font-weight: 600;">$1</span>') // 赤色
+      .replace(/\[blue\](.*?)\[\/blue\]/g, '<span style="color: #3498db; font-weight: 600;">$1</span>') // 青色
+      .replace(/\[green\](.*?)\[\/green\]/g, '<span style="color: #27ae60; font-weight: 600;">$1</span>') // 緑色
+      .replace(/\[orange\](.*?)\[\/orange\]/g, '<span style="color: #f39c12; font-weight: 600;">$1</span>') // オレンジ色
+      .replace(/\[purple\](.*?)\[\/purple\]/g, '<span style="color: #9b59b6; font-weight: 600;">$1</span>') // 紫色
+      .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>') // ピンク色
+      .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #95a5a6; font-weight: 600;">$1</span>'); // グレー色
+    
     // マークダウン風記法をHTMLに変換
     formattedText = formattedText
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **太字**
@@ -86,8 +96,8 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
                 <div 
                   className="term-meaning-preview"
                   dangerouslySetInnerHTML={{ 
-                    __html: renderRichText(term.meaning || '').length > 100 
-                      ? renderRichText(term.meaning || '').substring(0, 100) + '...' 
+                    __html: renderRichText(term.meaning || '').length > 200 
+                      ? renderRichText(term.meaning || '').substring(0, 200) + '...' 
                       : renderRichText(term.meaning || '')
                   }}
                 />

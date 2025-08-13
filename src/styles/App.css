@@ -498,7 +498,7 @@ body {
 /* カード型レイアウト */
 .terms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 20px;
   padding: 20px 0;
 }
@@ -512,6 +512,9 @@ body {
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
   position: relative;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
 }
 
 .term-card:hover {
@@ -551,18 +554,24 @@ body {
 
 .term-card-content {
   margin-bottom: 15px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .term-meaning-preview {
   color: #5a6c7d;
-  line-height: 1.5;
+  line-height: 1.6;
   font-size: 0.95rem;
+  max-height: none;
+  overflow: visible;
+  flex: 1;
 }
 
 .term-card-actions {
   display: flex;
   gap: 8px;
-  margin-top: 15px;
+  margin-top: auto;
+  padding-top: 15px;
 }
 
 .btn-sm {
@@ -761,6 +770,69 @@ body {
   min-height: 80px;
 }
 
+/* リッチテキストツールバー */
+.rich-text-toolbar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.toolbar-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: 500;
+  margin-right: 5px;
+}
+
+.format-btn, .color-btn {
+  padding: 4px 8px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  min-width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.format-btn:hover, .color-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.format-btn:active, .color-btn:active {
+  background: #dee2e6;
+}
+
+.color-btn.red { background: #ffe6e6; color: #e74c3c; }
+.color-btn.blue { background: #e6f2ff; color: #3498db; }
+.color-btn.green { background: #e6ffe6; color: #27ae60; }
+.color-btn.orange { background: #fff3e6; color: #f39c12; }
+.color-btn.purple { background: #f0e6ff; color: #9b59b6; }
+.color-btn.pink { background: #ffe6f2; color: #e91e63; }
+
+.color-btn.red:hover { background: #ffd6d6; }
+.color-btn.blue:hover { background: #d6e9ff; }
+.color-btn.green:hover { background: #d6ffd6; }
+.color-btn.orange:hover { background: #ffe9d6; }
+.color-btn.purple:hover { background: #e6d6ff; }
+.color-btn.pink:hover { background: #ffd6e9; }
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
   .terms-grid {
@@ -789,5 +861,22 @@ body {
   
   .modal-actions {
     flex-direction: column;
+  }
+  
+  .rich-text-toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .toolbar-section {
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  
+  .format-btn, .color-btn {
+    min-width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+    padding: 2px 6px;
   }
 }
