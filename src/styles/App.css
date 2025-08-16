@@ -383,6 +383,26 @@ body {
 .category-applied { background-color: #28a745 !important; }
 .category-advanced { background-color: #dc3545 !important; }
 .category-gkentei { background-color: #ffc107 !important; color: #333 !important; }
+.category-ycne { background-color: #6c757d !important; }
+
+/* 新しいカテゴリの色分け */
+.category-security { background-color: #9b59b6 !important; }
+.category-cloud { background-color: #17a2b8 !important; }
+.category-database { background-color: #fd7e14 !important; }
+.category-network { background-color: #6f42c1 !important; }
+.category-programming { background-color: #343a40 !important; }
+
+/* カテゴリバッジ用の色（term-card内で使用） */
+.category-badge.category-english { background: #007bff; }
+.category-badge.category-applied { background: #28a745; }
+.category-badge.category-advanced { background: #dc3545; }
+.category-badge.category-gkentei { background: #ffc107; color: #333; }
+.category-badge.category-ycne { background: #6c757d; }
+.category-badge.category-security { background: #9b59b6; }
+.category-badge.category-cloud { background: #17a2b8; }
+.category-badge.category-database { background: #fd7e14; }
+.category-badge.category-network { background: #6f42c1; }
+.category-badge.category-programming { background: #343a40; }
 
 /* アニメーション */
 @keyframes fadeIn {
@@ -878,5 +898,162 @@ body {
     height: 24px;
     font-size: 0.75rem;
     padding: 2px 6px;
+  }
+}
+
+/* カテゴリ管理モーダルのスタイル */
+.category-manager {
+  max-width: 800px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.add-category-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.add-category-section h4 {
+  margin-bottom: 15px;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.add-category-form .form-row {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.add-category-form .form-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.add-category-form .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.add-category-form input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.categories-list h4 {
+  margin-bottom: 15px;
+  color: #495057;
+  font-size: 1.1rem;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 8px;
+}
+
+.category-item {
+  margin-bottom: 15px;
+  padding: 15px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  transition: box-shadow 0.2s;
+}
+
+.category-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.category-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.category-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.default-badge {
+  background: #28a745;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-category-form .form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.edit-category-form input {
+  padding: 6px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.error-message {
+  animation: slideIn 0.3s ease;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+  .category-manager {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+  
+  .add-category-form .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .add-category-form .form-group {
+    min-width: auto;
+  }
+  
+  .category-display {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .category-info {
+    justify-content: center;
+  }
+  
+  .edit-category-form .form-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

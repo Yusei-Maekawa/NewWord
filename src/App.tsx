@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Header from './components/Header';
 import { format } from 'date-fns';
 import CategoryNav from './components/CategoryNav';
-import { categories as initialCategories } from './data/categories';
 import TermsList from './components/TermsList';
 import AddTermForm from './components/AddTermForm';
 import CsvImportForm from './components/CsvImportForm';
@@ -16,19 +15,53 @@ import { Term, StudyLog } from './types';
 import StudyTimeInput from './components/StudyTimeInput';
 import './styles/App.css';
 
+interface Category {
+  id: number;
+  category_key: string;
+  category_name: string;
+  category_icon: string;
+  category_color: string;
+  is_default: boolean;
+}
 
 const App: React.FC = () => {
   // 語句一覧の状態
   const [terms, setTerms] = useState<Term[]>([]);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [categories, setCategories] = useState([...initialCategories]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [editTerm, setEditTerm] = useState<Term | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showSchedule, setShowSchedule] = useState(false);
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
 
+  // カテゴリ一覧を取得する関数
+  const fetchCategories = async () => {
+    try {
+      console.log('🔄 カテゴリ取得開始...');
+      const response = await fetch('http://localhost:4000/api/categories');
+      console.log('📡 レスポンス状態:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ APIエラー詳細:', errorText);
+        throw new Error(`カテゴリの取得に失敗しました (${response.status}): ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ カテゴリ取得成功:', data);
+      setCategories(data);
+    } catch (error) {
+      console.error('❌ カテゴリ取得エラー:', error);
+      setNotification({ 
+        message: `カテゴリの取得に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`, 
+        type: 'error' 
+      });
+    }
+  };
+
   // 初回マウント時にAPIから取得
   React.useEffect(() => {
+    // 語句データを取得
     fetch('http://localhost:4000/api/terms')
       .then(res => res.json())
       .then(data => {
@@ -47,6 +80,9 @@ const App: React.FC = () => {
         console.error('データ取得エラー:', error);
         setNotification({ message: 'データの取得に失敗しました', type: 'error' });
       });
+    
+    // カテゴリデータを取得
+    fetchCategories();
   }, []);
 
   // 語句追加（API）
@@ -191,8 +227,7 @@ const App: React.FC = () => {
             activeCategory={activeCategory}
             onCategoryChange={setActiveCategory}
             categories={categories}
-            onAddCategory={cat => setCategories(prev => [...prev, cat])}
-            onDeleteCategory={key => setCategories(prev => prev.filter(c => c.key !== key))}
+            onCategoryUpdate={fetchCategories}
           />
           <div className="main-layout">
             <div className="left-panel">
@@ -203,7 +238,12 @@ const App: React.FC = () => {
               <AddTermForm
                 onAddTerm={handleAddTerm}
                 activeCategory={activeCategory}
-                categories={categories}
+                categories={categories.map(cat => ({
+                  key: cat.category_key,
+                  name: cat.category_name,
+                  color: cat.category_color,
+                  icon: cat.category_icon
+                }))}
               />
               <TermsList
                 terms={activeCategory === 'all' ? terms : terms.filter(t => t.category === activeCategory)}

@@ -533,6 +533,138 @@ app.put('/api/terms/:id', (req, res) => {
 })
 ```
 
+#### ❌ 問題8: 新しいカテゴリが保存されない・表示されない
+
+**原因**: 
+1. DBのcategoryカラムの文字数制限（VARCHAR(50)）で長いカテゴリ名が切り詰められる
+2. フロントエンドでカテゴリ定義が不足している
+3. CSSでカテゴリの色スタイルが未定義
+
+**解決手順**:
+
+**Step 1: DBのカテゴリカラムを拡張**
+```sql
+-- phpMyAdminのSQLタブで実行
+-- 現在の VARCHAR(50) から VARCHAR(100) に拡張
+ALTER TABLE terms MODIFY COLUMN category VARCHAR(100);
+```
+
+**Step 2: カテゴリ定義ファイルの作成・更新**
+```tsx
+// src/data/categories.ts を作成または更新
+export const categories = [
+  // 既存カテゴリ
+  { id: 'english', name: '英語', icon: '🇺🇸', color: '#3498db' },
+  { id: 'applied', name: '応用情報', icon: '💻', color: '#27ae60' },
+  { id: 'advanced', name: '高度情報', icon: '🔧', color: '#e74c3c' },
+  { id: 'gkentei', name: 'G検定', icon: '🤖', color: '#f39c12' },
+  
+  // 新しいカテゴリを追加
+  { id: 'security', name: '情報セキュリティ', icon: '🔒', color: '#9b59b6' },
+  { id: 'cloud', name: 'クラウド', icon: '☁️', color: '#17a2b8' },
+  { id: 'database', name: 'データベース', icon: '🗄️', color: '#fd7e14' },
+  { id: 'network', name: 'ネットワーク', icon: '🌐', color: '#6c757d' },
+  { id: 'programming', name: 'プログラミング', icon: '⌨️', color: '#343a40' }
+];
+
+// カテゴリIDから名前を取得するヘルパー関数
+export const getCategoryName = (categoryId: string): string => {
+  const category = categories.find(cat => cat.id === categoryId);
+  return category ? category.name : categoryId;
+};
+
+// カテゴリIDからアイコンを取得するヘルパー関数
+export const getCategoryIcon = (categoryId: string): string => {
+  const category = categories.find(cat => cat.id === categoryId);
+  return category ? category.icon : '📝';
+};
+```
+
+**Step 3: CSSにカテゴリ色を追加**
+```css
+/* App.css の最後に追加 */
+
+/* 新しいカテゴリのバッジ色 */
+.category-badge.category-security { background: #9b59b6; }
+.category-badge.category-cloud { background: #17a2b8; }
+.category-badge.category-database { background: #fd7e14; }
+.category-badge.category-network { background: #6c757d; }
+.category-badge.category-programming { background: #343a40; }
+
+/* カテゴリナビゲーションボタンの色（アクティブ時） */
+.category-btn.active.category-security { 
+  background: #9b59b6; 
+  border-color: #9b59b6; 
+}
+.category-btn.active.category-cloud { 
+  background: #17a2b8; 
+  border-color: #17a2b8; 
+}
+.category-btn.active.category-database { 
+  background: #fd7e14; 
+  border-color: #fd7e14; 
+}
+.category-btn.active.category-network { 
+  background: #6c757d; 
+  border-color: #6c757d; 
+}
+.category-btn.active.category-programming { 
+  background: #343a40; 
+  border-color: #343a40; 
+}
+```
+
+**Step 4: AddTermForm.tsx のカテゴリ選択を動的に更新**
+```tsx
+// src/components/AddTermForm.tsx
+import { categories } from '../data/categories';
+
+// カテゴリ選択のselect要素
+<select
+  value={formData.category}
+  onChange={(e) => handleInputChange('category', e.target.value)}
+  required
+>
+  <option value="">カテゴリを選択</option>
+  {categories.map(category => (
+    <option key={category.id} value={category.id}>
+      {category.icon} {category.name}
+    </option>
+  ))}
+</select>
+```
+
+**確認方法**:
+1. phpMyAdminでtermsテーブルの構造確認（categoryがVARCHAR(100)になっているか）
+2. 新しいカテゴリで語句を追加してDBに保存されるかテスト
+3. 語句一覧で新しいカテゴリの色・アイコンが正しく表示されるか確認
+4. カテゴリフィルタリングが正常に動作するか確認
+
+**詳細な手順**:
+```bash
+# 1. データベース更新
+# phpMyAdminで database_update.sql を実行
+
+# 2. アプリケーション起動テスト
+# test-new-categories.bat を実行して動作確認
+
+# 3. 手動テスト手順
+# - 語句追加フォームで「情報セキュリティ」カテゴリを選択
+# - 語句を追加して保存
+# - phpMyAdminでデータが正しく保存されているか確認
+# - 語句一覧でカテゴリの色とアイコンが表示されるか確認
+```
+
+**デバッグ用のコンソールログ**:
+```tsx
+// AddTermForm.tsx のhandleSubmit内に追加
+console.log('送信するカテゴリ:', formData.category);
+console.log('利用可能なカテゴリ:', categories);
+
+// App.tsx のhandleAddTerm内に追加  
+console.log('APIに送信するデータ:', apiData);
+```
+
 #### 🛠️ デバッグ方法
 
 1. **ブラウザのDevTools → Network タブ**でAPI リクエスト/レスポンスを確認

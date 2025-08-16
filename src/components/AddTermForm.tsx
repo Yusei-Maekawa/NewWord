@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Term } from '../types';
-import { categories } from '../data/categories';
+import { categories, getCategoryIcon } from '../data/categories';
 
 interface AddTermFormProps {
   onAddTerm: (termData: Omit<Term, 'id' | 'createdAt'>) => void;
   activeCategory?: string;
-  categories: { key: string; name: string; color: string }[];
+  categories: { key: string; name: string; color: string; icon: string }[];
 }
 
 const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, categories }) => {
@@ -163,8 +163,11 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
             onChange={(e) => handleInputChange('category', e.target.value)}
             required
           >
+            {/* カテゴリ一覧を動的に表示（アイコン付き） */}
             {categories.map(cat => (
-              <option key={cat.key} value={cat.key}>{cat.name}</option>
+              <option key={cat.key} value={cat.key}>
+                {cat.icon} {cat.name}
+              </option>
             ))}
           </select>
         </div>
