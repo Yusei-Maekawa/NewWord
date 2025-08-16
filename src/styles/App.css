@@ -992,13 +992,22 @@ body {
   font-size: 0.9rem;
 }
 
-.default-badge {
-  background: #28a745;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
+/* アイコン選択のスタイル */
+.icon-select {
+  width: 100px !important;
+  font-size: 18px !important;
+  padding: 8px !important;
+  text-align: center !important;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.icon-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .category-actions {

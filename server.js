@@ -220,9 +220,9 @@ app.delete('/api/categories/:id', (req, res) => {
   const { id } = req.params;
   console.log(`カテゴリ削除リクエスト - ID: ${id}`);
   
-  // デフォルトカテゴリは削除できないようにチェック
+  // カテゴリの存在確認
   db.query(
-    'SELECT is_default, category_name FROM categories WHERE id = ?',
+    'SELECT category_name FROM categories WHERE id = ?',
     [id],
     (err, category) => {
       if (err) {
@@ -232,10 +232,6 @@ app.delete('/api/categories/:id', (req, res) => {
       
       if (category.length === 0) {
         return res.status(404).json({ error: 'カテゴリが見つかりません' });
-      }
-      
-      if (category[0].is_default) {
-        return res.status(400).json({ error: 'デフォルトカテゴリは削除できません' });
       }
       
       // そのカテゴリを使用している語句があるかチェック

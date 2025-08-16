@@ -27,6 +27,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ isOpen, onClose, onCa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // アイコン選択肢
+  const iconOptions = [
+    '📝', '📚', '💻', '🔧', '🌐', '🤖', '🇺🇸', '🇯🇵',
+    '⚙️', '🎯', '📊', '🔒', '☁️', '🗄️', '🧮', '📱',
+    '🎨', '🚀', '⭐', '🔥', '💡', '🎪', '🎭', '🎲'
+  ];
+
   // カテゴリ一覧を取得
   const fetchCategories = async () => {
     try {
@@ -117,11 +124,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ isOpen, onClose, onCa
 
   // カテゴリを削除
   const handleDeleteCategory = async (category: Category) => {
-    if (category.is_default) {
-      setError('デフォルトカテゴリは削除できません');
-      return;
-    }
-
     if (!window.confirm(`カテゴリ「${category.category_name}」を削除してもよろしいですか？`)) {
       return;
     }
@@ -195,14 +197,17 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ isOpen, onClose, onCa
                 </div>
                 <div className="form-group">
                   <label>アイコン:</label>
-                  <input
-                    type="text"
+                  <select
+                    className="icon-select"
                     value={newCategory.category_icon}
                     onChange={(e) => setNewCategory(prev => ({ ...prev, category_icon: e.target.value }))}
-                    placeholder="📝"
-                    maxLength={10}
-                    style={{ width: '80px' }}
-                  />
+                  >
+                    {iconOptions.map(icon => (
+                      <option key={icon} value={icon}>
+                        {icon}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label>色:</label>
@@ -243,13 +248,17 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ isOpen, onClose, onCa
                         onChange={(e) => setEditingCategory(prev => prev ? { ...prev, category_name: e.target.value } : null)}
                         required
                       />
-                      <input
-                        type="text"
+                      <select
+                        className="icon-select"
                         value={editingCategory.category_icon}
                         onChange={(e) => setEditingCategory(prev => prev ? { ...prev, category_icon: e.target.value } : null)}
-                        maxLength={10}
-                        style={{ width: '80px' }}
-                      />
+                      >
+                        {iconOptions.map(icon => (
+                          <option key={icon} value={icon}>
+                            {icon}
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="color"
                         value={editingCategory.category_color}
@@ -278,9 +287,6 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ isOpen, onClose, onCa
                       >
                         {category.category_icon} {category.category_name}
                       </span>
-                      {category.is_default && (
-                        <span className="default-badge">デフォルト</span>
-                      )}
                     </div>
                     <div className="category-actions">
                       <button 
@@ -290,15 +296,13 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ isOpen, onClose, onCa
                       >
                         編集
                       </button>
-                      {!category.is_default && (
-                        <button 
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteCategory(category)}
-                          disabled={loading}
-                        >
-                          削除
-                        </button>
-                      )}
+                      <button 
+                        className="btn btn-danger btn-sm"
+                        onClick={() => handleDeleteCategory(category)}
+                        disabled={loading}
+                      >
+                        削除
+                      </button>
                     </div>
                   </div>
                 )}
