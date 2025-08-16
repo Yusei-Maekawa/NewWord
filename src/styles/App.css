@@ -1033,6 +1033,343 @@ body {
   animation: slideIn 0.3s ease;
 }
 
+/* 改良されたカテゴリ管理システムのスタイル */
+.category-manager {
+  max-width: 900px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* カテゴリ追加フォーム */
+.add-category-section {
+  margin-bottom: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.add-category-section h4 {
+  margin-bottom: 20px;
+  color: #495057;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 2fr 2fr 120px 80px auto auto;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.parent-select, .form-group input, .form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.parent-select:focus, .form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+.color-input {
+  width: 60px !important;
+  height: 40px !important;
+  padding: 2px !important;
+  border-radius: 6px;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+}
+
+.checkmark {
+  font-size: 1.2em;
+}
+
+.btn-add {
+  padding: 8px 16px;
+  font-weight: 600;
+  border-radius: 6px;
+}
+
+/* カテゴリ一覧 */
+.categories-list h4 {
+  margin-bottom: 20px;
+  color: #495057;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 10px;
+}
+
+.loading-message, .empty-message {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.category-tree {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e1e8ed;
+  overflow: hidden;
+}
+
+.favorite-section {
+  background: linear-gradient(45deg, #fff9e6, #ffffff);
+  border-bottom: 1px solid #ffc107;
+  padding: 15px;
+}
+
+.normal-section {
+  padding: 15px;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 15px;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.03);
+  border-radius: 6px;
+}
+
+/* カテゴリアイテム */
+.category-tree-item {
+  margin-bottom: 8px;
+}
+
+.category-card {
+  background: white;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s;
+}
+
+.category-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
+}
+
+.category-card.favorite {
+  border-left: 4px solid #ffc107;
+  background: linear-gradient(45deg, #fff9e6, #ffffff);
+}
+
+/* 編集フォーム */
+.edit-form-grid {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.edit-input {
+  flex: 2;
+  min-width: 150px;
+  padding: 6px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.icon-select-small {
+  width: 80px;
+  padding: 6px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.color-input-small {
+  width: 50px;
+  height: 32px;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.favorite-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+/* 表示モード */
+.category-display-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.category-info-card {
+  flex: 1;
+}
+
+.category-badge-card {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.category-actions-card {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ボタンスタイル */
+.btn-xs {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.btn-outline-warning {
+  background: transparent;
+  border: 1px solid #ffc107;
+  color: #ffc107;
+}
+
+.btn-outline-warning:hover {
+  background: #ffc107;
+  color: #000;
+}
+
+.btn-warning.btn-xs {
+  background: #ffc107;
+  color: #000;
+}
+
+.btn-primary.btn-xs {
+  background: #007bff;
+  color: white;
+}
+
+.btn-success.btn-xs {
+  background: #28a745;
+  color: white;
+}
+
+.btn-danger.btn-xs {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-secondary.btn-xs {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-xs:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-xs:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 子カテゴリ */
+.child-categories-wrapper {
+  margin-top: 8px;
+  border-left: 2px solid #e1e8ed;
+  padding-left: 10px;
+}
+
+.level-1 {
+  margin-left: 20px;
+}
+
+.level-2 {
+  margin-left: 40px;
+}
+
+.level-3 {
+  margin-left: 60px;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .category-manager {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+  
+  .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .form-group {
+    width: 100%;
+  }
+  
+  .category-display-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .category-actions-card {
+    justify-content: center;
+  }
+  
+  .edit-form-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .edit-input, .icon-select-small {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
 /* モバイル対応 */
 @media (max-width: 768px) {
   .category-manager {
@@ -1043,6 +1380,7 @@ body {
   }
   
   .add-category-form .form-row {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
   }
@@ -1065,4 +1403,416 @@ body {
     flex-direction: column;
     align-items: stretch;
   }
+  
+  .child-indicator {
+    margin-right: 4px;
+  }
+}
+
+/* Simple Category Manager Styles */
+.category-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.category-section h3 {
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.category-form .form-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.category-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.icon-select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+  min-width: 60px;
+}
+
+.color-input {
+  width: 40px;
+  height: 36px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.categories-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.category-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #f9f9f9;
+}
+
+.category-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.category-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.category-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.default-badge {
+  background: #28a745;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-form .form-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Button adjustments for category manager */
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #007bff;
+  color: #007bff;
+}
+
+.btn-outline:hover {
+  background: #007bff;
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .category-form .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .category-input {
+    min-width: auto;
+  }
+  
+  .category-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .category-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Modal styles for CategoryManager */
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-close:hover {
+  background: #f8f9fa;
+  color: #333;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #dee2e6;
+  background: #f8f9fa;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #495057;
+  font-size: 1.3rem;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* 階層カテゴリ管理の追加スタイル */
+.view-mode-tabs {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+  padding: 10px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-weight: 500;
+  color: #495057;
+  margin-right: 10px;
+}
+
+.tab-btn:hover {
+  background: #e9ecef;
+}
+
+.tab-btn.active {
+  background: #007bff;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,123,255,0.3);
+}
+
+.category-manager {
+  max-width: 900px;
+  width: 95%;
+}
+
+.parent-select {
+  min-width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+}
+
+.parent-info {
+  background: #e7f3ff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-top: 10px;
+  border-left: 4px solid #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.category-tree {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.category-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  transition: all 0.2s;
+}
+
+.category-card:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.categories-container {
+  min-height: 300px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.no-favorites, .no-categories {
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+.favorite-badge {
+  background: #ffc107;
+  color: #000;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.parent-badge {
+  background: #6c757d;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+/* ボタンの追加スタイル */
+.btn-warning {
+  background: #ffc107;
+  color: #000;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+}
+
+.btn-xs {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 3px;
+}
+
+/* 階層カテゴリ表示用スタイル */
+.hierarchical-category-select {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  background: #f8f9fa;
+  border: 2px solid #ced4da;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.hierarchical-category-select option {
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+}
+
+.selected-category-path {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: linear-gradient(45deg, #e3f2fd, #f8f9fa);
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.breadcrumb-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.breadcrumb-label {
+  color: #1976d2;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.breadcrumb-text {
+  font-family: 'Courier New', monospace;
+  color: #424242;
+  font-weight: 500;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+}
+
+/* Notion風の階層表示 */
+.notion-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Courier New', monospace;
+  background: #f5f5f5;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+.notion-breadcrumb .crumb {
+  background: white;
+  border: 1px solid #d0d0d0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+  font-weight: 500;
+}
+
+.notion-breadcrumb .separator {
+  color: #999;
+  font-weight: 300;
+}
+
+/* カテゴリマネージャーでの階層表示改善 */
+.category-tree .category-card {
+  position: relative;
+}
+
+.category-tree .category-card::before {
+  content: '';
+  position: absolute;
+  left: -15px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.category-tree .category-card[data-level="1"]::before {
+  background: #90caf9;
+}
+
+.category-tree .category-card[data-level="2"]::before {
+  background: #81c784;
+}
+
+.category-tree .category-card[data-level="3"]::before {
+  background: #ffb74d;
 }

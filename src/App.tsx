@@ -21,7 +21,20 @@ interface Category {
   category_name: string;
   category_icon: string;
   category_color: string;
-  is_default: boolean;
+  parent_id: number | null;
+  is_favorite: boolean;
+  display_order: number;
+  created_at: string;
+  parent_name?: string;
+  parent_icon?: string;
+  child_count?: number;
+  breadcrumb?: string;
+  path?: Array<{
+    id: number;
+    name: string;
+    icon: string;
+    color: string;
+  }>;
 }
 
 const App: React.FC = () => {
@@ -239,10 +252,12 @@ const App: React.FC = () => {
                 onAddTerm={handleAddTerm}
                 activeCategory={activeCategory}
                 categories={categories.map(cat => ({
+                  id: cat.id,
                   key: cat.category_key,
                   name: cat.category_name,
                   color: cat.category_color,
-                  icon: cat.category_icon
+                  icon: cat.category_icon,
+                  breadcrumb: cat.breadcrumb
                 }))}
               />
               <TermsList

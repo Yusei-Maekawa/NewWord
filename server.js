@@ -31,17 +31,24 @@ app.get('/api/terms', (req, res) => {
 
 // 語句を新規追加するAPI（POSTリクエスト）
 // 例: http://localhost:4000/api/terms
-// ボディ例: { word: 'test', meaning: '意味', example: '例文', category: '英語' }
+// ボディ例: { term: 'test', meaning: '意味', example: '例文', category: '英語' }
 app.post('/api/terms', (req, res) => {
-  // リクエストボディから値を取得
-  const { word, meaning, example, category } = req.body;
-  // MySQLにINSERT文を発行
+  // リクエストボディから値を取得（termまたはwordの両方に対応）
+  const { term, word, meaning, example, category } = req.body;
+  const termValue = term || word; // termがあればterm、なければword
+  
+  console.log('用語追加リクエスト:', { term: termValue, meaning, example, category });
+  
+  // MySQLにINSERT文を発行（データベースのwordカラムに保存）
   db.query(
     'INSERT INTO terms (word, meaning, example, category) VALUES (?, ?, ?, ?)',
-    [word, meaning, example, category],
+    [termValue, meaning, example, category],
     (err, result) => {
-      if (err) return res.status(500).json({ error: err }); // エラー時
-      // 追加したレコードのIDを返す
+      if (err) {
+        console.error('用語追加エラー:', err);
+        return res.status(500).json({ error: err });
+      }
+      console.log(`用語追加成功 - ID: ${result.insertId}`);
       res.json({ id: result.insertId });
     }
   );
@@ -49,15 +56,17 @@ app.post('/api/terms', (req, res) => {
 
 // 語句を編集するAPI（PUTリクエスト）
 // 例: http://localhost:4000/api/terms/1
-// ボディ例: { word: 'updated', meaning: '更新された意味', example: '例文', category: '英語' }
+// ボディ例: { term: 'updated', meaning: '更新された意味', example: '例文', category: '英語' }
 app.put('/api/terms/:id', (req, res) => {
   const { id } = req.params;
-  const { word, meaning, example, category } = req.body;
-  console.log(`編集リクエスト - ID: ${id}, データ:`, req.body); // デバッグ用
+  const { term, word, meaning, example, category } = req.body;
+  const termValue = term || word; // termがあればterm、なければword
+  
+  console.log(`編集リクエスト - ID: ${id}, データ:`, { term: termValue, meaning, example, category });
   
   db.query(
     'UPDATE terms SET word = ?, meaning = ?, example = ?, category = ? WHERE id = ?',
-    [word, meaning, example, category, id],
+    [termValue, meaning, example, category, id],
     (err, result) => {
       if (err) {
         console.error('編集エラー:', err);
@@ -93,25 +102,90 @@ app.delete('/api/terms/:id', (req, res) => {
 // カテゴリ管理API（動的カテゴリ対応）
 // ========================================
 
-// カテゴリ一覧を取得するAPI（GETリクエスト）
+// カテゴリ一覧を取得するAPI（階層構造対応）
 // 例: http://localhost:4000/api/categories
 app.get('/api/categories', (req, res) => {
-  console.log('カテゴリ一覧取得リクエスト');
-  db.query('SELECT * FROM categories ORDER BY is_default DESC, created_at ASC', (err, results) => {
+  console.log('階層型カテゴリ一覧取得リクエスト');
+  
+  // 階層構造を考慮してカテゴリを取得
+  const query = `
+    SELECT 
+      c.*,
+      parent.category_name as parent_name,
+      parent.category_icon as parent_icon,
+      (SELECT COUNT(*) FROM categories child WHERE child.parent_id = c.id) as child_count
+    FROM categories c
+    LEFT JOIN categories parent ON c.parent_id = parent.id
+    ORDER BY 
+      c.is_favorite DESC,
+      COALESCE(parent.display_order, c.display_order),
+      c.display_order,
+      c.created_at ASC
+  `;
+  
+  db.query(query, (err, results) => {
     if (err) {
       console.error('カテゴリ取得エラー:', err);
       return res.status(500).json({ error: err });
     }
-    console.log(`カテゴリ取得成功: ${results.length}件`);
-    res.json(results);
+    
+    // 再帰的にカテゴリの階層パスを取得する関数
+    function getCategoryPath(categoryId, categories, path = []) {
+      const category = categories.find(c => c.id === categoryId);
+      if (!category) return path;
+      
+      path.unshift(category);
+      if (category.parent_id) {
+        return getCategoryPath(category.parent_id, categories, path);
+      }
+      return path;
+    }
+    
+    // 各カテゴリに階層パスとパンくずリストを追加
+    const categoriesWithPath = results.map(category => {
+      const path = getCategoryPath(category.id, results);
+      const breadcrumb = path.map(p => p.category_name).join(' / ');
+      
+      console.log(`カテゴリ ${category.category_name} のパス:`, path.map(p => p.category_name));
+      
+      return {
+        ...category,
+        breadcrumb,
+        path: path.map(p => ({
+          id: p.id,
+          name: p.category_name,
+          icon: p.category_icon,
+          color: p.category_color
+        }))
+      };
+    });
+    
+    console.log(`階層型カテゴリ取得成功: ${categoriesWithPath.length}件`);
+    res.json(categoriesWithPath);
   });
 });
 
-// カテゴリを新規追加するAPI（POSTリクエスト）
+// カテゴリを新規追加するAPI（階層構造対応）
 // 例: http://localhost:4000/api/categories
-// ボディ例: { category_name: 'プログラミング', category_icon: '⌨️', category_color: '#343a40' }
+// ボディ例: { category_name: 'プログラミング', category_icon: '⌨️', category_color: '#343a40', parent_id: 1, is_favorite: false }
 app.post('/api/categories', (req, res) => {
-  const { category_name, category_icon = '📝', category_color = '#6c757d' } = req.body;
+  const { 
+    category_name, 
+    category_icon = '📝', 
+    category_color = '#6c757d',
+    parent_id = null,
+    is_favorite = false,
+    display_order = 0
+  } = req.body;
+  
+  console.log('カテゴリ追加リクエスト受信:', {
+    category_name,
+    category_icon,
+    category_color,
+    parent_id,
+    is_favorite,
+    display_order
+  });
   
   // カテゴリ名が空の場合はエラー
   if (!category_name || !category_name.trim()) {
@@ -141,22 +215,23 @@ app.post('/api/categories', (req, res) => {
         return res.status(400).json({ error: 'そのカテゴリは既に存在します' });
       }
       
-      // カテゴリを挿入
+      // カテゴリを挿入（階層構造対応）
       db.query(
-        'INSERT INTO categories (category_key, category_name, category_icon, category_color) VALUES (?, ?, ?, ?)',
-        [category_key, category_name.trim(), category_icon, category_color],
+        'INSERT INTO categories (category_key, category_name, category_icon, category_color, parent_id, is_favorite, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [category_key, category_name.trim(), category_icon, category_color, parent_id, is_favorite, display_order],
         (err, result) => {
           if (err) {
             console.error('カテゴリ追加エラー:', err);
             return res.status(500).json({ error: err });
           }
-          console.log(`カテゴリ追加成功 - ID: ${result.insertId}`);
+          console.log(`カテゴリ追加成功 - ID: ${result.insertId}, parent_id: ${parent_id}`);
           res.json({ 
             id: result.insertId, 
             category_key,
             category_name: category_name.trim(),
             category_icon,
             category_color,
+            parent_id,
             message: 'カテゴリを追加しました'
           });
         }
@@ -165,12 +240,43 @@ app.post('/api/categories', (req, res) => {
   );
 });
 
-// カテゴリを編集するAPI（PUTリクエスト）
+// デバッグ用: カテゴリの階層構造を確認するAPI
+app.get('/api/debug/categories', (req, res) => {
+  const query = `
+    SELECT 
+      c.id,
+      c.category_name,
+      c.category_key,
+      c.parent_id,
+      parent.category_name as parent_name,
+      c.is_favorite,
+      c.display_order,
+      c.created_at
+    FROM categories c
+    LEFT JOIN categories parent ON c.parent_id = parent.id
+    ORDER BY c.parent_id, c.display_order, c.created_at
+  `;
+  
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: err });
+    }
+    
+    console.log('デバッグ: 現在のカテゴリ階層構造');
+    results.forEach(cat => {
+      console.log(`ID: ${cat.id}, 名前: ${cat.category_name}, 親ID: ${cat.parent_id || 'なし'}, 親名: ${cat.parent_name || 'なし'}`);
+    });
+    
+    res.json(results);
+  });
+});
+
+// カテゴリを編集するAPI（階層構造対応）
 // 例: http://localhost:4000/api/categories/1
-// ボディ例: { category_name: '更新後の名前', category_icon: '🆕', category_color: '#ff0000' }
+// ボディ例: { category_name: '更新後の名前', category_icon: '🆕', category_color: '#ff0000', parent_id: 2, is_favorite: true }
 app.put('/api/categories/:id', (req, res) => {
   const { id } = req.params;
-  const { category_name, category_icon, category_color } = req.body;
+  const { category_name, category_icon, category_color, parent_id, is_favorite, display_order } = req.body;
   
   if (!category_name || !category_name.trim()) {
     return res.status(400).json({ error: 'カテゴリ名は必須です' });
@@ -192,10 +298,18 @@ app.put('/api/categories/:id', (req, res) => {
         return res.status(400).json({ error: 'その名前のカテゴリは既に存在します' });
       }
       
-      // カテゴリを更新
+      // カテゴリを更新（階層構造対応）
       db.query(
-        'UPDATE categories SET category_name = ?, category_icon = ?, category_color = ? WHERE id = ?',
-        [category_name.trim(), category_icon || '📝', category_color || '#6c757d', id],
+        'UPDATE categories SET category_name = ?, category_icon = ?, category_color = ?, parent_id = ?, is_favorite = ?, display_order = ? WHERE id = ?',
+        [
+          category_name.trim(), 
+          category_icon || '📝', 
+          category_color || '#6c757d', 
+          parent_id, 
+          is_favorite !== undefined ? is_favorite : false,
+          display_order !== undefined ? display_order : 0,
+          id
+        ],
         (err, result) => {
           if (err) {
             console.error('カテゴリ編集エラー:', err);
@@ -210,6 +324,36 @@ app.put('/api/categories/:id', (req, res) => {
           res.json({ message: 'カテゴリを更新しました', affectedRows: result.affectedRows });
         }
       );
+    }
+  );
+});
+
+// お気に入り状態を切り替えるAPI
+// 例: http://localhost:4000/api/categories/1/favorite
+app.put('/api/categories/:id/favorite', (req, res) => {
+  const { id } = req.params;
+  const { is_favorite } = req.body;
+  
+  console.log(`お気に入り切り替えリクエスト - ID: ${id}, お気に入り: ${is_favorite}`);
+  
+  db.query(
+    'UPDATE categories SET is_favorite = ? WHERE id = ?',
+    [is_favorite, id],
+    (err, result) => {
+      if (err) {
+        console.error('お気に入り切り替えエラー:', err);
+        return res.status(500).json({ error: err });
+      }
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'カテゴリが見つかりません' });
+      }
+      
+      console.log(`お気に入り切り替え成功 - ID: ${id}`);
+      res.json({ 
+        message: is_favorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました',
+        is_favorite
+      });
     }
   );
 });

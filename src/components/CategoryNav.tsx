@@ -7,7 +7,20 @@ interface Category {
   category_name: string;
   category_icon: string;
   category_color: string;
-  is_default: boolean;
+  parent_id: number | null;
+  is_favorite: boolean;
+  display_order: number;
+  created_at: string;
+  parent_name?: string;
+  parent_icon?: string;
+  child_count?: number;
+  breadcrumb?: string;
+  path?: Array<{
+    id: number;
+    name: string;
+    icon: string;
+    color: string;
+  }>;
 }
 
 interface CategoryNavProps {

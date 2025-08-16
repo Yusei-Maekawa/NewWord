@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Term } from '../types';
-import { categories, getCategoryIcon } from '../data/categories';
+
+interface Category {
+  id: number;
+  key: string;
+  name: string;
+  color: string;
+  icon: string;
+  breadcrumb?: string;
+}
 
 interface AddTermFormProps {
   onAddTerm: (termData: Omit<Term, 'id' | 'createdAt'>) => void;
   activeCategory?: string;
-  categories: { key: string; name: string; color: string; icon: string }[];
+  categories: Category[];
 }
 
 const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, categories }) => {
@@ -156,20 +164,42 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       <h2>新しい語句を追加</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="category">カテゴリ:</label>
+          <label htmlFor="category">カテゴリ（階層表示）:</label>
           <select
             id="category"
             value={formData.category}
             onChange={(e) => handleInputChange('category', e.target.value)}
             required
+            className="hierarchical-category-select"
           >
-            {/* カテゴリ一覧を動的に表示（アイコン付き） */}
+            {/* 階層カテゴリ一覧を動的に表示（パンくずリスト形式） */}
             {categories.map(cat => (
               <option key={cat.key} value={cat.key}>
-                {cat.icon} {cat.name}
+                {cat.breadcrumb || `[${cat.name}]`}
               </option>
             ))}
           </select>
+          {/* 選択中のカテゴリの階層パスを視覚的に表示 */}
+          {formData.category && (
+            <div className="selected-category-path">
+              {(() => {
+                const selectedCat = categories.find(c => c.key === formData.category);
+                return selectedCat ? (
+                  <div className="breadcrumb-display">
+                    <span className="breadcrumb-label">選択中:</span>
+                    <div className="notion-breadcrumb">
+                      {(selectedCat.breadcrumb || `[${selectedCat.name}]`).split(' / ').map((crumb, index, array) => (
+                        <React.Fragment key={index}>
+                          <span className="crumb">{crumb.replace(/[\[\]]/g, '')}</span>
+                          {index < array.length - 1 && <span className="separator">▶</span>}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+            </div>
+          )}
         </div>
         
         <div className="form-group">
