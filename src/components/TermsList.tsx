@@ -36,6 +36,7 @@ interface TermsListProps {
 const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, onDeleteTerm }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTerm, setSelectedTerm] = useState<Term | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // カテゴリ情報を取得する関数
   const getCategoryInfo = (categoryKey: string) => {
@@ -58,6 +59,18 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
     };
   };
 
+  // テキストから画像を抽出する関数
+  const extractImages = (text: string) => {
+    if (!text) return [];
+    const imageRegex = /!\[画像\]\((data:image\/[^)]+)\)/g;
+    const images = [];
+    let match;
+    while ((match = imageRegex.exec(text)) !== null) {
+      images.push(match[1]);
+    }
+    return images;
+  };
+
 
   const filteredTerms = terms.filter(term =>
     (term.term?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -77,6 +90,10 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
 
   const handleCloseDetail = () => {
     setSelectedTerm(null);
+  };
+
+  const handleToggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
   };
 
   // リッチテキストを安全にレンダリングする関数
@@ -113,8 +130,17 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
   };
 
   return (
-    <section className="section">
-      <h2>語句一覧</h2>
+    <section className={`section ${isFullScreen ? 'fullscreen' : ''}`}>
+      <div className="terms-list-header">
+        <h2>語句一覧</h2>
+        <button 
+          className="fullscreen-toggle-btn"
+          onClick={handleToggleFullScreen}
+          title={isFullScreen ? '通常表示に戻る' : '全画面表示'}
+        >
+          {isFullScreen ? '🗗' : '🗖'}
+        </button>
+      </div>
       <div className="search-controls">
         <input
           type="text"
@@ -135,6 +161,7 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         <div className="terms-grid">
           {filteredTerms.map(term => {
             const categoryDisplay = getCategoryDisplay(term.category);
+            const images = extractImages(term.meaning + ' ' + (term.example || ''));
             return (
               <div key={term.id} className="term-card" onClick={() => handleTermClick(term)}>
                 <div className="term-card-header">
@@ -154,6 +181,19 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                     )}
                   </div>
                 </div>
+                {/* 画像表示セクション */}
+                {images.length > 0 && (
+                  <div className="term-card-images">
+                    {images.slice(0, 3).map((imageUrl, index) => (
+                      <div key={index} className="uploaded-image-container">
+                        <img src={imageUrl} alt={`画像 ${index + 1}`} className="uploaded-image" />
+                      </div>
+                    ))}
+                    {images.length > 3 && (
+                      <span className="more-images-indicator">+{images.length - 3} more</span>
+                    )}
+                  </div>
+                )}
               <div className="term-card-content">
                 <div 
                   className="term-meaning-preview"

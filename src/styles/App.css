@@ -248,6 +248,57 @@ body {
   font-size: 1.1rem;
 }
 
+/* 語句一覧ヘッダー */
+.terms-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.fullscreen-toggle-btn {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.fullscreen-toggle-btn:hover {
+  background: #e9ecef;
+}
+
+/* 全画面表示 */
+.section.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f7f9fb;
+  z-index: 1000;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.section.fullscreen .terms-grid {
+  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+  gap: 20px;
+}
+
+/* 画像インジケーター */
+.more-images-indicator {
+  display: inline-block;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin: 4px;
+}
+
 .search-controls {
   display: flex;
   justify-content: space-between;
@@ -518,8 +569,8 @@ body {
 /* カード型レイアウト */
 .terms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+  gap: 25px;
   padding: 20px 0;
 }
 
@@ -527,12 +578,12 @@ body {
   background: #ffffff;
   border: 1px solid #e1e8ed;
   border-radius: 12px;
-  padding: 20px;
+  padding: 25px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
   position: relative;
-  min-height: 180px;
+  min-height: 220px;
   display: flex;
   flex-direction: column;
 }
@@ -576,6 +627,29 @@ body {
   margin-bottom: 15px;
   flex: 1;
   overflow: hidden;
+}
+
+/* カード内の画像表示セクション */
+.term-card-images {
+  margin: 12px 0;
+  max-height: 150px;
+  overflow: hidden;
+}
+
+.term-card-images .uploaded-image {
+  max-width: 100%;
+  max-height: 120px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  margin: 4px 8px 4px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  object-fit: cover;
+}
+
+.term-card-images .uploaded-image-container {
+  display: inline-block;
+  margin: 4px 8px 4px 0;
 }
 
 .term-meaning-preview {
@@ -739,8 +813,8 @@ body {
 }
 
 .rich-text-content {
-  line-height: 1.6;
-  font-size: 1rem;
+  line-height: 1.7;
+  font-size: 1.1rem;
 }
 
 .rich-text-content strong {
@@ -766,6 +840,26 @@ body {
   opacity: 0.7;
 }
 
+/* 詳細モーダル内の画像スタイル */
+.term-detail-modal .rich-text-content .uploaded-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin: 12px 0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.term-detail-modal .rich-text-content .uploaded-image:hover {
+  transform: scale(1.02);
+}
+
+.term-detail-modal .rich-text-content .uploaded-image-container {
+  margin: 12px 0;
+  text-align: center;
+}
+
 /* 詳細モーダル */
 .modal-overlay {
   position: fixed;
@@ -784,15 +878,15 @@ body {
 .term-detail-modal {
   background: white;
   border-radius: 12px;
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
+  max-width: 900px;
+  width: 95%;
+  max-height: 90vh;
   overflow-y: auto;
   position: relative;
 }
 
 .modal-header {
-  padding: 20px 20px 15px 20px;
+  padding: 25px 25px 20px 25px;
   border-bottom: 1px solid #e1e8ed;
   display: flex;
   align-items: center;
@@ -800,7 +894,7 @@ body {
 }
 
 .modal-header h3 {
-  font-size: 1.5rem;
+  font-size: 1.7rem;
   color: #2c3e50;
   margin: 0;
   flex: 1;
@@ -822,31 +916,37 @@ body {
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 25px;
 }
 
 .detail-section {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .detail-section h4 {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   color: #5a6c7d;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   font-weight: 600;
 }
 
 .detail-section p {
   color: #6c757d;
-  font-size: 0.9rem;
+  font-size: 1rem;
 }
 
 .modal-actions {
-  padding: 15px 20px 20px 20px;
+  padding: 20px 25px 25px 25px;
   border-top: 1px solid #e1e8ed;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: flex-end;
+}
+
+.modal-actions .btn {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border-radius: 8px;
 }
 
 .btn-secondary {
