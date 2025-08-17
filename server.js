@@ -328,7 +328,7 @@ app.put('/api/categories/:id', (req, res) => {
   );
 });
 
-// お気に入り状態を切り替えるAPI
+// お気に入り状態を切り替えるAPI（配下すべてのカテゴリを含む）
 // 例: http://localhost:4000/api/categories/1/favorite
 app.put('/api/categories/:id/favorite', (req, res) => {
   const { id } = req.params;
@@ -336,26 +336,75 @@ app.put('/api/categories/:id/favorite', (req, res) => {
   
   console.log(`お気に入り切り替えリクエスト - ID: ${id}, お気に入り: ${is_favorite}`);
   
-  db.query(
-    'UPDATE categories SET is_favorite = ? WHERE id = ?',
-    [is_favorite, id],
-    (err, result) => {
-      if (err) {
-        console.error('お気に入り切り替えエラー:', err);
-        return res.status(500).json({ error: err });
-      }
-      
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'カテゴリが見つかりません' });
-      }
-      
-      console.log(`お気に入り切り替え成功 - ID: ${id}`);
-      res.json({ 
-        message: is_favorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました',
-        is_favorite
+  // 再帰的に子カテゴリのIDを取得する関数
+  const getAllChildIds = (parentId, callback) => {
+    const childIds = [];
+    
+    const getChildren = (currentParentId) => {
+      return new Promise((resolve, reject) => {
+        db.query(
+          'SELECT id FROM categories WHERE parent_id = ?',
+          [currentParentId],
+          async (err, children) => {
+            if (err) return reject(err);
+            
+            for (const child of children) {
+              childIds.push(child.id);
+              // 再帰的に孫カテゴリも取得
+              await getChildren(child.id);
+            }
+            resolve();
+          }
+        );
       });
+    };
+    
+    getChildren(parentId)
+      .then(() => callback(null, childIds))
+      .catch(callback);
+  };
+  
+  // 指定されたカテゴリとその配下すべてを更新
+  getAllChildIds(id, (err, childIds) => {
+    if (err) {
+      console.error('子カテゴリ取得エラー:', err);
+      return res.status(500).json({ error: err });
     }
-  );
+    
+    // 自分自身 + 配下すべてのIDを含む配列
+    const allIds = [parseInt(id), ...childIds];
+    console.log(`更新対象カテゴリID一覧: [${allIds.join(', ')}]`);
+    
+    if (allIds.length === 0) {
+      return res.status(404).json({ error: 'カテゴリが見つかりません' });
+    }
+    
+    // すべてのカテゴリを一括更新
+    const placeholders = allIds.map(() => '?').join(',');
+    const values = [is_favorite, ...allIds];
+    console.log(`SQL実行: UPDATE categories SET is_favorite = ${is_favorite} WHERE id IN (${allIds.join(', ')})`);
+    
+    db.query(
+      `UPDATE categories SET is_favorite = ? WHERE id IN (${placeholders})`,
+      values,
+      (err, result) => {
+        if (err) {
+          console.error('お気に入り一括更新エラー:', err);
+          return res.status(500).json({ error: err });
+        }
+        
+        console.log(`お気に入り一括更新成功 - 対象ID: [${allIds.join(', ')}], 更新件数: ${result.affectedRows}`);
+        res.json({ 
+          message: is_favorite 
+            ? `お気に入りに追加しました（${result.affectedRows}件）` 
+            : `お気に入りから削除しました（${result.affectedRows}件）`,
+          is_favorite,
+          updated_count: result.affectedRows,
+          updated_ids: allIds
+        });
+      }
+    );
+  });
 });
 
 // カテゴリを削除するAPI（DELETEリクエスト）

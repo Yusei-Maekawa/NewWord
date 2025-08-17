@@ -72,6 +72,63 @@ const App: React.FC = () => {
     }
   };
 
+  // お気に入り切り替え関数
+  const handleToggleFavorite = async (categoryId: number) => {
+    try {
+      // 現在の状態を取得
+      const currentCategory = categories.find(cat => cat.id === categoryId);
+      if (!currentCategory) {
+        throw new Error('カテゴリが見つかりません');
+      }
+
+      // 子カテゴリを取得
+      const childCategories = categories.filter(cat => cat.parent_id === currentCategory.id);
+      const hasChildren = childCategories.length > 0;
+      
+      // 親カテゴリの場合の確認メッセージ
+      if (hasChildren) {
+        const action = currentCategory.is_favorite ? 'お気に入りから外す' : 'お気に入りに追加';
+        const message = `「${currentCategory.category_name}」を${action}しますか？\n\n💡 この操作により、配下の子カテゴリ（${childCategories.length}個）も同時に${action}されます。`;
+        
+        if (!confirm(message)) {
+          return;
+        }
+      }
+
+      const newFavoriteState = !currentCategory.is_favorite;
+      console.log(`🌟 お気に入り切り替え開始: ${currentCategory.category_name} (ID: ${categoryId}) → ${newFavoriteState ? 'ON' : 'OFF'}`);
+
+      const response = await fetch(`http://localhost:4000/api/categories/${categoryId}/favorite`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_favorite: newFavoriteState }),
+      });
+
+      if (!response.ok) {
+        throw new Error('お気に入りの切り替えに失敗しました');
+      }
+
+      const result = await response.json();
+      console.log(`✅ お気に入り切り替え成功:`, result);
+      
+      setNotification({ 
+        message: result.message || (result.is_favorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました'), 
+        type: 'success' 
+      });
+      
+      // カテゴリリストを更新
+      await fetchCategories();
+    } catch (error) {
+      console.error('❌ お気に入り切り替えエラー:', error);
+      setNotification({ 
+        message: 'お気に入りの切り替えに失敗しました', 
+        type: 'error' 
+      });
+    }
+  };
+
   // 初回マウント時にAPIから取得
   React.useEffect(() => {
     // 語句データを取得
@@ -241,6 +298,7 @@ const App: React.FC = () => {
             onCategoryChange={setActiveCategory}
             categories={categories}
             onCategoryUpdate={fetchCategories}
+            onToggleFavorite={handleToggleFavorite}
           />
           <div className="main-layout">
             <div className="left-panel">

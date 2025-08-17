@@ -173,28 +173,17 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       <h2>新しい語句を追加</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="category">カテゴリ選択:</label>
-          <select
-            id="category"
-            value={formData.category}
-            onChange={(e) => handleInputChange('category', e.target.value)}
-            required
-            className="hierarchical-category-select"
-          >
-            {categories.map(category => (
-              <option key={category.key} value={category.key}>
-                {category.icon} {category.name}
-              </option>
-            ))}
-          </select>
-          {/* 選択中のカテゴリの階層パスを視覚的に表示 */}
-          {formData.category && (
-            <div className="selected-category-path">
-              {(() => {
-                const selectedCat = categories.find(c => c.key === formData.category);
-                return selectedCat ? (
+          <label htmlFor="category">選択中のカテゴリ:</label>
+          <div className="selected-category-display">
+            {(() => {
+              const selectedCat = categories.find(c => c.key === formData.category);
+              return selectedCat ? (
+                <div className="current-category-info">
+                  <div className="category-badge" style={{backgroundColor: selectedCat.color}}>
+                    {selectedCat.icon} {selectedCat.name}
+                  </div>
                   <div className="breadcrumb-display">
-                    <span className="breadcrumb-label">選択中:</span>
+                    <span className="breadcrumb-label">階層:</span>
                     <div className="notion-breadcrumb">
                       {(selectedCat.breadcrumb || `[${selectedCat.name}]`).split(' / ').map((crumb, index, array) => (
                         <React.Fragment key={index}>
@@ -204,10 +193,15 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
                       ))}
                     </div>
                   </div>
-                ) : null;
-              })()}
-            </div>
-          )}
+                </div>
+              ) : (
+                <div className="no-category-selected">
+                  <span>カテゴリが選択されていません</span>
+                  <small>※ ヘッダーからカテゴリを選択してください</small>
+                </div>
+              );
+            })()}
+          </div>
         </div>
         
         <div className="form-group">

@@ -28,13 +28,15 @@ interface CategoryNavProps {
   onCategoryChange: (category: string) => void;
   categories: Category[];
   onCategoryUpdate: () => void; // カテゴリが更新されたときの通知
+  onToggleFavorite?: (categoryId: number) => Promise<void>; // お気に入り切り替え
 }
 
 const CategoryNav: React.FC<CategoryNavProps> = ({ 
   activeCategory, 
   onCategoryChange, 
   categories,
-  onCategoryUpdate 
+  onCategoryUpdate,
+  onToggleFavorite 
 }) => {
   const [isManagerOpen, setIsManagerOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
@@ -55,6 +57,18 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
       }
       return newSet;
     });
+  };
+
+  const handleFavoriteToggle = async (categoryId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // カテゴリ選択をトリガーしないようにする
+    if (onToggleFavorite) {
+      try {
+        await onToggleFavorite(categoryId);
+        onCategoryUpdate(); // カテゴリリストを更新
+      } catch (error) {
+        console.error('お気に入り切り替えエラー:', error);
+      }
+    }
   };
 
   // 階層構造でカテゴリを表示するためのヘルパー関数
@@ -123,16 +137,29 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
                 '--category-color': category.category_color
               } as React.CSSProperties}
             >
-              {category.category_icon} {category.category_name}
-              {hasChildren && (
-                <span style={{ 
-                  marginLeft: '8px', 
-                  fontSize: '11px', 
-                  opacity: 0.7 
-                }}>
-                  ({childCategories.length})
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {category.category_icon} {category.category_name}
+                  {hasChildren && (
+                    <span style={{ 
+                      marginLeft: '4px', 
+                      fontSize: '11px', 
+                      opacity: 0.7 
+                    }}>
+                      ({childCategories.length})
+                    </span>
+                  )}
                 </span>
-              )}
+                {onToggleFavorite && showAllCategories && (
+                  <button
+                    className={`favorite-button ${category.is_favorite ? 'favorited' : 'not-favorited'}`}
+                    onClick={(e) => handleFavoriteToggle(category.id, e)}
+                    title={category.is_favorite ? 'お気に入りから削除' : 'お気に入りに追加'}
+                  >
+                    ★
+                  </button>
+                )}
+              </span>
             </button>
           </div>
 
