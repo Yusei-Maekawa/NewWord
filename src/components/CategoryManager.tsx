@@ -307,20 +307,61 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ isOpen, onClose, onCa
     }
   };
 
-  // お気に入りトグル
+  // お気に入りトグル（子カテゴリも一括処理）
   const handleToggleFavorite = async (category: Category) => {
+    // 子カテゴリを取得
+    const childCategories = categories.filter(cat => cat.parent_id === category.id);
+    const hasChildren = childCategories.length > 0;
+    
+    // 親カテゴリの場合の確認メッセージ
+    if (hasChildren) {
+      const action = category.is_favorite ? 'お気に入りから外す' : 'お気に入りに追加';
+      const message = `「${category.category_name}」を${action}しますか？\n\n💡 この操作により、配下の子カテゴリ（${childCategories.length}個）も同時に${action}されます。`;
+      
+      if (!confirm(message)) {
+        return;
+      }
+    }
+
     setLoading(true);
     try {
+      const newFavoriteStatus = !category.is_favorite;
+      
+      // 親カテゴリのお気に入り状態を更新
       const response = await fetch(`http://localhost:4000/api/categories/${category.id}/favorite`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_favorite: !category.is_favorite })
+        body: JSON.stringify({ is_favorite: newFavoriteStatus })
       });
 
       if (!response.ok) throw new Error('お気に入りの更新に失敗しました');
 
+      // 子カテゴリも一括で同じ状態に更新
+      if (hasChildren) {
+        const childUpdatePromises = childCategories.map(child => 
+          fetch(`http://localhost:4000/api/categories/${child.id}/favorite`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_favorite: newFavoriteStatus })
+          })
+        );
+
+        const childResponses = await Promise.all(childUpdatePromises);
+        const failedUpdates = childResponses.filter(res => !res.ok);
+        
+        if (failedUpdates.length > 0) {
+          console.warn(`${failedUpdates.length}個の子カテゴリの更新に失敗しました`);
+        }
+      }
+
       await fetchCategories();
       onCategoryUpdate();
+      
+      // 成功メッセージ
+      const action = newFavoriteStatus ? 'お気に入りに追加' : 'お気に入りから削除';
+      const childMessage = hasChildren ? `（子カテゴリ${childCategories.length}個も含む）` : '';
+      alert(`✅ 「${category.category_name}」を${action}しました${childMessage}`);
+      
     } catch (error) {
       console.error('お気に入りトグルエラー:', error);
       alert('お気に入りの更新に失敗しました');

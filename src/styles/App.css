@@ -2089,3 +2089,139 @@ body {
   background-color: white;
   font-size: 14px;
 }
+
+/* お気に入りセクションのスタイル */
+.favorite-section {
+  width: 100%;
+  background: linear-gradient(135deg, #fff9e6, #f8f9fa);
+  border: 2px solid #ffc107;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+  box-shadow: 0 4px 8px rgba(255, 193, 7, 0.2);
+}
+
+.favorite-header {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #495057;
+  margin: 0 0 8px 0;
+  text-align: center;
+  padding: 8px;
+  background: rgba(255, 193, 7, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.favorite-notice {
+  background: #e7f3ff;
+  border: 1px solid #b3d9ff;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+  color: #0c5460;
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.no-favorites-message {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+
+/* AddTermForm カテゴリ選択の追加スタイル */
+.category-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.category-toggle-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  padding: 6px 12px;
+  border: 2px solid #dee2e6;
+  background: #f8f9fa;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: #495057;
+}
+
+.toggle-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.toggle-btn.active {
+  background: #007bff;
+  border-color: #007bff;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.no-categories-message {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+  font-style: italic;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+
+/* CategoryNav 切り替えボタンのスタイル */
+.category-display-toggle {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.toggle-nav-btn {
+  padding: 8px 16px;
+  border: 2px solid #dee2e6;
+  background: #f8f9fa;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  color: #495057;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.toggle-nav-btn:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.toggle-nav-btn.active {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border-color: #007bff;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  transform: translateY(-1px);
+}

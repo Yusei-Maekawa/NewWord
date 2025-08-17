@@ -33,115 +33,6 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     example: ''
   });
   const [showRichTextHelp, setShowRichTextHelp] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
-
-  const toggleExpanded = (categoryId: number) => {
-    setExpandedCategories(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(categoryId)) {
-        newSet.delete(categoryId);
-      } else {
-        newSet.add(categoryId);
-      }
-      return newSet;
-    });
-  };
-
-  // 階層構造でカテゴリを表示するヘルパー関数
-  const renderHierarchicalCategorySelection = () => {
-    const rootCategories = categories.filter(cat => cat.parent_id === null);
-    const result: React.ReactElement[] = [];
-
-    const renderCategory = (category: Category, level: number = 0) => {
-      const childCategories = categories.filter(cat => cat.parent_id === category.id);
-      const isSelected = formData.category === category.key;
-      const isExpanded = expandedCategories.has(category.id);
-      const hasChildren = childCategories.length > 0;
-      
-      result.push(
-        <div key={category.key} className="category-selection-group" data-level={level}>
-          <div className="category-selection-wrapper">
-            {hasChildren && (
-              <button
-                type="button"
-                className="expand-toggle-selection"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleExpanded(category.id);
-                }}
-                style={{
-                  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease'
-                }}
-              >
-                ▶
-              </button>
-            )}
-            <label
-              className={`category-selection-label ${isSelected ? 'selected' : ''}`}
-              onClick={() => {
-                setFormData(prev => ({ ...prev, category: category.key }));
-              }}
-              style={{
-                backgroundColor: isSelected ? category.color : undefined,
-                borderColor: isSelected ? category.color : undefined,
-                color: isSelected ? 'white' : undefined,
-                marginLeft: hasChildren ? '0' : '20px',
-                '--category-color': category.color
-              } as React.CSSProperties}
-            >
-              <input
-                type="radio"
-                name="category"
-                value={category.key}
-                checked={isSelected}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, category: e.target.value }));
-                }}
-                style={{ display: 'none' }}
-              />
-              {category.icon} {category.name}
-              {hasChildren && (
-                <span style={{ 
-                  marginLeft: '8px', 
-                  fontSize: '11px', 
-                  opacity: 0.7 
-                }}>
-                  ({childCategories.length})
-                </span>
-              )}
-            </label>
-          </div>
-
-          {/* 子カテゴリを表示（展開されている場合のみ） */}
-          <div 
-            className={`child-categories-selection ${isExpanded ? 'expanded' : 'collapsed'}`}
-            style={{
-              maxHeight: isExpanded ? `${childCategories.length * 50}px` : '0px',
-              transition: 'max-height 0.3s ease-in-out, opacity 0.3s ease-in-out',
-              opacity: isExpanded ? 1 : 0,
-              overflow: 'hidden'
-            }}
-          >
-            {/* この部分は下の再帰的呼び出しで処理される */}
-          </div>
-        </div>
-      );
-
-      // 子カテゴリを再帰的に表示（展開されている場合のみ）
-      if (hasChildren && isExpanded) {
-        childCategories.forEach(child => {
-          renderCategory(child, level + 1);
-        });
-      }
-    };
-
-    rootCategories.forEach(rootCategory => {
-      renderCategory(rootCategory);
-    });
-
-    return result;
-  };
 
   // activeCategoryが変更されたらカテゴリも自動で変更
   useEffect(() => {
@@ -282,10 +173,20 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       <h2>新しい語句を追加</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="category">カテゴリ（階層表示）:</label>
-          <div className="category-selection-container">
-            {renderHierarchicalCategorySelection()}
-          </div>
+          <label htmlFor="category">カテゴリ選択:</label>
+          <select
+            id="category"
+            value={formData.category}
+            onChange={(e) => handleInputChange('category', e.target.value)}
+            required
+            className="hierarchical-category-select"
+          >
+            {categories.map(category => (
+              <option key={category.key} value={category.key}>
+                {category.icon} {category.name}
+              </option>
+            ))}
+          </select>
           {/* 選択中のカテゴリの階層パスを視覚的に表示 */}
           {formData.category && (
             <div className="selected-category-path">

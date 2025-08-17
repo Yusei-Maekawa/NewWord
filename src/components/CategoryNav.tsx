@@ -38,6 +38,7 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
 }) => {
   const [isManagerOpen, setIsManagerOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const handleCategoryUpdate = () => {
     onCategoryUpdate(); // 親コンポーネントに更新を通知
@@ -58,11 +59,37 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
 
   // 階層構造でカテゴリを表示するためのヘルパー関数
   const renderHierarchicalCategories = () => {
-    const rootCategories = categories.filter(cat => cat.parent_id === null);
+    // 表示対象のカテゴリを決定
+    let displayCategories: Category[];
+    
+    if (showAllCategories) {
+      displayCategories = categories;
+    } else {
+      // お気に入りカテゴリとその親カテゴリを含める
+      const favoriteCategories = categories.filter(cat => cat.is_favorite);
+      const parentIds = new Set<number>();
+      
+      // お気に入りカテゴリの親を遡って取得
+      favoriteCategories.forEach(favCat => {
+        let currentCat: Category | null = favCat;
+        while (currentCat && currentCat.parent_id !== null) {
+          parentIds.add(currentCat.parent_id);
+          currentCat = categories.find(c => c.id === currentCat!.parent_id) || null;
+        }
+      });
+      
+      // お気に入りカテゴリ + その親カテゴリをすべて含める
+      displayCategories = categories.filter(cat => 
+        cat.is_favorite || parentIds.has(cat.id)
+      );
+    }
+    
+    const rootCategories = displayCategories.filter(cat => cat.parent_id === null);
     const result: React.ReactElement[] = [];
 
     const renderCategory = (category: Category, level: number = 0) => {
-      const childCategories = categories.filter(cat => cat.parent_id === category.id);
+      // 表示対象の子カテゴリのみを取得
+      const childCategories = displayCategories.filter(cat => cat.parent_id === category.id);
       const isActive = activeCategory === category.category_key;
       const isExpanded = expandedCategories.has(category.id);
       const hasChildren = childCategories.length > 0;
@@ -124,7 +151,7 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
         </div>
       );
 
-      // 子カテゴリを再帰的に表示（展開されている場合のみ）
+      // お気に入りの子カテゴリを再帰的に表示（展開されている場合のみ）
       if (hasChildren && isExpanded) {
         childCategories.forEach(child => {
           renderCategory(child, level + 1);
@@ -149,8 +176,49 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
         📋 すべて
       </button>
       
-      {/* 階層カテゴリボタン */}
-      {renderHierarchicalCategories()}
+      {/* カテゴリ表示切り替えボタン */}
+      <div className="category-display-toggle">
+        <button
+          className={`toggle-nav-btn ${!showAllCategories ? 'active' : ''}`}
+          onClick={() => setShowAllCategories(false)}
+        >
+          ⭐ お気に入りのみ
+        </button>
+        <button
+          className={`toggle-nav-btn ${showAllCategories ? 'active' : ''}`}
+          onClick={() => setShowAllCategories(true)}
+        >
+          📋 すべてのカテゴリ
+        </button>
+      </div>
+      
+      {/* お気に入りカテゴリセクション */}
+      <div className="favorite-section">
+        <h3 className="favorite-header">
+          {showAllCategories ? '📋 全カテゴリ' : '⭐ お気に入りカテゴリ'}
+        </h3>
+        {!showAllCategories && (
+          <div className="favorite-notice">
+            💡 親カテゴリをお気に入りにすると、その配下の子カテゴリもすべてお気に入りになります
+          </div>
+        )}
+        
+        {/* 階層カテゴリボタン */}
+        {(() => {
+          const displayCategories = showAllCategories ? categories : categories.filter(cat => cat.is_favorite);
+          if (displayCategories.length === 0) {
+            return (
+              <div className="no-favorites-message">
+                {showAllCategories 
+                  ? "📝 カテゴリがありません"
+                  : "📝 まだお気に入りカテゴリがありません<br />カテゴリ管理から設定してください"
+                }
+              </div>
+            );
+          }
+          return renderHierarchicalCategories();
+        })()}
+      </div>
       
       {/* カテゴリ管理ボタン */}
       <button
