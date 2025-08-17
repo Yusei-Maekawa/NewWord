@@ -37,10 +37,106 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
   onCategoryUpdate 
 }) => {
   const [isManagerOpen, setIsManagerOpen] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
 
   const handleCategoryUpdate = () => {
     onCategoryUpdate(); // 親コンポーネントに更新を通知
     setIsManagerOpen(false); // モーダルを閉じる
+  };
+
+  const toggleExpanded = (categoryId: number) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
+  // 階層構造でカテゴリを表示するためのヘルパー関数
+  const renderHierarchicalCategories = () => {
+    const rootCategories = categories.filter(cat => cat.parent_id === null);
+    const result: React.ReactElement[] = [];
+
+    const renderCategory = (category: Category, level: number = 0) => {
+      const childCategories = categories.filter(cat => cat.parent_id === category.id);
+      const isActive = activeCategory === category.category_key;
+      const isExpanded = expandedCategories.has(category.id);
+      const hasChildren = childCategories.length > 0;
+      
+      result.push(
+        <div key={category.category_key} className="category-group" data-level={level}>
+          <div className="category-button-wrapper">
+            {hasChildren && (
+              <button
+                className="expand-toggle"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleExpanded(category.id);
+                }}
+                style={{
+                  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                ▶
+              </button>
+            )}
+            <button
+              className={`category-btn hierarchical ${isActive ? 'active' : ''}`}
+              onClick={() => onCategoryChange(category.category_key)}
+              style={{
+                backgroundColor: isActive ? category.category_color : undefined,
+                borderColor: isActive ? category.category_color : undefined,
+                color: isActive ? 'white' : undefined,
+                marginLeft: hasChildren ? '0' : '20px',
+                '--category-color': category.category_color
+              } as React.CSSProperties}
+            >
+              {category.category_icon} {category.category_name}
+              {hasChildren && (
+                <span style={{ 
+                  marginLeft: '8px', 
+                  fontSize: '11px', 
+                  opacity: 0.7 
+                }}>
+                  ({childCategories.length})
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* 子カテゴリを表示（アニメーション付き） */}
+          <div 
+            className={`child-categories ${isExpanded ? 'expanded' : 'collapsed'}`}
+            style={{
+              maxHeight: isExpanded ? `${childCategories.length * 60}px` : '0px',
+              transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out',
+              opacity: isExpanded ? 1 : 0,
+              overflow: 'hidden'
+            }}
+          >
+            {/* この部分は下の再帰的呼び出しで処理される */}
+          </div>
+        </div>
+      );
+
+      // 子カテゴリを再帰的に表示（展開されている場合のみ）
+      if (hasChildren && isExpanded) {
+        childCategories.forEach(child => {
+          renderCategory(child, level + 1);
+        });
+      }
+    };
+
+    rootCategories.forEach(rootCategory => {
+      renderCategory(rootCategory);
+    });
+
+    return result;
   };
 
   return (
@@ -53,21 +149,8 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
         📋 すべて
       </button>
       
-      {/* 動的カテゴリボタン */}
-      {categories.map(category => (
-        <button
-          key={category.category_key}
-          className={`category-btn ${activeCategory === category.category_key ? 'active' : ''}`}
-          onClick={() => onCategoryChange(category.category_key)}
-          style={{
-            backgroundColor: activeCategory === category.category_key ? category.category_color : undefined,
-            borderColor: activeCategory === category.category_key ? category.category_color : undefined,
-            color: activeCategory === category.category_key ? 'white' : undefined
-          }}
-        >
-          {category.category_icon} {category.category_name}
-        </button>
-      ))}
+      {/* 階層カテゴリボタン */}
+      {renderHierarchicalCategories()}
       
       {/* カテゴリ管理ボタン */}
       <button

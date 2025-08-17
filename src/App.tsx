@@ -257,7 +257,11 @@ const App: React.FC = () => {
                   name: cat.category_name,
                   color: cat.category_color,
                   icon: cat.category_icon,
-                  breadcrumb: cat.breadcrumb
+                  parent_id: cat.parent_id,
+                  is_favorite: cat.is_favorite,
+                  display_order: cat.display_order,
+                  breadcrumb: cat.breadcrumb,
+                  path: cat.path
                 }))}
               />
               <TermsList
