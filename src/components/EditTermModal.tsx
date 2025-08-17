@@ -1,14 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Term } from '../types';
 
+interface Category {
+  id: number;
+  category_key: string;
+  category_name: string;
+  category_icon: string;
+  category_color: string;
+  parent_id: number | null;
+  is_favorite: boolean;
+  display_order: number;
+  created_at: string;
+  parent_name?: string;
+  parent_icon?: string;
+  child_count?: number;
+  breadcrumb?: string;
+  path?: Array<{
+    id: number;
+    name: string;
+    icon: string;
+    color: string;
+  }>;
+}
+
 interface EditTermModalProps {
   term: Term | null;
   isOpen: boolean;
+  categories: Category[];
   onClose: () => void;
   onSave: (id: number, termData: Omit<Term, 'id' | 'createdAt'>) => void;
 }
 
-const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, onSave }) => {
+const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     category: 'english' as Term['category'],
     term: '',
@@ -223,10 +246,14 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
               onChange={(e) => handleInputChange('category', e.target.value)}
               required
             >
-              <option value="english">英語</option>
-              <option value="applied">応用情報</option>
-              <option value="advanced">高度情報</option>
-              <option value="gkentei">G検定</option>
+              <option value="">カテゴリを選択</option>
+              {categories.map(category => (
+                <option key={category.id} value={category.category_key}>
+                  {category.category_icon} {category.category_name}
+                  {category.breadcrumb && category.breadcrumb !== category.category_name && 
+                    ` (${category.breadcrumb})`}
+                </option>
+              ))}
             </select>
           </div>
           

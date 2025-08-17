@@ -336,6 +336,7 @@ const App: React.FC = () => {
           <EditTermModal
             term={editTerm}
             isOpen={!!editTerm}
+            categories={categories}
             onClose={() => setEditTerm(null)}
             onSave={handleSaveEdit}
           />
