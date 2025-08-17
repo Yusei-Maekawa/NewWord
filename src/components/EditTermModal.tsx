@@ -16,6 +16,7 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
     example: ''
   });
   const [showRichTextHelp, setShowRichTextHelp] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (term) {
@@ -25,6 +26,19 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
         meaning: term.meaning,
         example: term.example || ''
       });
+      
+      // 既存の画像を抽出
+      const existingImages: string[] = [];
+      const imageMatches = (term.example || '').match(/!\[画像\]\((data:image\/[^)]+)\)/g);
+      if (imageMatches) {
+        imageMatches.forEach(match => {
+          const srcMatch = match.match(/!\[画像\]\((data:image\/[^)]+)\)/);
+          if (srcMatch && srcMatch[1]) {
+            existingImages.push(srcMatch[1]);
+          }
+        });
+      }
+      setUploadedImages(existingImages);
     }
   }, [term]);
 
@@ -56,12 +70,55 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // 画像ファイルを処理する関数
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setUploadedImages(prev => [...prev, result]);
+          
+          // 画像をexampleフィールドに追加
+          const imageMarkdown = `\n![画像](${result})\n`;
+          setFormData(prev => ({ 
+            ...prev, 
+            example: prev.example + imageMarkdown 
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  // 画像を削除する関数
+  const removeImage = (imageIndex: number) => {
+    const imageToRemove = uploadedImages[imageIndex];
+    setUploadedImages(prev => prev.filter((_, index) => index !== imageIndex));
+    
+    // exampleフィールドからも画像を削除
+    const imageMarkdown = `![画像](${imageToRemove})`;
+    setFormData(prev => ({
+      ...prev,
+      example: prev.example.replace(imageMarkdown, '').replace(/\n\n+/g, '\n\n').trim()
+    }));
+  };
+
   // リッチテキストを安全にレンダリングする関数（TermsListと同じ）
   const renderRichText = (text: string) => {
     if (!text) return '';
     
     // 改行をHTMLの<br>タグに変換
     let formattedText = text.replace(/\n/g, '<br>');
+    
+    // 画像表示記法を変換 ![画像](data:image/...)
+    formattedText = formattedText.replace(
+      /!\[画像\]\((data:image\/[^)]+)\)/g, 
+      '<div class="uploaded-image-container"><img src="$1" alt="アップロード画像" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>'
+    );
     
     // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
     formattedText = formattedText
@@ -257,7 +314,7 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
           </div>
           
           <div className="form-group">
-            <label htmlFor="editExample">例文・使用例:</label>
+            <label htmlFor="editExample">例文・使用例・スクショ等:</label>
             <div className="rich-text-toolbar">
               <div className="toolbar-section">
                 <span className="toolbar-label">書式:</span>
@@ -283,7 +340,46 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, onClose, on
                 <button type="button" className="color-btn purple" onClick={() => applyFormat('example', 'purple')} title="紫色">紫</button>
                 <button type="button" className="color-btn pink" onClick={() => applyFormat('example', 'pink')} title="ピンク">桃</button>
               </div>
+              <div className="toolbar-section">
+                <span className="toolbar-label">画像:</span>
+                <input
+                  type="file"
+                  id="editImageUpload"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{ display: 'none' }}
+                />
+                <button
+                  type="button"
+                  className="format-btn"
+                  onClick={() => document.getElementById('editImageUpload')?.click()}
+                  title="画像を追加"
+                >
+                  📷 画像追加
+                </button>
+              </div>
             </div>
+            {uploadedImages.length > 0 && (
+              <div className="uploaded-images-preview">
+                <h4>アップロード済み画像:</h4>
+                <div className="image-preview-grid">
+                  {uploadedImages.map((imageBase64, index) => (
+                    <div key={index} className="image-preview-item">
+                      <img src={imageBase64} alt={`アップロード画像 ${index + 1}`} />
+                      <button
+                        type="button"
+                        className="remove-image-btn"
+                        onClick={() => removeImage(index)}
+                        title="画像を削除"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <textarea
               id="editExample"
               value={formData.example}

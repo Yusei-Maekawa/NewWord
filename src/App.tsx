@@ -324,6 +324,7 @@ const App: React.FC = () => {
               />
               <TermsList
                 terms={activeCategory === 'all' ? terms : terms.filter(t => t.category === activeCategory)}
+                categories={categories}
                 onEditTerm={handleEditTerm}
                 onDeleteTerm={handleDeleteTerm}
               />

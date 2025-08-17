@@ -33,6 +33,7 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     example: ''
   });
   const [showRichTextHelp, setShowRichTextHelp] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   // activeCategoryが変更されたらカテゴリも自動で変更
   useEffect(() => {
@@ -75,10 +76,48 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       meaning: '',
       example: ''
     });
+    setUploadedImages([]); // 画像もクリア
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // 画像ファイルを処理する関数
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result as string;
+          setUploadedImages(prev => [...prev, result]);
+          
+          // 画像をexampleフィールドに追加
+          const imageMarkdown = `\n![画像](${result})\n`;
+          setFormData(prev => ({ 
+            ...prev, 
+            example: prev.example + imageMarkdown 
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  // 画像を削除する関数
+  const removeImage = (imageIndex: number) => {
+    const imageToRemove = uploadedImages[imageIndex];
+    setUploadedImages(prev => prev.filter((_, index) => index !== imageIndex));
+    
+    // exampleフィールドからも画像を削除
+    const imageMarkdown = `![画像](${imageToRemove})`;
+    setFormData(prev => ({
+      ...prev,
+      example: prev.example.replace(imageMarkdown, '').replace(/\n\n+/g, '\n\n').trim()
+    }));
   };
 
   // リッチテキストを安全にレンダリングする関数（TermsListと同じ）
@@ -87,6 +126,12 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     
     // 改行をHTMLの<br>タグに変換
     let formattedText = text.replace(/\n/g, '<br>');
+    
+    // 画像表示記法を変換 ![画像](data:image/...)
+    formattedText = formattedText.replace(
+      /!\[画像\]\((data:image\/[^)]+)\)/g, 
+      '<div class="uploaded-image-container"><img src="$1" alt="アップロード画像" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>'
+    );
     
     // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
     formattedText = formattedText
@@ -288,7 +333,7 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
         </div>
         
         <div className="form-group">
-          <label htmlFor="example">例文・使用例:</label>
+          <label htmlFor="example">例文・使用例・スクショ等:</label>
           <div className="rich-text-toolbar">
             <div className="toolbar-section">
               <span className="toolbar-label">書式:</span>
@@ -314,14 +359,50 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
               <button type="button" className="color-btn purple" onClick={() => applyFormat('example', 'purple')} title="紫色">紫</button>
               <button type="button" className="color-btn pink" onClick={() => applyFormat('example', 'pink')} title="ピンク">桃</button>
             </div>
+            <div className="toolbar-section">
+              <span className="toolbar-label">画像:</span>
+              <label className="image-upload-btn" title="画像をアップロード">
+                📷 画像追加
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            </div>
           </div>
           <textarea
             id="example"
             value={formData.example}
             onChange={(e) => handleInputChange('example', e.target.value)}
-            placeholder="例文やコードサンプルなど。&#10;**太字**や`コード`も使えます。"
+            placeholder="例文やコードサンプルなど。&#10;**太字**や`コード`も使えます。画像も追加できます。"
             rows={4}
           />
+          
+          {/* アップロードした画像のプレビュー */}
+          {uploadedImages.length > 0 && (
+            <div className="uploaded-images-preview">
+              <h5>アップロード済み画像:</h5>
+              <div className="image-grid">
+                {uploadedImages.map((image, index) => (
+                  <div key={index} className="image-preview-item">
+                    <img src={image} alt={`アップロード画像 ${index + 1}`} className="preview-image" />
+                    <button
+                      type="button"
+                      className="remove-image-btn"
+                      onClick={() => removeImage(index)}
+                      title="画像を削除"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {formData.example && (
             <div className="preview-section">
               <h4>プレビュー:</h4>

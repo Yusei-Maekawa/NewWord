@@ -3,17 +3,60 @@ import React, { useState } from 'react';
 import { Term } from '../types';
 import { getCategoryName } from '../utils/helpers';
 
+interface Category {
+  id: number;
+  category_key: string;
+  category_name: string;
+  category_icon: string;
+  category_color: string;
+  parent_id: number | null;
+  is_favorite: boolean;
+  display_order: number;
+  created_at: string;
+  parent_name?: string;
+  parent_icon?: string;
+  child_count?: number;
+  breadcrumb?: string;
+  path?: Array<{
+    id: number;
+    name: string;
+    icon: string;
+    color: string;
+  }>;
+}
 
 interface TermsListProps {
   terms: Term[];
+  categories: Category[];
   onEditTerm: (term: Term) => void;
   onDeleteTerm: (id: number) => void;
 }
 
 
-const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }) => {
+const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, onDeleteTerm }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTerm, setSelectedTerm] = useState<Term | null>(null);
+
+  // カテゴリ情報を取得する関数
+  const getCategoryInfo = (categoryKey: string) => {
+    const category = categories.find(cat => cat.category_key === categoryKey);
+    return category || null;
+  };
+
+  // カテゴリの階層表示を取得する関数
+  const getCategoryDisplay = (categoryKey: string) => {
+    const category = getCategoryInfo(categoryKey);
+    if (!category) {
+      return { name: getCategoryName(categoryKey), color: '#6c757d', icon: '📝', breadcrumb: '' };
+    }
+    
+    return {
+      name: category.category_name,
+      color: category.category_color,
+      icon: category.category_icon,
+      breadcrumb: category.breadcrumb || category.category_name
+    };
+  };
 
 
   const filteredTerms = terms.filter(term =>
@@ -42,6 +85,12 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
     
     // 改行をHTMLの<br>タグに変換
     let formattedText = text.replace(/\n/g, '<br>');
+    
+    // 画像表示記法を変換 ![画像](data:image/...)
+    formattedText = formattedText.replace(
+      /!\[画像\]\((data:image\/[^)]+)\)/g, 
+      '<div class="uploaded-image-container"><img src="$1" alt="アップロード画像" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>'
+    );
     
     // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
     formattedText = formattedText
@@ -84,21 +133,39 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
         </div>
       ) : (
         <div className="terms-grid">
-          {filteredTerms.map(term => (
-            <div key={term.id} className="term-card" onClick={() => handleTermClick(term)}>
-              <div className="term-card-header">
-                <h4 className="term-title">{term.term}</h4>
-                <span className={`category-badge category-${term.category}`}>
-                  {getCategoryName(term.category)}
-                </span>
-              </div>
+          {filteredTerms.map(term => {
+            const categoryDisplay = getCategoryDisplay(term.category);
+            return (
+              <div key={term.id} className="term-card" onClick={() => handleTermClick(term)}>
+                <div className="term-card-header">
+                  <h4 className="term-title">{term.term}</h4>
+                  <div className="category-info">
+                    <span 
+                      className="category-badge-new"
+                      style={{ backgroundColor: categoryDisplay.color }}
+                      title={categoryDisplay.breadcrumb}
+                    >
+                      {categoryDisplay.icon} {categoryDisplay.name}
+                    </span>
+                    {categoryDisplay.breadcrumb !== categoryDisplay.name && (
+                      <small className="category-breadcrumb">
+                        {categoryDisplay.breadcrumb}
+                      </small>
+                    )}
+                  </div>
+                </div>
               <div className="term-card-content">
                 <div 
                   className="term-meaning-preview"
                   dangerouslySetInnerHTML={{ 
-                    __html: renderRichText(term.meaning || '').length > 200 
-                      ? renderRichText(term.meaning || '').substring(0, 200) + '...' 
-                      : renderRichText(term.meaning || '')
+                    __html: (() => {
+                      const meaningText = term.meaning || '';
+                      // 元のテキストが200文字以上の場合は切り詰めてから書式を適用
+                      if (meaningText.length > 200) {
+                        return renderRichText(meaningText.substring(0, 200) + '...');
+                      }
+                      return renderRichText(meaningText);
+                    })()
                   }}
                 />
               </div>
@@ -117,7 +184,8 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -127,9 +195,27 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
           <div className="modal-content term-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{selectedTerm.term}</h3>
-              <span className={`category-badge category-${selectedTerm.category}`}>
-                {getCategoryName(selectedTerm.category)}
-              </span>
+              <div className="category-info">
+                {(() => {
+                  const categoryDisplay = getCategoryDisplay(selectedTerm.category);
+                  return (
+                    <>
+                      <span 
+                        className="category-badge-new"
+                        style={{ backgroundColor: categoryDisplay.color }}
+                        title={categoryDisplay.breadcrumb}
+                      >
+                        {categoryDisplay.icon} {categoryDisplay.name}
+                      </span>
+                      {categoryDisplay.breadcrumb !== categoryDisplay.name && (
+                        <small className="category-breadcrumb">
+                          {categoryDisplay.breadcrumb}
+                        </small>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
               <button className="modal-close" onClick={handleCloseDetail}>×</button>
             </div>
             <div className="modal-body">
@@ -142,7 +228,7 @@ const TermsList: React.FC<TermsListProps> = ({ terms, onEditTerm, onDeleteTerm }
               </div>
               {selectedTerm.example && (
                 <div className="detail-section">
-                  <h4>例文・使用例</h4>
+                  <h4>例文・使用例・スクショ等</h4>
                   <div 
                     className="rich-text-content"
                     dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.example) }}
