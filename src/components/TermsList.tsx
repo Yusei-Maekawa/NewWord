@@ -60,14 +60,29 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
   };
 
   // テキストから画像を抽出する関数
-  const extractImages = (text: string) => {
+  const extractImages = (text: string): string[] => {
     if (!text) return [];
-    const imageRegex = /!\[画像\]\((data:image\/[^)]+)\)/g;
-    const images = [];
+    const images: string[] = [];
+    
+    // マークダウン形式の画像を検出 ![任意](data:image/...)
+    const markdownRegex = /!\[.*?\]\((data:image\/[^)]+)\)/g;
     let match;
-    while ((match = imageRegex.exec(text)) !== null) {
+    while ((match = markdownRegex.exec(text)) !== null) {
       images.push(match[1]);
     }
+    
+    // 直接のBase64データを検出（マークダウンでラップされていない場合）
+    const base64Regex = /data:image\/[a-zA-Z0-9+\/;=,]+/g;
+    const base64Matches = text.match(base64Regex);
+    if (base64Matches) {
+      base64Matches.forEach(imageData => {
+        if (!images.includes(imageData)) {
+          images.push(imageData);
+        }
+      });
+    }
+    
+    console.log('TermsList extractImages:', { text: text.substring(0, 100), foundImages: images.length });
     return images;
   };
 
@@ -97,36 +112,96 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
   };
 
   // リッチテキストを安全にレンダリングする関数
-  const renderRichText = (text: string) => {
+  const renderRichText = (text: string, isModal: boolean = false) => {
     if (!text) return '';
     
-    // 改行をHTMLの<br>タグに変換
-    let formattedText = text.replace(/\n/g, '<br>');
-    
-    // 画像表示記法を変換 ![画像](data:image/...)
-    formattedText = formattedText.replace(
-      /!\[画像\]\((data:image\/[^)]+)\)/g, 
-      '<div class="uploaded-image-container"><img src="$1" alt="アップロード画像" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>'
-    );
-    
-    // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
+    try {
+      console.log('TermsList renderRichText:', { text: text.substring(0, 100), isModal, fullText: text });
+      
+      let formattedText = text;
+      
+      // 既存のHTMLタグを完全に除去（HTMLが表示される問題を根本的に解決）
+      formattedText = formattedText.replace(/<[^>]*>/g, '');
+      
+    // HTMLエンティティや残ったHTML断片も除去
     formattedText = formattedText
-      .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c; font-weight: 600;">$1</span>') // 赤色
-      .replace(/\[blue\](.*?)\[\/blue\]/g, '<span style="color: #3498db; font-weight: 600;">$1</span>') // 青色
-      .replace(/\[green\](.*?)\[\/green\]/g, '<span style="color: #27ae60; font-weight: 600;">$1</span>') // 緑色
-      .replace(/\[orange\](.*?)\[\/orange\]/g, '<span style="color: #f39c12; font-weight: 600;">$1</span>') // オレンジ色
-      .replace(/\[purple\](.*?)\[\/purple\]/g, '<span style="color: #9b59b6; font-weight: 600;">$1</span>') // 紫色
-      .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>') // ピンク色
-      .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #95a5a6; font-weight: 600;">$1</span>'); // グレー色
-    
-    // マークダウン風記法をHTMLに変換
-    formattedText = formattedText
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **太字**
-      .replace(/\*(.*?)\*/g, '<em>$1</em>') // *斜体*
-      .replace(/`(.*?)`/g, '<code>$1</code>') // `コード`
-      .replace(/~~(.*?)~~/g, '<del>$1</del>'); // ~~取り消し線~~
-    
-    return formattedText;
+      .replace(/&lt;/g, '')
+      .replace(/&gt;/g, '')
+      .replace(/&quot;/g, '')
+      .replace(/&amp;/g, '')
+      .replace(/alt="[^"]*"/g, '')
+      .replace(/class="[^"]*"/g, '')
+      .replace(/style="[^"]*"/g, '')
+      .replace(/src="[^"]*"/g, '')
+      .replace(/\/>/g, '')
+      .replace(/>\s*</g, '><')
+      .replace(/alt="画像"\s*class="uploaded-image"\s*\/>/g, '')
+      .replace(/alt="画像"\s*class="uploaded-image"/g, '')
+      .replace(/class="uploaded-image"\s*\/>/g, '')
+      .replace(/class="uploaded-image"/g, '')
+      .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
+      .replace(/📸/g, '') // カメラ絵文字を除去
+      .replace(/🖼️/g, '') // 額縁絵文字を除去
+      .replace(/🎨/g, '') // アート絵文字を除去
+      .replace(/🖊️/g, '') // ペン絵文字を除去
+      .replace(/✏️/g, '') // 鉛筆絵文字を除去
+      .replace(/\[画像\]/g, '') // [画像]テキストを除去
+      .replace(/\(画像\)/g, '') // (画像)テキストを除去
+      .replace(/画像:/g, '') // 画像:テキストを除去
+      .replace(/\s+/g, ' ') // 複数の空白を1つにまとめる
+      .trim();      // 改行をHTMLの<br>タグに変換
+      formattedText = formattedText.replace(/\n/g, '<br>');
+      
+      // マークダウン形式の画像を検出して変換 ![画像](data:image/...)
+      formattedText = formattedText.replace(
+        /!\[画像\]\((data:image\/[a-zA-Z0-9+\/;=,]+)\)/g, 
+        (match, dataUrl) => {
+          console.log('TermsList: マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
+          return `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+        }
+      );
+      
+      // 任意のマークダウン画像を検出 ![任意](data:image/...)
+      formattedText = formattedText.replace(
+        /!\[.*?\]\((data:image\/[a-zA-Z0-9+\/;=,]+)\)/g, 
+        (match, dataUrl) => {
+          console.log('TermsList: 任意マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
+          return `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+        }
+      );
+      
+      // 直接のBase64データを検出（マークダウンでラップされていない場合）
+      formattedText = formattedText.replace(
+        /data:image\/[a-zA-Z0-9+\/;=,]+/g,
+        (match) => {
+          console.log('TermsList: 直接Base64画像検出:', { match: match.substring(0, 50) });
+          return `<div class="uploaded-image-container"><img src="${match}" alt="画像" class="uploaded-image" /></div>`;
+        }
+      );
+      
+      // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
+      formattedText = formattedText
+        .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c; font-weight: 600;">$1</span>') // 赤色
+        .replace(/\[blue\](.*?)\[\/blue\]/g, '<span style="color: #3498db; font-weight: 600;">$1</span>') // 青色
+        .replace(/\[green\](.*?)\[\/green\]/g, '<span style="color: #27ae60; font-weight: 600;">$1</span>') // 緑色
+        .replace(/\[orange\](.*?)\[\/orange\]/g, '<span style="color: #f39c12; font-weight: 600;">$1</span>') // オレンジ色
+        .replace(/\[purple\](.*?)\[\/purple\]/g, '<span style="color: #9b59b6; font-weight: 600;">$1</span>') // 紫色
+        .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>') // ピンク色
+        .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #95a5a6; font-weight: 600;">$1</span>'); // グレー色
+      
+      // マークダウン風記法をHTMLに変換
+      formattedText = formattedText
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **太字**
+        .replace(/\*(.*?)\*/g, '<em>$1</em>') // *斜体*
+        .replace(/`(.*?)`/g, '<code>$1</code>') // `コード`
+        .replace(/~~(.*?)~~/g, '<del>$1</del>'); // ~~取り消し線~~
+      
+      console.log('TermsList renderRichText result:', { original: text.substring(0, 50), formatted: formattedText.substring(0, 200) });
+      return formattedText;
+    } catch (error) {
+      console.error('TermsList renderRichText error:', error);
+      return text.replace(/\n/g, '<br>');
+    }
   };
 
   return (
@@ -263,7 +338,7 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                 <h4>意味・説明</h4>
                 <div 
                   className="rich-text-content"
-                  dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.meaning || '') }}
+                  dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.meaning || '', true) }}
                 />
               </div>
               {selectedTerm.example && (
@@ -271,7 +346,7 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                   <h4>例文・使用例・スクショ等</h4>
                   <div 
                     className="rich-text-content"
-                    dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.example) }}
+                    dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.example, true) }}
                   />
                 </div>
               )}

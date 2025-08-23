@@ -124,13 +124,58 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
   const renderRichText = (text: string) => {
     if (!text) return '';
     
+    let formattedText = text;
+    
+    // 既存のHTMLタグを完全に除去（HTMLが表示される問題を根本的に解決）
+    formattedText = formattedText.replace(/<[^>]*>/g, '');
+    
+    // HTMLエンティティや残ったHTML断片も除去
+    formattedText = formattedText
+      .replace(/&lt;/g, '')
+      .replace(/&gt;/g, '')
+      .replace(/&quot;/g, '')
+      .replace(/&amp;/g, '')
+      .replace(/alt="[^"]*"/g, '')
+      .replace(/class="[^"]*"/g, '')
+      .replace(/style="[^"]*"/g, '')
+      .replace(/src="[^"]*"/g, '')
+      .replace(/\/>/g, '')
+      .replace(/>\s*</g, '><')
+      .replace(/alt="画像"\s*class="uploaded-image"\s*\/>/g, '')
+      .replace(/alt="画像"\s*class="uploaded-image"/g, '')
+      .replace(/class="uploaded-image"\s*\/>/g, '')
+      .replace(/class="uploaded-image"/g, '')
+      .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
+      .replace(/📸/g, '') // カメラ絵文字を除去
+      .replace(/🖼️/g, '') // 額縁絵文字を除去
+      .replace(/🎨/g, '') // アート絵文字を除去
+      .replace(/🖊️/g, '') // ペン絵文字を除去
+      .replace(/✏️/g, '') // 鉛筆絵文字を除去
+      .replace(/\[画像\]/g, '') // [画像]テキストを除去
+      .replace(/\(画像\)/g, '') // (画像)テキストを除去
+      .replace(/画像:/g, '') // 画像:テキストを除去
+      .replace(/\s+/g, ' ') // 複数の空白を1つにまとめる
+      .trim();
+    
     // 改行をHTMLの<br>タグに変換
-    let formattedText = text.replace(/\n/g, '<br>');
+    formattedText = formattedText.replace(/\n/g, '<br>');
     
     // 画像表示記法を変換 ![画像](data:image/...)
     formattedText = formattedText.replace(
       /!\[画像\]\((data:image\/[^)]+)\)/g, 
-      '<div class="uploaded-image-container"><img src="$1" alt="アップロード画像" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>'
+      '<div class="uploaded-image-container"><img src="$1" alt="画像" class="uploaded-image" /></div>'
+    );
+    
+    // 任意のマークダウン画像を検出 ![任意](data:image/...)
+    formattedText = formattedText.replace(
+      /!\[.*?\]\((data:image\/[^)]+)\)/g, 
+      '<div class="uploaded-image-container"><img src="$1" alt="画像" class="uploaded-image" /></div>'
+    );
+    
+    // 直接のBase64データを検出
+    formattedText = formattedText.replace(
+      /data:image\/[a-zA-Z0-9+\/;=,]+/g,
+      (match) => `<div class="uploaded-image-container"><img src="${match}" alt="画像" class="uploaded-image" /></div>`
     );
     
     // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
