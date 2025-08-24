@@ -142,6 +142,9 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
       // 既存のHTMLタグを完全に除去（HTMLが表示される問題を根本的に解決）
       formattedText = formattedText.replace(/<[^>]*>/g, '');
       
+      // 改行文字を一時的に保護
+      formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
+      
     // HTMLエンティティや残ったHTML断片も除去
     formattedText = formattedText
       .replace(/&lt;/g, '')
@@ -167,8 +170,11 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
       .replace(/\[画像\]/g, '') // [画像]テキストを除去
       .replace(/\(画像\)/g, '') // (画像)テキストを除去
       .replace(/画像:/g, '') // 画像:テキストを除去
-      .replace(/\s+/g, ' ') // 複数の空白を1つにまとめる
-      .trim();      // 改行をHTMLの<br>タグに変換
+      .replace(/[ \t]+/g, ' ') // 複数のスペース・タブを1つにまとめる（改行は保護）
+      .trim();
+      
+      // 保護された改行文字をHTMLの<br>タグに変換
+      formattedText = formattedText.replace(/___NEWLINE___/g, '<br>');      // 改行をHTMLの<br>タグに変換
       formattedText = formattedText.replace(/\n/g, '<br>');
       
       // マークダウン形式の画像を検出して変換 ![画像](data:image/...)
