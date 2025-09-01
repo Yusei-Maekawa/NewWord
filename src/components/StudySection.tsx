@@ -1,3 +1,20 @@
+/**
+ * @fileoverview 学習セクションコンポーネント
+ *
+ * このコンポーネントは、語句の学習機能を提供します。
+ * フラッシュカード形式での学習セッションを管理します。
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ */
+
+/**
+ * @typedef {Object} StudySectionProps
+ * @property {Term[]} terms - 学習対象となる語句データの配列
+ * @property {string} activeCategory - 現在選択されているカテゴリ
+ */
+
 import React, { useEffect } from 'react';
 import { Term } from '../types';
 import { useStudySession } from '../hooks/useStudySession';
@@ -8,23 +25,70 @@ interface StudySectionProps {
   activeCategory: string;
 }
 
+/**
+ * 学習セクションコンポーネント
+ *
+ * 主な機能：
+ * - フラッシュカード形式の学習
+ * - 学習進捗の表示
+ * - 答えの表示/非表示切り替え
+ * - 次の語句への移動
+ * - 学習セッションの開始・終了
+ * - リッチテキストのレンダリング
+ *
+ * @component
+ * @param {StudySectionProps} props - コンポーネントのプロパティ
+ * @returns {JSX.Element} 学習セクションのJSX要素
+ *
+ * @example
+ * ```tsx
+ * <StudySection
+ *   terms={terms}
+ *   activeCategory="programming"
+ * />
+ * ```
+ */
 const StudySection: React.FC<StudySectionProps> = ({ terms, activeCategory }) => {
+  /**
+   * useStudySessionフックから学習セッションの状態と関数を取得
+   */
   const {
-    session,
-    startSession,
-    showAnswer,
-    nextTerm,
-    endSession,
-    getCurrentTerm,
-    getProgress,
-    isSessionComplete
+    session,        // 現在の学習セッション状態
+    startSession,   // セッション開始関数
+    showAnswer,     // 答え表示関数
+    nextTerm,       // 次の語句へ移動関数
+    endSession,     // セッション終了関数
+    getCurrentTerm, // 現在の語句取得関数
+    getProgress,    // 進捗取得関数
+    isSessionComplete // セッション完了判定関数
   } = useStudySession();
 
+  /**
+   * アクティブカテゴリでフィルタリングされた語句リスト
+   * @type {Term[]}
+   */
   const filteredTerms = activeCategory === 'all' ? terms : terms.filter(term => term.category === activeCategory);
+
+  /**
+   * 現在学習中の語句
+   * @type {Term | null}
+   */
   const currentTerm = getCurrentTerm();
+
+  /**
+   * 学習進捗情報
+   * @type {{current: number, total: number, percentage: number}}
+   */
   const progress = getProgress();
 
-  // リッチテキストを安全にレンダリングする関数
+  /**
+   * リッチテキストを安全にレンダリングする関数
+   * マークダウン記法やHTMLタグを適切に処理して表示します
+   *
+   * @param {string} text - レンダリングするテキスト
+   * @param {boolean} [isModal=false] - モーダル内での使用かどうか
+   * @returns {string} HTML文字列
+   */
   const renderRichText = (text: string, isModal: boolean = false) => {
     if (!text) return '';
     

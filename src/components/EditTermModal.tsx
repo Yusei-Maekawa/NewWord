@@ -1,3 +1,49 @@
+/**
+ * @fileoverview 語句編集モーダルコンポーネント
+ *
+ * このコンポーネントは、既存の語句を編集するためのモーダルダイアログを提供します。
+ * 編集フォームと画像管理機能を備えています。
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ */
+
+/**
+ * @typedef {Object} Category
+ * @property {number} id - カテゴリの一意の識別子
+ * @property {string} category_key - カテゴリキー（データベース用）
+ * @property {string} category_name - 表示用カテゴリ名
+ * @property {string} category_icon - カテゴリアイコン（絵文字）
+ * @property {string} category_color - カテゴリカラー（HEXコード）
+ * @property {number|null} parent_id - 親カテゴリID（階層構造用）
+ * @property {boolean} is_favorite - お気に入りフラグ
+ * @property {number} display_order - 表示順序
+ * @property {string} created_at - 作成日時
+ * @property {string} [parent_name] - 親カテゴリ名（オプション）
+ * @property {string} [parent_icon] - 親カテゴリアイコン（オプション）
+ * @property {number} [child_count] - 子カテゴリ数（オプション）
+ * @property {string} [breadcrumb] - 階層表示用パンくずリスト（オプション）
+ * @property {Array<{id: number, name: string, icon: string, color: string}>} [path] - 階層パス（オプション）
+ */
+
+/**
+ * @typedef {Object} EditTermModalProps
+ * @property {Term | null} term - 編集対象の語句データ
+ * @property {boolean} isOpen - モーダルが開いているかどうか
+ * @property {Category[]} categories - カテゴリデータの配列
+ * @property {() => void} onClose - モーダルを閉じるコールバック関数
+ * @property {(id: number, termData: Omit<Term, 'id' | 'createdAt'>) => void} onSave - 保存時のコールバック関数
+ */
+
+/**
+ * @typedef {Object} FormData
+ * @property {Term['category']} category - 選択されたカテゴリ
+ * @property {string} term - 語句（英単語など）
+ * @property {string} meaning - 語句の意味・説明
+ * @property {string} example - 使用例・例文
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Term } from '../types';
 
@@ -31,16 +77,60 @@ interface EditTermModalProps {
   onSave: (id: number, termData: Omit<Term, 'id' | 'createdAt'>) => void;
 }
 
+/**
+ * 語句編集モーダルコンポーネント
+ *
+ * 主な機能：
+ * - 既存語句の編集フォーム
+ * - カテゴリの変更
+ * - リッチテキスト入力（マークダウン記法対応）
+ * - 画像貼り付け機能（Ctrl+V）
+ * - リアルタイムバリデーション
+ * - 変更の保存・キャンセル
+ *
+ * @component
+ * @param {EditTermModalProps} props - コンポーネントのプロパティ
+ * @returns {JSX.Element} 編集モーダルのJSX要素
+ *
+ * @example
+ * ```tsx
+ * <EditTermModal
+ *   term={selectedTerm}
+ *   isOpen={isModalOpen}
+ *   categories={categories}
+ *   onClose={handleCloseModal}
+ *   onSave={handleSaveTerm}
+ * />
+ * ```
+ */
 const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories, onClose, onSave }) => {
+  /**
+   * フォームデータの状態
+   * @type {[FormData, React.Dispatch<React.SetStateAction<FormData>>]}
+   */
   const [formData, setFormData] = useState({
     category: 'english' as Term['category'],
     term: '',
     meaning: '',
     example: ''
   });
+
+  /**
+   * リッチテキストヘルプ表示の状態
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
   const [showRichTextHelp, setShowRichTextHelp] = useState(false);
+
+  /**
+   * アップロードされた画像の状態
+   * @type {[string[], React.Dispatch<React.SetStateAction<string[]>>]}
+   */
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
+  /**
+   * termプロパティが変更されたらフォームデータを更新
+   * 編集対象の語句が変更された場合にフォームを初期化する
+   */
   useEffect(() => {
     if (term) {
       setFormData({

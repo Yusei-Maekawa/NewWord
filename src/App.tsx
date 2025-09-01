@@ -1,3 +1,42 @@
+/**
+ * @fileoverview 学習用語句管理アプリケーションのメインコンポーネント
+ *
+ * このファイルは、ReactアプリケーションのメインエントリーポイントとなるAppコンポーネントを定義しています。
+ * 語句管理、学習記録、カテゴリ管理などの全ての機能を統合したメインアプリケーションです。
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ */
+
+/**
+ * @typedef {Object} Category
+ * @property {number} id - カテゴリの一意の識別子
+ * @property {string} category_key - カテゴリキー（データベース用）
+ * @property {string} category_name - 表示用カテゴリ名
+ * @property {string} category_icon - カテゴリアイコン（絵文字）
+ * @property {string} category_color - カテゴリカラー（HEXコード）
+ * @property {number|null} parent_id - 親カテゴリID（階層構造用）
+ * @property {boolean} is_favorite - お気に入りフラグ
+ * @property {number} display_order - 表示順序
+ * @property {string} created_at - 作成日時
+ * @property {string} [parent_name] - 親カテゴリ名（オプション）
+ * @property {string} [parent_icon] - 親カテゴリアイコン（オプション）
+ * @property {number} [child_count] - 子カテゴリ数（オプション）
+ * @property {string} [breadcrumb] - 階層表示用パンくずリスト（オプション）
+ * @property {Array<{id: number, name: string, icon: string, color: string}>} [path] - 階層パス（オプション）
+ */
+
+/**
+ * @typedef {Object} AppState
+ * @property {Term[]} terms - 語句データの配列
+ * @property {string} activeCategory - 現在選択されているカテゴリキー
+ * @property {Category[]} categories - カテゴリデータの配列
+ * @property {Term|null} editTerm - 編集中の語句データ
+ * @property {{message: string, type: 'success'|'error'}|null} notification - 通知メッセージ
+ * @property {boolean} showSchedule - スケジュールページ表示フラグ
+ * @property {StudyLog[]} studyLogs - 学習ログデータの配列
+ */
 
 import React, { useState } from 'react';
 
@@ -37,17 +76,74 @@ interface Category {
   }>;
 }
 
+/**
+ * メインアプリケーションコンポーネント
+ *
+ * このコンポーネントは以下の機能を統合しています：
+ * - 語句の一覧表示・追加・編集・削除
+ * - カテゴリによるフィルタリング
+ * - 学習時間の記録
+ * - スケジュール管理
+ * - CSVインポート機能
+ *
+ * @component
+ * @returns {JSX.Element} アプリケーション全体のJSX要素
+ */
 const App: React.FC = () => {
-  // 語句一覧の状態
+  // ===== 状態管理 =====
+
+  /**
+   * 語句データの状態
+   * @type {[Term[], React.Dispatch<React.SetStateAction<Term[]>>]}
+   */
   const [terms, setTerms] = useState<Term[]>([]);
+
+  /**
+   * 現在選択されているカテゴリ
+   * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
+   */
   const [activeCategory, setActiveCategory] = useState('all');
+
+  /**
+   * カテゴリデータの状態
+   * @type {[Category[], React.Dispatch<React.SetStateAction<Category[]>>]}
+   */
   const [categories, setCategories] = useState<Category[]>([]);
+
+  /**
+   * 編集中の語句データ
+   * @type {[Term | null, React.Dispatch<React.SetStateAction<Term | null>>]}
+   */
   const [editTerm, setEditTerm] = useState<Term | null>(null);
+
+  /**
+   * 通知メッセージの状態
+   * @type {[{message: string, type: 'success'|'error'} | null, React.Dispatch<React.SetStateAction<{message: string, type: 'success'|'error'} | null>>]}
+   */
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  /**
+   * スケジュールページ表示フラグ
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
   const [showSchedule, setShowSchedule] = useState(false);
+
+  /**
+   * 学習ログデータの状態
+   * @type {[StudyLog[], React.Dispatch<React.SetStateAction<StudyLog[]>>]}
+   */
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
 
-  // カテゴリ一覧を取得する関数
+  // ===== 関数定義 =====
+
+  /**
+   * カテゴリ一覧を取得する関数
+   * APIからカテゴリデータを取得して状態を更新します
+   *
+   * @async
+   * @function fetchCategories
+   * @returns {Promise<void>}
+   */
   const fetchCategories = async () => {
     try {
       console.log('🔄 カテゴリ取得開始...');

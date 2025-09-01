@@ -1,4 +1,25 @@
 
+/**
+ * @fileoverview 学習用語句管理APIサーバー
+ *
+ * このファイルは、Express.jsを使用したREST APIサーバーを定義します。
+ * MySQLデータベースとの連携により、語句データのCRUD操作を提供します。
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ */
+
+/**
+ * @description サーバー起動時の処理フロー
+ * 1. Expressアプリケーションの初期化
+ * 2. CORS設定（クロスオリジン対応）
+ * 3. JSONパーサーミドルウェアの設定
+ * 4. MySQLデータベース接続の確立
+ * 5. APIルーティングの定義
+ * 6. サーバーの起動（ポート4000）
+ */
+
 // 必要なモジュールを読み込み
 const express = require('express'); // Webサーバー/ルーティング用
 const mysql = require('mysql2');    // MySQL接続用
@@ -36,9 +57,9 @@ app.post('/api/terms', (req, res) => {
   // リクエストボディから値を取得（termまたはwordの両方に対応）
   const { term, word, meaning, example, category } = req.body;
   const termValue = term || word; // termがあればterm、なければword
-  
+
   console.log('用語追加リクエスト:', { term: termValue, meaning, example, category });
-  
+
   // MySQLにINSERT文を発行（データベースのwordカラムに保存）
   db.query(
     'INSERT INTO terms (word, meaning, example, category) VALUES (?, ?, ?, ?)',

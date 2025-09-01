@@ -1,3 +1,43 @@
+/**
+ * @fileoverview 語句追加フォームコンポーネント
+ *
+ * このコンポーネントは、新しい語句を追加するためのフォームを提供します。
+ * リッチテキスト入力、画像貼り付け、カテゴリ選択機能を備えています。
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ */
+
+/**
+ * @typedef {Object} Category
+ * @property {number} id - カテゴリの一意の識別子
+ * @property {string} key - カテゴリキー（データベース用）
+ * @property {string} name - 表示用カテゴリ名
+ * @property {string} color - カテゴリカラー（HEXコード）
+ * @property {string} icon - カテゴリアイコン（絵文字）
+ * @property {number|null} parent_id - 親カテゴリID（階層構造用）
+ * @property {boolean} is_favorite - お気に入りフラグ
+ * @property {number} display_order - 表示順序
+ * @property {string} [breadcrumb] - 階層表示用パンくずリスト（オプション）
+ * @property {Array<{id: number, name: string, icon: string, color: string}>} [path] - 階層パス（オプション）
+ */
+
+/**
+ * @typedef {Object} AddTermFormProps
+ * @property {(termData: Omit<Term, 'id' | 'createdAt'>) => void} onAddTerm - 語句追加時のコールバック関数
+ * @property {string} [activeCategory] - 現在選択されているカテゴリ（オプション）
+ * @property {Category[]} categories - カテゴリデータの配列
+ */
+
+/**
+ * @typedef {Object} FormData
+ * @property {string} category - 選択されたカテゴリキー
+ * @property {string} term - 語句（英単語など）
+ * @property {string} meaning - 語句の意味・説明
+ * @property {string} example - 使用例・例文
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Term } from '../types';
 
@@ -25,24 +65,68 @@ interface AddTermFormProps {
   categories: Category[];
 }
 
+/**
+ * 語句追加フォームコンポーネント
+ *
+ * 主な機能：
+ * - 語句・意味・例文の入力
+ * - カテゴリ選択
+ * - リッチテキスト入力（マークダウン記法対応）
+ * - 画像貼り付け機能（Ctrl+V）
+ * - リアルタイムバリデーション
+ * - ヘルプ表示機能
+ *
+ * @component
+ * @param {AddTermFormProps} props - コンポーネントのプロパティ
+ * @returns {JSX.Element} 語句追加フォームのJSX要素
+ *
+ * @example
+ * ```tsx
+ * <AddTermForm
+ *   onAddTerm={handleAddTerm}
+ *   activeCategory="programming"
+ *   categories={categories}
+ * />
+ * ```
+ */
 const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, categories }) => {
+  /**
+   * フォームデータの状態
+   * @type {[FormData, React.Dispatch<React.SetStateAction<FormData>>]}
+   */
   const [formData, setFormData] = useState({
     category: activeCategory && activeCategory !== 'all' ? activeCategory : (categories.length > 0 ? categories[0].key : 'english'),
     term: '',
     meaning: '',
     example: ''
   });
+
+  /**
+   * リッチテキストヘルプ表示の状態
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
   const [showRichTextHelp, setShowRichTextHelp] = useState(false);
+
+  /**
+   * アップロードされた画像の状態
+   * @type {[string[], React.Dispatch<React.SetStateAction<string[]>>]}
+   */
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
-  // activeCategoryが変更されたらカテゴリも自動で変更
+  /**
+   * activeCategoryが変更されたらカテゴリも自動で変更
+   * 親コンポーネントから渡されたカテゴリが変更された場合に同期する
+   */
   useEffect(() => {
     if (activeCategory && activeCategory !== 'all') {
       setFormData(prev => ({ ...prev, category: activeCategory }));
     }
   }, [activeCategory]);
 
-  // カテゴリ一覧が変わったら、選択肢も更新
+  /**
+   * カテゴリ一覧が変わったら、選択肢も更新
+   * 選択中のカテゴリが削除された場合のフォールバック処理
+   */
   useEffect(() => {
     if (!categories.some(c => c.key === formData.category)) {
       setFormData(prev => ({ ...prev, category: categories.length > 0 ? categories[0].key : 'english' }));
