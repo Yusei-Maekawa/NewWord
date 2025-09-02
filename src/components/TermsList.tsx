@@ -1,5 +1,47 @@
+/**
+ * @fileoverview 語句一覧表示コンポーネント
+ *
+ * このコンポーネントは、学習対象となる語句の一覧を表示するメインコンポーネントです。
+ * 検索、フィルタリング、編集・削除機能を提供します。
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ */
 
-import React, { useState } from 'react';
+/**
+ * @typedef {Object} Category
+ * @property {number} id - カテゴリの一意の識別子
+ * @property {string} category_key - カテゴリキー（データベース用）
+ * @property {string} category_name - 表示用カテゴリ名
+ * @property {string} category_icon - カテゴリアイコン（絵文字）
+ * @property {string} category_color - カテゴリカラー（HEXコード）
+ * @property {number|null} parent_id - 親カテゴリID（階層構造用）
+ * @property {boolean} is_favorite - お気に入りフラグ
+ * @property {number} display_order - 表示順序
+ * @property {string} created_at - 作成日時
+ * @property {string} [parent_name] - 親カテゴリ名（オプション）
+ * @property {string} [parent_icon] - 親カテゴリアイコン（オプション）
+ * @property {number} [child_count] - 子カテゴリ数（オプション）
+ * @property {string} [breadcrumb] - 階層表示用パンくずリスト（オプション）
+ * @property {Array<{id: number, name: string, icon: string, color: string}>} [path] - 階層パス（オプション）
+ */
+
+/**
+ * @typedef {Object} TermsListProps
+ * @property {Term[]} terms - 表示する語句データの配列
+ * @property {Category[]} categories - カテゴリデータの配列
+ * @property {(term: Term) => void} onEditTerm - 語句編集時のコールバック関数
+ * @property {(id: number) => void} onDeleteTerm - 語句削除時のコールバック関数
+ */
+
+/**
+ * @typedef {Object} ImageModalState
+ * @property {boolean} isOpen - モーダルが開いているかどうか
+ * @property {string} imageSrc - 表示する画像のソースURL
+ */
+
+import React, { useState, useEffect } from 'react';
 import { Term } from '../types';
 import { getCategoryName } from '../utils/helpers';
 
@@ -32,11 +74,91 @@ interface TermsListProps {
   onDeleteTerm: (id: number) => void;
 }
 
-
+/**
+ * 語句一覧表示コンポーネント
+ *
+ * 主な機能：
+ * - 語句の一覧表示（グリッド形式）
+ * - 検索機能（語句・意味・例文での検索）
+ * - カテゴリフィルタリング
+ * - 語句の編集・削除
+ * - 詳細表示モーダル
+ * - 画像クリック拡大機能
+ * - 全画面表示モード
+ *
+ * @component
+ * @param {TermsListProps} props - コンポーネントのプロパティ
+ * @returns {JSX.Element} 語句一覧のJSX要素
+ *
+ * @example
+ * ```tsx
+ * <TermsList
+ *   terms={terms}
+ *   categories={categories}
+ *   onEditTerm={handleEditTerm}
+ *   onDeleteTerm={handleDeleteTerm}
+ * />
+ * ```
+ */
 const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, onDeleteTerm }) => {
+  /**
+   * 検索クエリの状態
+   * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
+   */
   const [searchQuery, setSearchQuery] = useState('');
+
+  /**
+   * 詳細表示する語句の状態
+   * @type {[Term | null, React.Dispatch<React.SetStateAction<Term | null>>]}
+   */
   const [selectedTerm, setSelectedTerm] = useState<Term | null>(null);
+
+  /**
+   * 全画面表示モードの状態
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
   const [isFullScreen, setIsFullScreen] = useState(false);
+
+  /**
+   * 画像モーダルの状態
+   * @type {[ImageModalState, React.Dispatch<React.SetStateAction<ImageModalState>>]}
+   */
+  const [imageModal, setImageModal] = useState<{ isOpen: boolean; imageSrc: string }>({ isOpen: false, imageSrc: '' });
+
+  /**
+   * 画像クリック時の処理
+   * クリックされた画像をモーダルで拡大表示します
+   *
+   * @param {string} imageSrc - 拡大表示する画像のソースURL
+   */
+  const handleImageClick = (imageSrc: string) => {
+    setImageModal({ isOpen: true, imageSrc });
+  };
+
+  /**
+   * 画像モーダルを閉じる処理
+   */
+  const closeImageModal = () => {
+    setImageModal({ isOpen: false, imageSrc: '' });
+  };
+
+  // 画像クリックイベントを処理
+  useEffect(() => {
+    const handleImageClick = (e: Event) => {
+      const target = e.target as HTMLImageElement;
+      if (target.classList.contains('uploaded-image')) {
+        const imageSrc = target.getAttribute('data-image-src');
+        if (imageSrc) {
+          setImageModal({ isOpen: true, imageSrc });
+        }
+      }
+    };
+
+    document.addEventListener('click', handleImageClick);
+    return () => {
+      document.removeEventListener('click', handleImageClick);
+    };
+  }, []);
 
   // カテゴリ情報を取得する関数
   const getCategoryInfo = (categoryKey: string) => {
@@ -117,6 +239,7 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
     
     try {
       console.log('TermsList renderRichText:', { text: text.substring(0, 100), isModal, fullText: text });
+      console.log('画像データ検索中...', { textLength: text.length, hasDataImage: text.includes('data:image') });
       
       let formattedText = text;
       
@@ -151,7 +274,11 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
       .replace(/\[画像\]/g, '') // [画像]テキストを除去
       .replace(/\(画像\)/g, '') // (画像)テキストを除去
       .replace(/画像:/g, '') // 画像:テキストを除去
+      .replace(/!\[画像\]/g, '') // マークダウンの画像記法 ![画像] を除去
+      .replace(/!\[.*?\]/g, '') // 任意のマークダウン画像記法 ![任意] を除去
+      .replace(/\(\s*data:image\/[a-zA-Z0-9+\/;=,]+\s*\)/g, '') // 画像URL部分も除去（念のため）
       .replace(/[ \t]+/g, ' ') // 複数のスペース・タブを1つにまとめる（改行は保護）
+      .replace(/\s*\n\s*/g, '\n') // 改行周りの余分なスペースを除去
       .trim();
       
       // 保護された改行文字をHTMLの<br>タグに変換
@@ -162,7 +289,9 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         /!\[画像\]\((data:image\/[a-zA-Z0-9+\/;=,]+)\)/g, 
         (match, dataUrl) => {
           console.log('TermsList: マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
-          return `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+          const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          // マークダウンのテキスト部分を完全に除去し、画像だけを表示
+          return `<div class="uploaded-image-container" style="display: block; margin: 8px 0;"><img src="${dataUrl}" alt="" class="uploaded-image" data-image-src="${dataUrl}" data-image-id="${imageId}" style="max-width: 100%; height: auto;" /></div>`;
         }
       );
       
@@ -171,7 +300,9 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         /!\[.*?\]\((data:image\/[a-zA-Z0-9+\/;=,]+)\)/g, 
         (match, dataUrl) => {
           console.log('TermsList: 任意マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
-          return `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+          const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          // マークダウンのテキスト部分を完全に除去し、画像だけを表示
+          return `<div class="uploaded-image-container" style="display: block; margin: 8px 0;"><img src="${dataUrl}" alt="" class="uploaded-image" data-image-src="${dataUrl}" data-image-id="${imageId}" style="max-width: 100%; height: auto;" /></div>`;
         }
       );
       
@@ -180,19 +311,60 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         /data:image\/[a-zA-Z0-9+\/;=,]+/g,
         (match) => {
           console.log('TermsList: 直接Base64画像検出:', { match: match.substring(0, 50) });
-          return `<div class="uploaded-image-container"><img src="${match}" alt="画像" class="uploaded-image" /></div>`;
+          const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          return `<div class="uploaded-image-container"><img src="${match}" alt="画像" class="uploaded-image" data-image-src="${match}" data-image-id="${imageId}" /></div>`;
         }
       );
       
-      // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
+      // HTML対応のタグ処理システム
+      console.log('TermsList 変換前:', { text: formattedText.substring(0, 200) });
+      
+      // Step 1: 既存のHTMLタグを一時的にプレースホルダーに置き換え
+      const htmlPlaceholders: { [key: string]: string } = {};
+      let placeholderCounter = 0;
+      
+      // 既存のspanタグを保護（ES5互換の正規表現）
+      formattedText = formattedText.replace(/<span[^>]*>[\s\S]*?<\/span>/g, (match) => {
+        const placeholder = `__HTML_PLACEHOLDER_${placeholderCounter++}__`;
+        htmlPlaceholders[placeholder] = match;
+        console.log('HTML保護:', { placeholder, match: match.substring(0, 50) });
+        return placeholder;
+      });
+      
+      console.log('HTML保護後:', { text: formattedText.substring(0, 200) });
+      
+      // Step 2: 通常の書式処理（HTMLタグがない状態で）
+      // 色指定記法をHTMLに変換
       formattedText = formattedText
-        .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c; font-weight: 600;">$1</span>') // 赤色
-        .replace(/\[blue\](.*?)\[\/blue\]/g, '<span style="color: #3498db; font-weight: 600;">$1</span>') // 青色
-        .replace(/\[green\](.*?)\[\/green\]/g, '<span style="color: #27ae60; font-weight: 600;">$1</span>') // 緑色
-        .replace(/\[orange\](.*?)\[\/orange\]/g, '<span style="color: #f39c12; font-weight: 600;">$1</span>') // オレンジ色
-        .replace(/\[purple\](.*?)\[\/purple\]/g, '<span style="color: #9b59b6; font-weight: 600;">$1</span>') // 紫色
-        .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>') // ピンク色
-        .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #95a5a6; font-weight: 600;">$1</span>'); // グレー色
+        .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c; font-weight: 600;">$1</span>')
+        .replace(/\[blue\](.*?)\[\/blue\]/g, '<span style="color: #3498db; font-weight: 600;">$1</span>')
+        .replace(/\[green\](.*?)\[\/green\]/g, '<span style="color: #27ae60; font-weight: 600;">$1</span>')
+        .replace(/\[orange\](.*?)\[\/orange\]/g, '<span style="color: #f39c12; font-weight: 600;">$1</span>')
+        .replace(/\[purple\](.*?)\[\/purple\]/g, '<span style="color: #9b59b6; font-weight: 600;">$1</span>')
+        .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>')
+        .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #95a5a6; font-weight: 600;">$1</span>');
+      
+      console.log('色変換後:', { text: formattedText.substring(0, 200) });
+      
+      // フォントサイズ記法をHTMLに変換
+      formattedText = formattedText
+        .replace(/\[xsmall\](.*?)\[\/xsmall\]/g, '<span style="font-size: 11px; line-height: 1.4;">$1</span>')
+        .replace(/\[small\](.*?)\[\/small\]/g, '<span style="font-size: 13px; line-height: 1.4;">$1</span>')
+        .replace(/\[normal\](.*?)\[\/normal\]/g, '<span style="font-size: 15px; line-height: 1.4;">$1</span>')
+        .replace(/\[large\](.*?)\[\/large\]/g, '<span style="font-size: 18px; line-height: 1.4;">$1</span>')
+        .replace(/\[xlarge\](.*?)\[\/xlarge\]/g, '<span style="font-size: 22px; line-height: 1.4;">$1</span>');
+      
+      console.log('フォントサイズ変換後:', { text: formattedText.substring(0, 200) });
+      
+      // Step 3: プレースホルダーを元のHTMLに復元
+      Object.keys(htmlPlaceholders).forEach(placeholder => {
+        formattedText = formattedText.replace(placeholder, htmlPlaceholders[placeholder]);
+        console.log('HTML復元:', { placeholder, restored: htmlPlaceholders[placeholder].substring(0, 50) });
+      });
+      
+      console.log('TermsList 最終結果:', { text: formattedText.substring(0, 200) });
+      
+      console.log('TermsList フォントサイズ変換後:', { formattedText: formattedText.substring(0, 300) });
       
       // マークダウン風記法をHTMLに変換
       formattedText = formattedText
@@ -280,11 +452,20 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                   dangerouslySetInnerHTML={{ 
                     __html: (() => {
                       const meaningText = term.meaning || '';
-                      // 元のテキストが200文字以上の場合は切り詰めてから書式を適用
-                      if (meaningText.length > 200) {
-                        return renderRichText(meaningText.substring(0, 200) + '...');
+                      // 最初に書式を適用してからHTMLの長さで切り詰める
+                      const formattedHtml = renderRichText(meaningText);
+                      // HTMLの場合は単純な文字数カットではなく、適切に処理
+                      if (formattedHtml.length > 400) { // HTMLタグ分を考慮して400文字
+                        // HTMLタグを保持しながら適切に切り詰める
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = formattedHtml;
+                        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                        if (textContent.length > 200) {
+                          // プレーンテキストが200文字以上の場合のみ切り詰める
+                          return renderRichText(meaningText.substring(0, 150)) + '...';
+                        }
                       }
-                      return renderRichText(meaningText);
+                      return formattedHtml;
                     })()
                   }}
                 />
@@ -385,6 +566,18 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                 閉じる
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 画像モーダル */}
+      {imageModal.isOpen && (
+        <div className="image-modal" onClick={closeImageModal}>
+          <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="image-modal-close" onClick={closeImageModal}>
+              ×
+            </button>
+            <img src={imageModal.imageSrc} alt="拡大画像" />
           </div>
         </div>
       )}

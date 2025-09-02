@@ -278,6 +278,14 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>') // ピンク色
       .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #95a5a6; font-weight: 600;">$1</span>'); // グレー色
     
+    // フォントサイズ記法をHTMLに変換（pxで絶対指定）
+    formattedText = formattedText
+      .replace(/\[xsmall\](.*?)\[\/xsmall\]/g, '<span style="font-size: 11px; line-height: 1.4;">$1</span>') // 極小サイズ
+      .replace(/\[small\](.*?)\[\/small\]/g, '<span style="font-size: 13px; line-height: 1.4;">$1</span>') // 小サイズ
+      .replace(/\[normal\](.*?)\[\/normal\]/g, '<span style="font-size: 15px; line-height: 1.4;">$1</span>') // 標準サイズ
+      .replace(/\[large\](.*?)\[\/large\]/g, '<span style="font-size: 18px; line-height: 1.4;">$1</span>') // 大サイズ
+      .replace(/\[xlarge\](.*?)\[\/xlarge\]/g, '<span style="font-size: 22px; line-height: 1.4;">$1</span>'); // 極大サイズ
+    
     // マークダウン風記法をHTMLに変換
     formattedText = formattedText
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **太字**
@@ -334,11 +342,27 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       case 'pink':
         formattedText = `[pink]${selectedText}[/pink]`;
         break;
+      case 'xsmall':
+        formattedText = `[xsmall]${selectedText}[/xsmall]`;
+        break;
+      case 'small':
+        formattedText = `[small]${selectedText}[/small]`;
+        break;
+      case 'normal':
+        formattedText = `[normal]${selectedText}[/normal]`;
+        break;
+      case 'large':
+        formattedText = `[large]${selectedText}[/large]`;
+        break;
+      case 'xlarge':
+        formattedText = `[xlarge]${selectedText}[/xlarge]`;
+        break;
       default:
         formattedText = selectedText;
     }
 
-    const newValue = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+    const currentValue = formData[field];
+    const newValue = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
     handleInputChange(field, newValue);
     
     // フォーカスを戻して新しい位置にカーソルを設定
@@ -419,6 +443,11 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
                   <li><code>[orange]オレンジ[/orange]</code> → <span style={{color: '#f39c12', fontWeight: 600}}>オレンジ</span></li>
                   <li><code>[purple]紫色[/purple]</code> → <span style={{color: '#9b59b6', fontWeight: 600}}>紫色</span></li>
                   <li><code>[pink]ピンク[/pink]</code> → <span style={{color: '#e91e63', fontWeight: 600}}>ピンク</span></li>
+                  <li><code>[xsmall]極小[/xsmall]</code> → <span style={{fontSize: '0.7em'}}>極小</span></li>
+                  <li><code>[small]小[/small]</code> → <span style={{fontSize: '0.85em'}}>小</span></li>
+                  <li><code>[normal]標準[/normal]</code> → <span style={{fontSize: '1em'}}>標準</span></li>
+                  <li><code>[large]大[/large]</code> → <span style={{fontSize: '1.2em'}}>大</span></li>
+                  <li><code>[xlarge]極大[/xlarge]</code> → <span style={{fontSize: '1.5em'}}>極大</span></li>
                   <li>改行はそのまま反映されます</li>
                 </ul>
               </div>
@@ -448,6 +477,14 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
               <button type="button" className="color-btn orange" onClick={() => applyFormat('meaning', 'orange')} title="オレンジ">橙</button>
               <button type="button" className="color-btn purple" onClick={() => applyFormat('meaning', 'purple')} title="紫色">紫</button>
               <button type="button" className="color-btn pink" onClick={() => applyFormat('meaning', 'pink')} title="ピンク">桃</button>
+            </div>
+            <div className="toolbar-section">
+              <span className="toolbar-label">サイズ:</span>
+              <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xsmall')} title="極小">極小</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'small')} title="小">小</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'normal')} title="標準">標準</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'large')} title="大">大</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xlarge')} title="極大">極大</button>
             </div>
           </div>
           <textarea
@@ -493,6 +530,14 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
               <button type="button" className="color-btn orange" onClick={() => applyFormat('example', 'orange')} title="オレンジ">橙</button>
               <button type="button" className="color-btn purple" onClick={() => applyFormat('example', 'purple')} title="紫色">紫</button>
               <button type="button" className="color-btn pink" onClick={() => applyFormat('example', 'pink')} title="ピンク">桃</button>
+            </div>
+            <div className="toolbar-section">
+              <span className="toolbar-label">サイズ:</span>
+              <button type="button" className="size-btn" onClick={() => applyFormat('example', 'xsmall')} title="極小">極小</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('example', 'small')} title="小">小</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('example', 'normal')} title="標準">標準</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('example', 'large')} title="大">大</button>
+              <button type="button" className="size-btn" onClick={() => applyFormat('example', 'xlarge')} title="極大">極大</button>
             </div>
             <div className="toolbar-section">
               <span className="toolbar-label">画像:</span>

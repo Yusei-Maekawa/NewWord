@@ -304,6 +304,14 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
         .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>') // ピンク色
         .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #95a5a6; font-weight: 600;">$1</span>'); // グレー色
       
+      // フォントサイズ記法をHTMLに変換
+      formattedText = formattedText
+        .replace(/\[xsmall\](.*?)\[\/xsmall\]/g, '<span style="font-size: 0.7em;">$1</span>') // 極小サイズ
+        .replace(/\[small\](.*?)\[\/small\]/g, '<span style="font-size: 0.85em;">$1</span>') // 小サイズ
+        .replace(/\[normal\](.*?)\[\/normal\]/g, '<span style="font-size: 1em;">$1</span>') // 標準サイズ
+        .replace(/\[large\](.*?)\[\/large\]/g, '<span style="font-size: 1.2em;">$1</span>') // 大サイズ
+        .replace(/\[xlarge\](.*?)\[\/xlarge\]/g, '<span style="font-size: 1.5em;">$1</span>'); // 極大サイズ
+      
       // マークダウン風記法をHTMLに変換
       formattedText = formattedText
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **太字**
@@ -364,11 +372,27 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
       case 'pink':
         formattedText = `[pink]${selectedText}[/pink]`;
         break;
+      case 'xsmall':
+        formattedText = `[xsmall]${selectedText}[/xsmall]`;
+        break;
+      case 'small':
+        formattedText = `[small]${selectedText}[/small]`;
+        break;
+      case 'normal':
+        formattedText = `[normal]${selectedText}[/normal]`;
+        break;
+      case 'large':
+        formattedText = `[large]${selectedText}[/large]`;
+        break;
+      case 'xlarge':
+        formattedText = `[xlarge]${selectedText}[/xlarge]`;
+        break;
       default:
         formattedText = selectedText;
     }
 
-    const newValue = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+    const currentValue = formData[field];
+    const newValue = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
     handleInputChange(field, newValue);
     
     // フォーカスを戻して新しい位置にカーソルを設定
@@ -441,6 +465,9 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
                     <li><code>*斜体*</code> → <em>斜体</em></li>
                     <li><code>`コード`</code> → <code>コード</code></li>
                     <li><code>~~取り消し~~</code> → <del>取り消し</del></li>
+                    <li><code>[small]小さい[/small]</code> → <span style={{fontSize: '0.8em'}}>小さい</span></li>
+                    <li><code>[large]大きい[/large]</code> → <span style={{fontSize: '1.2em', fontWeight: 600}}>大きい</span></li>
+                    <li><code>[xlarge]特大[/xlarge]</code> → <span style={{fontSize: '1.5em', fontWeight: 600}}>特大</span></li>
                     <li><code>[red]赤色[/red]</code> → <span style={{color: '#e74c3c', fontWeight: 600}}>赤色</span></li>
                     <li><code>[blue]青色[/blue]</code> → <span style={{color: '#3498db', fontWeight: 600}}>青色</span></li>
                     <li><code>[green]緑色[/green]</code> → <span style={{color: '#27ae60', fontWeight: 600}}>緑色</span></li>
@@ -476,6 +503,14 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
                 <button type="button" className="color-btn orange" onClick={() => applyFormat('meaning', 'orange')} title="オレンジ">橙</button>
                 <button type="button" className="color-btn purple" onClick={() => applyFormat('meaning', 'purple')} title="紫色">紫</button>
                 <button type="button" className="color-btn pink" onClick={() => applyFormat('meaning', 'pink')} title="ピンク">桃</button>
+              </div>
+              <div className="toolbar-section">
+                <span className="toolbar-label">サイズ:</span>
+                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xsmall')} title="極小">極小</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'small')} title="小">小</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'normal')} title="標準">標準</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'large')} title="大">大</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xlarge')} title="極大">極大</button>
               </div>
             </div>
             <textarea
@@ -521,6 +556,14 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
                 <button type="button" className="color-btn orange" onClick={() => applyFormat('example', 'orange')} title="オレンジ">橙</button>
                 <button type="button" className="color-btn purple" onClick={() => applyFormat('example', 'purple')} title="紫色">紫</button>
                 <button type="button" className="color-btn pink" onClick={() => applyFormat('example', 'pink')} title="ピンク">桃</button>
+              </div>
+              <div className="toolbar-section">
+                <span className="toolbar-label">サイズ:</span>
+                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'xsmall')} title="極小">極小</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'small')} title="小">小</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'normal')} title="標準">標準</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'large')} title="大">大</button>
+                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'xlarge')} title="極大">極大</button>
               </div>
               <div className="toolbar-section">
                 <span className="toolbar-label">画像:</span>
