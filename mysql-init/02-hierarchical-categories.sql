@@ -1,6 +1,9 @@
 -- 階層型カテゴリシステムとお気に入り機能の実装
 -- XAMPPのphpMyAdminで実行してください
 
+-- 文字コード設定
+SET NAMES utf8mb4;
+
 -- 1. categoriesテーブルに階層とお気に入り機能を追加
 ALTER TABLE categories 
 ADD COLUMN parent_id INT DEFAULT NULL COMMENT '親カテゴリのID（NULLの場合はルートカテゴリ）',

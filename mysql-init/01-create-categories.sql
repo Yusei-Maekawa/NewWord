@@ -1,8 +1,8 @@
 -- categoriesテーブル作成（簡潔版）
 -- XAMPPのphpMyAdminで実行してください
 
--- 1. 既存のcategoryカラムを拡張
-ALTER TABLE terms MODIFY COLUMN category VARCHAR(100);
+-- 文字コード設定
+SET NAMES utf8mb4;
 
 -- 2. categoriesテーブルを作成
 CREATE TABLE IF NOT EXISTS categories (
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS categories (
   is_default BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. デフォルトカテゴリを挿入
 INSERT INTO categories (category_key, category_name, category_icon, category_color, is_default) VALUES 

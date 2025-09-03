@@ -34,10 +34,11 @@ app.use(express.json());
 
 // MySQLデータベースに接続するための設定
 const db = mysql.createConnection({
-  host: 'localhost',      // サーバー名（ローカル）
-  user: 'root',           // ユーザー名（XAMPPのデフォルト）
-  password: '',           // パスワード（XAMPPのデフォルトは空）
-  database: 'study_app'   // 使用するデータベース名
+  host: 'localhost',      // Dockerコンテナのホスト（ホストマシンのlocalhost）
+  user: 'app_user',       // Dockerで作成したユーザー
+  password: 'apppassword', // Dockerで設定したパスワード
+  database: 'studying_app', // Dockerで作成したデータベース名
+  port: 3307              // Dockerでマッピングしたポート
 });
 
 // 語句一覧を取得するAPI（GETリクエスト）

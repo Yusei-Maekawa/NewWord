@@ -1,3 +1,82 @@
+/*
+ * =============================================================================
+ * 学習用語句管理アプリケーション - メインスタイルシート
+ * =============================================================================
+ *
+ * @fileoverview 学習用語句管理アプリケーションの全体的なスタイル定義
+ * @description このファイルはアプリケーション全体の視覚デザインを定義します。
+ *              モダンでクリーンなUIデザインを採用し、学習効率を高めるための
+ *              直感的で使いやすいインターフェースを提供します。
+ *
+ * @version 1.0.0
+ * @author 開発チーム
+ * @date 2024
+ *
+ * =============================================================================
+ * デザインコンセプト
+ * =============================================================================
+ *
+ * - カラースキーム: 青系グラデーション（#e0e7ef → #bfc8d8）
+ * - フォント: Inter, Segoe UI, Tahoma, Geneva, Verdana, sans-serif
+ * - レイアウト: レスポンシブデザイン、最大幅1100pxのコンテナ
+ * - コンポーネント: 角丸（border-radius: 14px-28px）、シャドウ効果
+ * - アニメーション: スムーズなトランジション（0.2s cubic-bezier）
+ *
+ * =============================================================================
+ * 主要なスタイルセクション
+ * =============================================================================
+ *
+ * 1. グローバルスタイル (*, body, #root)
+ *    - リセットCSS、フォント設定、背景グラデーション
+ *
+ * 2. レイアウト構造 (.container, .header, .main-content)
+ *    - アプリケーション全体のレイアウト定義
+ *
+ * 3. ナビゲーション (.category-nav, .category-btn)
+ *    - カテゴリ選択ボタンのスタイルとホバー効果
+ *
+ * 4. コンテンツセクション (.section, .section h2)
+ *    - 各機能セクションのスタイル定義
+ *
+ * 5. フォーム要素 (input, button, textarea)
+ *    - 入力フォームの統一されたデザイン
+ *
+ * 6. リストとカード (.terms-list, .term-card)
+ *    - 語句一覧表示のスタイル
+ *
+ * 7. モーダルとオーバーレイ (.modal, .overlay)
+ *    - 編集モーダルのスタイル定義
+ *
+ * 8. レスポンシブデザイン (@media queries)
+ *    - モバイル・タブレット対応
+ *
+ * =============================================================================
+ * 使用方法
+ * =============================================================================
+ *
+ * このスタイルシートはReactコンポーネントで使用されるクラス名に対応しています。
+ * 各コンポーネントのJSXで適切なclassNameを指定することでスタイルが適用されます。
+ *
+ * 例:
+ * <div className="container">
+ *   <div className="section">
+ *     <h2>学習セクション</h2>
+ *     // コンテンツ
+ *   </div>
+ * </div>
+ *
+ * =============================================================================
+ * カスタマイズガイド
+ * =============================================================================
+ *
+ * - 色の変更: CSS変数を使用することを推奨
+ * - レスポンシブ: ブレークポイントは768px, 1024pxを使用
+ * - アニメーション: cubic-bezier(.4,0,.2,1) を統一使用
+ * - シャドウ: rgba(44,62,80, 透明度) で統一
+ *
+ * =============================================================================
+ */
+
 * {
   margin: 0;
   padding: 0;
@@ -572,6 +651,7 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
   gap: 25px;
   padding: 20px 0;
+  align-items: start; /* カードを上揃えに */
 }
 
 .term-card {
@@ -583,9 +663,12 @@ body {
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
   position: relative;
-  min-height: 220px;
+  min-height: auto; /* 最小高さ制限を除去 */
+  max-height: 600px; /* 最大高さを設定してスクロール可能に */
+  height: auto; /* 自動調整 */
   display: flex;
   flex-direction: column;
+  overflow-y: auto; /* 縦スクロールを有効化 */
 }
 
 .term-card:hover {
@@ -626,39 +709,62 @@ body {
 .term-card-content {
   margin-bottom: 15px;
   flex: 1;
-  overflow: hidden;
+  overflow: visible; /* 画像が切れないように変更 */
+  max-height: none; /* 高さ制限を除去 */
+  word-wrap: break-word; /* 長い単語を適切に改行 */
 }
 
 /* カード内の画像表示セクション */
 .term-card-images {
   margin: 12px 0;
-  max-height: 150px;
-  overflow: hidden;
+  max-height: none; /* 高さ制限を完全に除去 */
+  overflow: visible; /* 画像が切れないように変更 */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .term-card-images .uploaded-image {
-  max-width: 100%;
-  max-height: 120px;
-  width: auto;
+  width: 100%;
   height: auto;
+  max-height: 180px; /* 一覧用に高さ制限 */
   border-radius: 8px;
-  margin: 4px 8px 4px 0;
+  margin: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  object-fit: cover;
+  object-fit: contain; /* 全体を縮小して必ず見せる */
+  background-color: #f8f8f8; /* 余白があっても自然に */
+  cursor: pointer; /* クリック可能であることを示す */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: block;
+}
+
+.term-card-images .uploaded-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .term-card-images .uploaded-image-container {
   display: inline-block;
-  margin: 4px 8px 4px 0;
+  margin: 0;
+  overflow: visible; /* 画像が切れないように */
+  max-width: 100%;
+  height: auto;
 }
 
 .term-meaning-preview {
   color: #5a6c7d;
   line-height: 1.6;
-  font-size: 0.95rem;
-  max-height: none;
-  overflow: visible;
+  /* font-size: 0.95rem; コメントアウト - 子要素のフォントサイズを優先 */
+  max-height: none; /* 高さ制限を完全に除去 */
+  overflow: visible; /* スクロール可能に */
   flex: 1;
+  word-wrap: break-word; /* 長い単語を適切に改行 */
+  word-break: break-word; /* 単語の境界で改行 */
+}
+
+/* フォントサイズの継承を確実にする */
+.term-meaning-preview span {
+  font-size: inherit !important;
 }
 
 /* term-meaning-preview内の書式スタイル */
@@ -685,17 +791,131 @@ body {
   opacity: 0.7;
 }
 
+/* インラインスタイルはそのまま適用されるはずなので、追加のCSSは不要 */
+
 /* term-meaning-preview内の画像スタイル */
 .term-meaning-preview .uploaded-image {
-  max-width: 100%;
+  width: 100%;
   height: auto;
+  max-height: 300px; /* プレビューでは少し大きめに */
   border-radius: 8px;
   margin: 8px 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  object-fit: contain; /* 全体を縮小して必ず見せる */
+  background-color: #f8f8f8; /* 余白があっても自然に */
+  display: block;
+  cursor: pointer; /* クリック可能であることを示す */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.term-meaning-preview .uploaded-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .term-meaning-preview .uploaded-image-container {
   margin: 8px 0;
+  overflow: visible; /* 画像が切れないように変更 */
+}
+
+/* 基本的な画像コンテナスタイル */
+.uploaded-image-container {
+  margin: 8px 0;
+  overflow: visible; /* 画像が切れないように変更 */
+  position: relative;
+}
+
+/* マークダウンの画像記法を非表示にする */
+.uploaded-image-container::before {
+  content: '';
+  display: none;
+}
+
+/* 画像の周りのマークダウンテキストを非表示 */
+.rich-text-content .uploaded-image-container {
+  position: relative;
+}
+
+.rich-text-content .uploaded-image-container::before,
+.rich-text-content .uploaded-image-container::after {
+  display: none !important;
+}
+
+/* 画像モーダルのスタイル */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.image-modal img {
+  width: 100%;
+  height: auto;
+  max-height: 90vh; /* 画面の高さまで */
+  object-fit: contain; /* 全体を必ず表示 */
+  border-radius: 8px;
+  display: block;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.image-modal-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.uploaded-image {
+  width: 100%;
+  height: auto;
+  max-height: 180px; /* 一覧用に高さ制限 */
+  border-radius: 8px;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  object-fit: contain; /* 全体を縮小して必ず見せる */
+  background-color: #f8f8f8; /* 余白があっても自然に */
+  display: block;
+  cursor: pointer; /* クリック可能であることを示す */
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.uploaded-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .term-card-actions {
@@ -757,6 +977,8 @@ body {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #dee2e6;
+  max-height: none; /* 高さ制限を除去 */
+  overflow: visible; /* コンテンツが見切れないように */
 }
 
 .preview-section h4 {
@@ -771,8 +993,11 @@ body {
   border-radius: 4px;
   padding: 12px;
   min-height: 40px;
+  max-height: none; /* 高さ制限を除去 */
   font-size: 0.9rem;
   line-height: 1.5;
+  overflow: visible; /* コンテンツが見切れないように */
+  word-wrap: break-word; /* 長い単語を適切に改行 */
 }
 
 /* rich-text-preview内の書式スタイル */
@@ -801,11 +1026,20 @@ body {
 
 /* rich-text-preview内の画像スタイル */
 .rich-text-preview .uploaded-image {
-  max-width: 100%;
+  width: 100%;
   height: auto;
+  max-height: 300px; /* プレビューでは少し大きめに */
   border-radius: 8px;
   margin: 8px 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  object-fit: contain; /* 全体を縮小して必ず見せる */
+  background-color: #f8f8f8; /* 余白があっても自然に */
+  display: block;
+}
+
+.rich-text-preview .uploaded-image-container {
+  margin: 8px 0;
+  overflow: visible; /* 画像が切れないように */
 }
 
 .rich-text-preview .uploaded-image-container {
@@ -814,7 +1048,12 @@ body {
 
 .rich-text-content {
   line-height: 1.7;
-  font-size: 1.1rem;
+  /* font-size: 1.1rem; コメントアウト - 子要素のフォントサイズを優先 */
+}
+
+/* フォントサイズの継承を確実にする */
+.rich-text-content span {
+  font-size: inherit !important;
 }
 
 .rich-text-content strong {
@@ -840,15 +1079,21 @@ body {
   opacity: 0.7;
 }
 
+/* インラインスタイルはそのまま適用されるはずなので、追加のCSSは不要 */
+
 /* 詳細モーダル内の画像スタイル */
 .term-detail-modal .rich-text-content .uploaded-image {
-  max-width: 100%;
+  width: 100%;
   height: auto;
+  max-height: 90vh; /* 画面の高さまで */
   border-radius: 12px;
-  margin: 12px 0;
+  margin: 12px auto; /* 中央寄せ */
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   cursor: pointer;
   transition: transform 0.2s;
+  object-fit: contain; /* 全体を必ず表示 */
+  display: block;
+  background-color: #f8f8f8; /* 余白があっても自然に */
 }
 
 .term-detail-modal .rich-text-content .uploaded-image:hover {
@@ -858,6 +1103,14 @@ body {
 .term-detail-modal .rich-text-content .uploaded-image-container {
   margin: 12px 0;
   text-align: center;
+  overflow: visible; /* 画像が切れないように変更 */
+  max-width: 100%;
+}
+
+/* モーダル全体のスタイル調整 */
+.term-detail-modal {
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 /* 詳細モーダル */
@@ -989,7 +1242,7 @@ body {
   margin-right: 5px;
 }
 
-.format-btn, .color-btn {
+.format-btn, .color-btn, .size-btn {
   padding: 4px 8px;
   border: 1px solid #dee2e6;
   background: white;
@@ -1004,12 +1257,12 @@ body {
   justify-content: center;
 }
 
-.format-btn:hover, .color-btn:hover {
+.format-btn:hover, .color-btn:hover, .size-btn:hover {
   background: #e9ecef;
   border-color: #adb5bd;
 }
 
-.format-btn:active, .color-btn:active {
+.format-btn:active, .color-btn:active, .size-btn:active {
   background: #dee2e6;
 }
 
@@ -1036,6 +1289,8 @@ body {
   
   .term-card {
     padding: 15px;
+    max-height: 500px; /* モバイルでは少し小さく */
+    overflow-y: auto; /* モバイルでもスクロール可能 */
   }
   
   .term-card-header {
@@ -1067,7 +1322,7 @@ body {
     gap: 3px;
   }
   
-  .format-btn, .color-btn {
+  .format-btn, .color-btn, .size-btn {
     min-width: 24px;
     height: 24px;
     font-size: 0.75rem;

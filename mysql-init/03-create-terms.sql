@@ -1,4 +1,8 @@
 -- Create terms table for the studying app
+
+-- 文字コード設定
+SET NAMES utf8mb4;
+
 CREATE TABLE IF NOT EXISTS terms (
   id INT AUTO_INCREMENT PRIMARY KEY,
   word VARCHAR(255) NOT NULL,
@@ -7,7 +11,7 @@ CREATE TABLE IF NOT EXISTS terms (
   category VARCHAR(100),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create index for better performance
 CREATE INDEX idx_category ON terms(category);

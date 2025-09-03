@@ -1,0 +1,6 @@
+{
+  "name": "Node.js DevContainer",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:18",
+  "postCreateCommand": "echo 'DevContainer is ready!'",
+  "forwardPorts": [3000, 4000]
+}
