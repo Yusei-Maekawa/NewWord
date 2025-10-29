@@ -51,3 +51,19 @@ Thumbs.db
 
 # MySQL data
 mysql-data/
+ 
+# Firebase / secrets
+secrets/
+secrets/**
+serviceAccountKey.json
+.firebaserc
+.firebase/
+
+# Firebase service account
+secrets/
+secrets/**
+serviceAccountKey.json
+
+# Firebase cache
+.firebaserc
+.firebase/
