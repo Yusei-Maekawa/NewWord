@@ -4,12 +4,14 @@
   "description": "英語、応用情報技術者試験、高度情報技術者試験、G検定の学習用語句を効率的に管理・復習するためのWebアプリケーションです。",
   "private": true,
   "scripts": {
-    "start": "react-scripts start",
-    "dev": "concurrently \"npm run server\" \"npm start\"",
-    "server": "node server.js",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+  "start": "react-scripts start",
+  "dev": "concurrently \"npm run server\" \"npm start\"",
+  "server": "node server.js",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject",
+  "firebase:init-client": "node scripts/firebase_init_client.js",
+  "firebase:migrate": "node scripts/mysql_to_firestore.js"
   },
   "repository": {
     "type": "git",
@@ -47,6 +49,9 @@
     ]
   },
   "devDependencies": {
-    "concurrently": "^7.6.0"
+  "concurrently": "^7.6.0",
+  "firebase-admin": "^11.10.1",
+  "firebase": "^10.10.0",
+  "mysql2": "^3.14.3"
   }
 }
