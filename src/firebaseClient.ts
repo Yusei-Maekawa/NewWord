@@ -63,12 +63,12 @@ import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 export const firebaseConfig = {
-  apiKey: "REPLACE",
-  authDomain: "REPLACE",
-  projectId: "REPLACE",
-  storageBucket: "REPLACE",
-  messagingSenderId: "REPLACE",
-  appId: "REPLACE"
+  apiKey: "AIzaSyA9Pmi66A72OstDEVtXRdoPu5dme97vWe4",
+  authDomain: "newword-f6f1e.firebaseapp.com",
+  projectId: "newword-f6f1e",
+  storageBucket: "newword-f6f1e.firebasestorage.app",
+  messagingSenderId: "641661182467",
+  appId: "1:641661182467:web:abde50e9c9467b088c6436"
 };
 
 const app = initializeApp(firebaseConfig);

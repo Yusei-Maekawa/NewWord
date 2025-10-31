@@ -1,0 +1,74 @@
+# Firebase Hosting と GitHub Actions の設定手順
+
+## ✅ 完了した作業
+
+1. **Firebase Hosting 設定ファイルの作成**
+   - `firebase.json`: Hosting の設定（public ディレクトリ: `build`, SPA 設定）
+   - `.firebaserc`: Firebase プロジェクト ID の設定（`newword-f6f1e`）
+
+2. **GitHub Actions ワークフローの作成**
+   - `.github/workflows/firebase-hosting-merge.yml`: main ブランチへのマージ時に自動デプロイ
+   - `.github/workflows/firebase-hosting-pull-request.yml`: PR 作成時にプレビューデプロイ
+
+3. **コミット & プッシュ**
+   - すべての設定ファイルをコミットして `feature/term-management` ブランチにプッシュ完了
+
+---
+
+## 🔐 次のステップ: GitHub Secret の設定
+
+GitHub Actions でデプロイを実行するために、Firebase サービスアカウントを GitHub Secret に登録する必要があります。
+
+### 手順:
+
+1. **GitHub リポジトリの Settings を開く**
+   - https://github.com/Yusei-Maekawa/NewWord/settings/secrets/actions
+
+2. **New repository secret をクリック**
+
+3. **Secret を追加**
+   - **Name**: `FIREBASE_SERVICE_ACCOUNT_NEWWORD_F6F1E`
+   - **Value**: 以下の Base64 エンコードされた値をコピー＆ペースト
+
+```
+ewogICJ0eXBlIjogInNlcnZpY2VfYWNjb3VudCIsCiAgInByb2plY3RfaWQiOiAibmV3d29yZC1mNmYxZSIsCiAgInByaXZhdGVfa2V5X2lkIjogIjQwY2JhNWZhOTY2ODNkNGVhZjhmNGRiZWU3ZTc4MDdiMWE5NDQ1YTkiLAogICJwcml2YXRlX2tleSI6ICItLS0tLUJFR0lOIFBSSVZBVEUgS0VZLS0tLS1cbk1JSUV2d0lCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktrd2dnU2xBZ0VBQW9JQkFRRGtVeFJGTmJleTd1T1RcbjZNd0Z2Q3ZnVTZEUXc5ZDV3YVdQeTZGaW1iQ01XK2dZYmNVcG9Ha0JFZXNiU0hqVzBGUlRCcWltYnVYL2xMT0ZcbjdwdDFXVW5oWFRkbE45UmlqYURtNEgxQXI1Zlo3bXVaMy93dklHT0diUTROL3dPUlZnY04yRFpxT3lhc1lrOGNcbkVyTjAwZTV5cytpM0NGdjYxdUR4RG9MN1g2eUNBUEdhMjdvenRoN3hFWWdTVURDSDJCN1ViRkljQU9pVEtsUWpcbnYxaFg3eFlPWForb0FWZHFyYU92UEwzclpKWDg5K05TUDE0TzFFTDNrZzg4alhwRE1oVHk3a0hXQUhaeTBOQ1NcblB4QXdWbndsT2hwTTZCQk1TeldSWVlnVXpwRkRnZllXbkJaT3ZIWS9aT24xVm9LMTJSdUFJUTArdWJtZHZ0Mi9cbklqcHdUa29WQWdNQkFBRUNnZ0VBQU10Wk1yUnhJeW81bUhZaTM1SThCTmZGbzNSSzk1MTQyZnMzWUlSd1hNeWxcbkRoQ3pzdVZmK0NUNzBHaDhJeU11Wit1S0FxbzRHcCtGMEYxNEpQeGVpVzR0bHlpT2tKazFpaGdWMTNmRTYza3NcbjNxZ3MxRzBrYTM5Tm9UYlY2RmVJUnNBTjBHak1SYVZCNlRNWGRMeVdPOGZzYzFhUUcxdE1CUXFyNGZ2L09hU05cbmc4UVlSYWR6YkhRMDE1dXVjZXRvTXcrRTBYSW1zQXBqL1B2clgwbC90VDIyazZsN2dSUVI1QnFTMHdRZXFPckpcbk9SaFJGczNLOVdrNmhhRnkwSmt5ZlJUSlNxVHVqSnZFc1VoM3dHR1lpQ1c4WmFIU29Id0ptODVSMERqekxrY3hcbjdCenh6Q2I3VkxWRHN1cWMxUmJ2R2VBUVVzUmFIYUI2RXVZWTVoR0VNUUtCZ1FENWdjL05hTDRWU0lxcnllb2Ncbi84emF5UVlDRXEwNmMzc3l2VW93KzB5WDNJVXhHeFQrdnJ5OG0wZHNNQjBuK1MyNllJOFJWcDBnU2xyVC91aXJcbm5GYmIvZWR1UmVXSGNDZ3hVUGRNcXdDdDQwajZDQ2xoTVJ4U0pVRStneU83YStsNVhSR041UEUzeWhwQTRvTTZcbko5M3IzblFXTHgwd25IWEtpRCthU0JOdjJ3S0JnUURxUkNiVVgzMlFnSVZudUJkcmp2SnVMNlZUY2NoTldOd0NcbnFlNEVVcXlhanBERzFMZGpSUjc0MlF6Nm5RYXJ1azUrYVRrVFVpd3NqWkVoa3dLZmNQSzBKejZNVjdiSldlR01cbkhBdzNWdWo5dENybWw1WDQzYzQ0N25QTmM1NElITW1xYWZpckhKRndOYjc1dG1mR3BMTWN3ZzFOdFFkVllTNTJcbnVQQlRuc2dJendLQmdRREkzLzBJTitySlFkVDdCNTJuYVQ1cGFteWU0S0I4clpxak9BaHlOTy91VjRrWUJ1QzVcblU2Q3FEQzNOYVZNZjZwb3BNakljMkdtNkpJTEpxTEZ6OEhOeHZCSkdFcG4vbDRtVVlzWW5BSW1VZGFjOFBiUHFcbjN0b1pQSXN4byt6eHFLaVlvQmhRNytCUWRUTDd5Q0cwZ1lKR3Nwc3RmUkw0SHc4cVZ0VTJCZzgzL3dLQmdRRGxcbk5HTHRYTFJrd21wRDdZajBrbnE5dGQ1Q3cwdWY2Ylh3NFVQZ2RPY3RuUmtuZ0k0aEVVclpYTHZuSStXWDlZUEJcbkNNQndGL0RpY213eDlqMFZ0Sk95RWNlUDFtNGZtTklsbkhlVFdYUkNiWm1mM1dZOWhQNjFFeEM0VGt1clVrYzVcbmRjOTMwMDYxQTlEalQwVS94SHIrUXhwekVoQ254NXFIVEREUEQ4WlZYd0tCZ1FEb0k1S2RzL3F0emtYRGFZWFJcbnJMMWFMYTlNcDAxMTE0blJxNWtzUXpuOU9UdkhJQm4wRys1UWJieklnbXBsN0dneUx2WTFlVFJaUnA1U2hXK1NcbjJPTFc0Zng1SUtORFRQQVBRSlRrZElwZ2JKTnNYVHVqRnVyclNmdWs2UHlwbjFFV0tnYVQ1Uy9IYjV6SmNqMGVcbkUya0VZU3gwYVp4Vk1hY0I2NXFndmV1RTRRPT1cbi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS1cbiIsCiAgImNsaWVudF9lbWFpbCI6ICJmaXJlYmFzZS1hZG1pbnNkay1mYnN2Y0BuZXd3b3JkLWY2ZjFlLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwKICAiY2xpZW50X2lkIjogIjEwNTU0MDI0NzczNzg5NzM3NDM3MiIsCiAgImF1dGhfdXJpIjogImh0dHBzOi8vYWNjb3VudHMuZ29vZ2xlLmNvbS9vL29hdXRoMi9hdXRoIiwKICAidG9rZW5fdXJpIjogImh0dHBzOi8vb2F1dGgyLmdvb2dsZWFwaXMuY29tL3Rva2VuIiwKICAiYXV0aF9wcm92aWRlcl94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL29hdXRoMi92MS9jZXJ0cyIsCiAgImNsaWVudF94NTA5X2NlcnRfdXJsIjogImh0dHBzOi8vd3d3Lmdvb2dsZWFwaXMuY29tL3JvYm90L3YxL21ldGFkYXRhL3g1MDkvZmlyZWJhc2UtYWRtaW5zZGstZmJzdmMlNDBuZXd3b3JkLWY2ZjFlLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwKICAidW5pdmVyc2VfZG9tYWluIjogImdvb2dsZWFwaXMuY29tIgp9Cg==
+```
+
+4. **Add secret をクリック**
+
+---
+
+## 📝 動作確認
+
+Secret を設定したら、以下の手順で動作確認できます：
+
+### 方法1: main ブランチにマージ
+```bash
+# feature/term-management を main にマージすると自動デプロイが実行されます
+git checkout main
+git merge feature/term-management
+git push origin main
+```
+
+### 方法2: 手動デプロイ（テスト用）
+```bash
+# ビルドしてから手動でデプロイ
+npm run build
+firebase deploy --only hosting
+```
+
+---
+
+## 🔗 デプロイ先 URL
+
+デプロイが成功すると、以下の URL でアクセスできます：
+- **本番**: https://newword-f6f1e.web.app/
+- **Firebase Console**: https://console.firebase.google.com/project/newword-f6f1e/hosting
+
+---
+
+## 📚 追加リソース
+
+- [Firebase Hosting ドキュメント](https://firebase.google.com/docs/hosting)
+- [GitHub Actions for Firebase](https://github.com/FirebaseExtended/action-hosting-deploy)
+
