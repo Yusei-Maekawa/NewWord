@@ -17,6 +17,8 @@ applyTo: "**"
 - **新しい機能を追加する際は、その設計と使用方法をREADMEに記載する** - Document design and usage of new features in README
 
 - **新しい機能であったり、勉強になる部分は記事としてはてなブログにまとめるため、その補助をお願いしたい** - Summarize new features or learning points in a Hatena Blog article
+- **その際、具体的なコード例や使用シーンを交えて説明してほしい** - Include specific code examples and usage scenarios in the article
+- **その記事の内容は、後でわかりやすく辿れるように、README等にその作業の手順が進んだら、追記してほしい** - Update README with a link to the article once the work is done
 
 ### Change Management
 - **変更を加えた場合は、その理由と影響を明確に説明する** - Clearly explain reasons and impacts of changes

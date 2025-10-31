@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 開発用: すべての読み書きを許可（本番では必ず変更すること！）
+    // Development only: Allow all reads and writes (MUST change for production!)
+    match /terms/{termId} {
+      allow read, write: if true;
+    }
+    match /categories/{categoryId} {
+      allow read, write: if true;
+    }
+    
+    // 本番用（コメントアウト中）:
+    // Production rules (currently commented out):
+    // match /terms/{termId} {
+    //   allow read: if true;  // 誰でも読み取り可能
+    //   allow write: if request.auth != null;  // 認証済みユーザーのみ書き込み可能
+    // }
+    // match /categories/{categoryId} {
+    //   allow read: if true;
+    //   allow write: if request.auth != null;
+    // }
+  }
+}
