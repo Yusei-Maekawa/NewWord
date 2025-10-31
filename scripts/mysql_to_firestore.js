@@ -1,8 +1,54 @@
 /**
- * Simple MySQL -> Firestore migration script (small datasets)
- * Requirements:
- * - Place service account JSON at ./secrets/serviceAccountKey.json
- * - Run: node scripts/mysql_to_firestore.js
+ * scripts/mysql_to_firestore.js
+ *
+ * Japanese:
+ * MySQL から Firestore へデータを移行する簡易スクリプトです（小規模向け）。
+ * 前提:
+ * - サービスアカウント JSON を `./secrets/serviceAccountKey.json` に配置していること
+ * - 管理者権限で Firestore へ書き込みできること
+ * 実行:
+ * - node scripts/mysql_to_firestore.js
+ *
+ * エクスポート / 目次:
+ * - 依存: mysql2/promise, ../server/firebaseAdmin
+ * - 関数: migrate() - メイン処理。MySQL から categories と terms を読み出して Firestore にバッチ書き込みする
+ * - 重要変数:
+ *   - DB 接続は環境変数でオーバーライド可能: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+ *   - バッチサイズ: terms は 400 件ずつコミット（Firestore バッチ上限に対応）
+ *
+ * English:
+ * Simple MySQL -> Firestore migration script (for small datasets).
+ * Preconditions:
+ * - Place the service account JSON at `./secrets/serviceAccountKey.json`.
+ * - Ensure the service account has permissions to write to Firestore.
+ * Usage:
+ * - node scripts/mysql_to_firestore.js
+ *
+ * Exports / TOC:
+ * - deps: mysql2/promise, ../server/firebaseAdmin
+ * - function: migrate() - main migration flow. Reads categories and terms from MySQL and writes them to Firestore using batches.
+ * - config:
+ *   - DB connection can be overridden via env vars: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+ *   - batch size for terms: 400 (to avoid Firestore batch limits)
+ *
+ * 関数の詳細 (Function Details):
+ *
+ * migrate() (async function)
+ * - 日本語: MySQL データベースから categories と terms を読み取り、Firestore にバッチ書き込みする非同期関数。
+ *           categories は1バッチで、terms は400件ごとにバッチ処理します（Firestore の500件制限に対応）。
+ * - English: Async function that reads categories and terms from MySQL and writes them to Firestore in batches.
+ *            Categories are written in a single batch; terms are written in chunks of 400 (respecting Firestore's 500-doc batch limit).
+ * - Inputs: なし (環境変数でDB接続をオーバーライド可能)
+ * - Outputs: Promise<void> (コンソールに "Migration finished" を出力)
+ * - Errors: DB接続失敗や Firestore 未初期化の場合は process.exit(1) で終了
+ * - Usage: node scripts/mysql_to_firestore.js
+ *
+ * 環境変数 (Environment Variables):
+ * - DB_HOST: MySQL ホスト (デフォルト: localhost)
+ * - DB_PORT: MySQL ポート (デフォルト: 3307)
+ * - DB_USER: MySQL ユーザー (デフォルト: root)
+ * - DB_PASSWORD: MySQL パスワード (デフォルト: rootpassword)
+ * - DB_NAME: MySQL データベース名 (デフォルト: studying_app)
  */
 const mysql = require('mysql2/promise');
 const { db, admin } = require('../server/firebaseAdmin');
