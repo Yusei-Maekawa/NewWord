@@ -151,6 +151,8 @@ export const useTerms = () => {
 
   return {
     terms,
+    loading: false,  // ローカルストレージは同期的なのでloadingは常にfalse
+    error: null,     // ローカルストレージではエラーハンドリング不要
     addTerm,
     updateTerm,
     deleteTerm,

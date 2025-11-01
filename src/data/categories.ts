@@ -71,6 +71,52 @@ export const categories: Category[] = [
     color: '#28a745'
   },
 
+  // 応用情報の子カテゴリ
+  {
+    key: 'applied_technology',
+    name: 'テクノロジ',
+    icon: '⚙️',
+    color: '#20c997'
+  },
+  {
+    key: 'applied_management',
+    name: 'マネジメント',
+    icon: '�',
+    color: '#17a2b8'
+  },
+  {
+    key: 'applied_strategy',
+    name: 'ストラテジ',
+    icon: '🎯',
+    color: '#6610f2'
+  },
+
+  // テクノロジの孫カテゴリ
+  {
+    key: 'security',
+    name: 'セキュリティ',
+    icon: '🔒',
+    color: '#9b59b6'
+  },
+  {
+    key: 'network',
+    name: 'ネットワーク',
+    icon: '🌐',
+    color: '#6f42c1'
+  },
+  {
+    key: 'database',
+    name: 'データベース',
+    icon: '🗄️',
+    color: '#fd7e14'
+  },
+  {
+    key: 'information_media',
+    name: '情報メディア',
+    icon: '�',
+    color: '#e83e8c'
+  },
+
   /**
    * 高度情報処理技術者試験カテゴリ
    * 日本の国家資格「高度情報処理技術者試験」関連
@@ -78,7 +124,7 @@ export const categories: Category[] = [
   {
     key: 'advanced',
     name: '高度情報',
-    icon: '🔧',
+    icon: '�',
     color: '#dc3545'
   },
 
@@ -101,39 +147,21 @@ export const categories: Category[] = [
     key: 'ycne',
     name: 'YCNE',
     icon: '🌐',
-    color: '#6c757d' 
+    color: '#6c757d'
   },
-  
-  // 新しいカテゴリを追加
-  { 
-    key: 'security', 
-    name: '情報セキュリティ', 
-    icon: '🔒', 
-    color: '#9b59b6' 
+
+  // その他のカテゴリ
+  {
+    key: 'cloud',
+    name: 'クラウド',
+    icon: '☁️',
+    color: '#17a2b8'
   },
-  { 
-    key: 'cloud', 
-    name: 'クラウド', 
-    icon: '☁️', 
-    color: '#17a2b8' 
-  },
-  { 
-    key: 'database', 
-    name: 'データベース', 
-    icon: '🗄️', 
-    color: '#fd7e14' 
-  },
-  { 
-    key: 'network', 
-    name: 'ネットワーク', 
-    icon: '🌐', 
-    color: '#6f42c1' 
-  },
-  { 
-    key: 'programming', 
-    name: 'プログラミング', 
-    icon: '⌨️', 
-    color: '#343a40' 
+  {
+    key: 'programming',
+    name: 'プログラミング',
+    icon: '⌨️',
+    color: '#343a40'
   }
 ];
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import CategoryManager from './CategoryManager';
+// import CategoryManager from './CategoryManager'; // 暫定的に無効化（Firestore 移行予定）
 
 interface Category {
   id: number;
@@ -247,8 +247,8 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
         })()}
       </div>
       
-      {/* カテゴリ管理ボタン */}
-      <button
+      {/* カテゴリ管理ボタン（暫定的に無効化 - Firestore 移行後に再実装） */}
+      {/* <button
         className="category-btn category-manage-btn"
         onClick={() => setIsManagerOpen(true)}
         style={{
@@ -258,14 +258,14 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
         }}
       >
         ⚙️ カテゴリ管理
-      </button>
+      </button> */}
 
-      {/* カテゴリ管理モーダル */}
-      <CategoryManager
+      {/* カテゴリ管理モーダル（暫定的に無効化 - Firestore 移行後に再実装） */}
+      {/* <CategoryManager
         isOpen={isManagerOpen}
         onClose={() => setIsManagerOpen(false)}
         onCategoryUpdate={handleCategoryUpdate}
-      />
+      /> */}
     </nav>
   );
 };

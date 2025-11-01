@@ -151,9 +151,37 @@ src/components/
 | 分野 | 技術 |
 |------|------|
 | **フロントエンド** | React, TypeScript, CSS3 |
-| **バックエンド** | Node.js, Express, MySQL |
+| **バックエンド** | Firebase (Firestore) / Node.js + Express + MySQL ※切り替え可能 |
 | **インフラ** | Docker, Docker Compose |
 | **開発ツール** | npm, Git, VS Code |
+
+### 🔀 バックエンドモードの切り替え
+
+このアプリケーションは2つのバックエンドモードをサポートしています：
+
+1. **Firestoreモード（デフォルト、推奨）** - サーバーレス、リアルタイム同期
+2. **MySQLモード** - 従来のExpress + MySQL構成
+
+`.env`ファイルで切り替え可能：
+
+```bash
+# Firestoreを使用（デフォルト）
+REACT_APP_BACKEND_MODE=firestore
+
+# MySQLを使用
+REACT_APP_BACKEND_MODE=mysql
+```
+
+**Firestoreモードの利点：**
+- ✅ サーバー不要（サーバーレス）
+- ✅ リアルタイム同期
+- ✅ 自動スケーリング
+- ✅ 無料枠が充実
+
+**MySQLモードの利点：**
+- ✅ ローカル完結
+- ✅ SQL直接操作可能
+- ✅ Docker環境で完全制御
 
 
 ## 🤝 コントリビューション
