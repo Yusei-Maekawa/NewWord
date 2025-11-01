@@ -84,7 +84,7 @@ app.put('/api/terms/:id', (req, res) => {
   const { term, word, meaning, example, category } = req.body;
   const termValue = term || word; // termがあればterm、なければword
   
-  console.log(`編集リクエスト - ID: ${id}, データ:`, { term: termValue, meaning, example, category });
+  console.log('編集リクエスト - ID: %s, データ:', id, { term: termValue, meaning, example, category });
   
   db.query(
     'UPDATE terms SET word = ?, meaning = ?, example = ?, category = ? WHERE id = ?',
