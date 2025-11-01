@@ -32,26 +32,32 @@ npm start
 StudyingEverything/
 ├── 🖥️ src/                   # React アプリケーション
 │   ├── components/           # UIコンポーネント
-│   ├── hooks/               # カスタムフック (useTerms, useStudySession)
+│   ├── hooks/               # カスタムフック (useTermsFirestore, useTerms)
 │   ├── data/                # 静的データ・設定ファイル
 │   ├── styles/              # CSSスタイルシート
 │   ├── utils/               # ユーティリティ関数・ヘルパー
 │   └── types.ts             # TypeScript型定義
-├── 🛢️ database/              # データベース関連ファイル
+├── � docs/                  # ドキュメント
+│   ├── guides/              # 使用ガイド（起動・開発手順）
+│   ├── setup/               # 環境セットアップガイド
+│   ├── TROUBLESHOOTING.md   # トラブルシューティング
+│   ├── DIRECTORY_STRUCTURE.md # プロジェクト構造詳細
+│   └── DATA_PROTECTION_CHECKLIST.md # データ保護システム
+├── ⚙️ config/                # 設定ファイル
+│   └── firestore.rules      # Firestoreセキュリティルール
+├── 🤖 batch-scripts/         # 自動化バッチファイル（起動・修正）
+├── ⚙️ scripts/               # 自動化スクリプト（バックアップ等）
+├── 🧪 tests/                 # テストファイル（API・ブラウザテスト）
+├── �️ database/              # データベース関連ファイル（レガシー）
 │   ├── sql/                 # SQLスクリプト（テーブル作成・更新）
 │   └── debug/               # デバッグ用ファイル
-├── 🤖 batch-scripts/         # 自動化バッチファイル（起動・修正）
-├── 🧪 tests/                 # テストファイル（API・ブラウザテスト）
-├── 📚 docs/                  # ドキュメント
-│   ├── guides/              # 使用ガイド（起動・開発手順）
-│   └── setup/               # 環境セットアップガイド
-├── ⚙️ scripts/               # 自動化スクリプト（バックアップ等）
-├── 🐳 mysql-conf/           # MySQL設定ファイル
-├── 🐳 mysql-init/           # Docker MySQL初期化スクリプト
+├── 🐳 mysql-conf/           # MySQL設定ファイル（レガシー）
+├── 🐳 mysql-init/           # Docker MySQL初期化スクリプト（レガシー）
 ├── 📦 build/                # ビルド済みファイル
 ├── 📁 backup/               # 旧バージョンのバックアップ
 ├── 🐳 docker-compose.yml    # Docker設定
-├── 📄 server.js             # Node.js APIサーバー
+├── 🔥 firebase.json         # Firebase Hosting設定
+├── 📄 server.js             # Node.js APIサーバー（レガシー）
 ├── 📄 package.json          # npm依存関係・スクリプト
 └── 📄 tsconfig.json         # TypeScript設定
 ```
@@ -60,14 +66,15 @@ StudyingEverything/
 
 | ディレクトリ | 説明 | 主要ファイル |
 |-------------|------|-------------|
-| **src/** | Reactアプリのソースコード | App.tsx, index.tsx, types.ts |
-| **database/** | データベース関連の管理ファイル | SQLスクリプト、デバッグツール |
+| **src/** | Reactアプリのソースコード | App.tsx, index.tsx, types.ts, hooks/ |
+| **docs/** | プロジェクトドキュメント | セットアップ・開発・運用・トラブルシューティング |
+| **config/** | 設定ファイル | firestore.rules（Firestoreセキュリティルール） |
 | **batch-scripts/** | Windows用自動化スクリプト | 起動・修正・テスト用.batファイル |
+| **scripts/** | 自動化スクリプト | MySQL自動バックアップ、Firebase移行等 |
 | **tests/** | テスト・検証ファイル | API動作テスト、ブラウザテスト |
-| **docs/** | プロジェクトドキュメント | セットアップ・開発・運用ガイド |
-| **scripts/** | 自動化スクリプト | MySQL自動バックアップ等 |
-| **mysql-conf/** | MySQL設定 | Docker用設定ファイル |
-| **mysql-init/** | DB初期化 | Docker起動時の初期SQL |
+| **database/** | データベース関連（レガシー） | SQLスクリプト、デバッグツール ※MySQL時代の遺産 |
+| **mysql-conf/** | MySQL設定（レガシー） | Docker用設定ファイル ※現在はFirestore使用 |
+| **mysql-init/** | DB初期化（レガシー） | Docker起動時の初期SQL ※現在はFirestore使用 |
 | **build/** | 本番用ビルド | React本番ビルド成果物 |
 | **backup/** | 旧バージョン保管 | 以前のバニラJS版等 |
 
