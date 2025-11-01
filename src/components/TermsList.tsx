@@ -71,7 +71,7 @@ interface TermsListProps {
   terms: Term[];
   categories: Category[];
   onEditTerm: (term: Term) => void;
-  onDeleteTerm: (id: number) => void;
+  onDeleteTerm: (id: string) => void;
 }
 
 /**
@@ -215,7 +215,7 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
       (term.example && term.example.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
-  const handleDelete = (id: number, termName: string) => {
+  const handleDelete = (id: string, termName: string) => {
     if (window.confirm(`「${termName}」を削除してもよろしいですか？`)) {
       onDeleteTerm(id);
     }

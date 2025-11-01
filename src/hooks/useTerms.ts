@@ -98,7 +98,7 @@ export const useTerms = () => {
   const addTerm = (termData: Omit<Term, 'id' | 'createdAt'>) => {
     const newTerm: Term = {
       ...termData,
-      id: Date.now(),  // タイムスタンプをIDとして使用
+      id: String(Date.now()),  // タイムスタンプを文字列IDとして使用
       createdAt: new Date().toISOString(),
     };
     setTerms(prev => [...prev, newTerm]);
@@ -107,10 +107,10 @@ export const useTerms = () => {
   /**
    * 既存の語句を更新する関数
    *
-   * @param {number} id - 更新対象の語句ID
+   * @param {string} id - 更新対象の語句ID
    * @param {Omit<Term, 'id' | 'createdAt'>} termData - 更新データ
    */
-  const updateTerm = (id: number, termData: Omit<Term, 'id' | 'createdAt'>) => {
+  const updateTerm = (id: string, termData: Omit<Term, 'id' | 'createdAt'>) => {
     setTerms(prev => prev.map(term =>
       term.id === id
         ? { ...term, ...termData, updatedAt: new Date().toISOString() }
@@ -121,9 +121,9 @@ export const useTerms = () => {
   /**
    * 語句を削除する関数
    *
-   * @param {number} id - 削除対象の語句ID
+   * @param {string} id - 削除対象の語句ID
    */
-  const deleteTerm = (id: number) => {
+  const deleteTerm = (id: string) => {
     setTerms(prev => prev.filter(term => term.id !== id));
   };
 

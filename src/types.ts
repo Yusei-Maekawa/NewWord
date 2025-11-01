@@ -61,7 +61,7 @@ import { CategoryKey } from './data/categories';
  * ```
  */
 export interface Term {
-  id: number;
+  id: string;  // Firestore document ID (string)
   category: CategoryKey;
   term: string;
   meaning: string;
