@@ -52,7 +52,13 @@ import EditTermModal from './components/EditTermModal';
 import Notification from './components/Notification';
 import { Term, StudyLog } from './types';
 import StudyTimeInput from './components/StudyTimeInput';
+import { useTermsFirestore } from './hooks/useTermsFirestore';
+import { useTerms } from './hooks/useTerms';
+import { categories as categoryData } from './data/categories';
 import './styles/App.css';
+
+// 環境変数からバックエンドモードを取得（デフォルトはfirestore）
+const BACKEND_MODE = process.env.REACT_APP_BACKEND_MODE || 'firestore';
 
 interface Category {
   id: number;
@@ -90,13 +96,20 @@ interface Category {
  * @returns {JSX.Element} アプリケーション全体のJSX要素
  */
 const App: React.FC = () => {
-  // ===== 状態管理 =====
+  // ===== バックエンド切り替え =====
 
   /**
-   * 語句データの状態
-   * @type {[Term[], React.Dispatch<React.SetStateAction<Term[]>>]}
+   * 環境変数に応じてFirestoreまたはMySQL(Express API)を使用
+   * REACT_APP_BACKEND_MODE=firestore → Firestore使用（デフォルト）
+   * REACT_APP_BACKEND_MODE=mysql → Express API + MySQL使用
    */
-  const [terms, setTerms] = useState<Term[]>([]);
+  const firestoreHook = useTermsFirestore();
+  const mysqlHook = useTerms();
+  
+  const { terms, loading, error, addTerm, updateTerm, deleteTerm } = 
+    BACKEND_MODE === 'mysql' ? mysqlHook : firestoreHook;
+
+  console.log(`🔧 バックエンドモード: ${BACKEND_MODE}`);
 
   /**
    * 現在選択されているカテゴリ
@@ -105,10 +118,53 @@ const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('all');
 
   /**
-   * カテゴリデータの状態
+   * カテゴリデータの状態（暫定的にハードコードされたデータを使用）
+   * TODO: 将来的に Firestore に移行
    * @type {[Category[], React.Dispatch<React.SetStateAction<Category[]>>]}
    */
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => {
+    console.log('🔧 カテゴリデータ初期化開始...');
+    console.log('📦 categoryData:', categoryData);
+    
+    // categories.ts のデータを App.tsx の Category 型に変換
+    // 階層構造を作成:
+    // 1. 応用情報 > テクノロジ, マネジメント, ストラテジ
+    // 2. テクノロジ > セキュリティ, ネットワーク, データベース, 情報メディア
+    const convertedCategories = categoryData.map((cat, index) => {
+      let parentId: number | null = null;
+      
+      // 応用情報の子カテゴリとして設定
+      if (cat.key === 'applied_technology' || cat.key === 'applied_management' || cat.key === 'applied_strategy') {
+        const appliedIndex = categoryData.findIndex(c => c.key === 'applied');
+        if (appliedIndex !== -1) {
+          parentId = appliedIndex + 1;
+        }
+      }
+      
+      // テクノロジの子カテゴリとして設定
+      if (cat.key === 'security' || cat.key === 'network' || cat.key === 'database' || cat.key === 'information_media') {
+        const technologyIndex = categoryData.findIndex(c => c.key === 'applied_technology');
+        if (technologyIndex !== -1) {
+          parentId = technologyIndex + 1;
+        }
+      }
+      
+      return {
+        id: index + 1,
+        category_key: cat.key,
+        category_name: cat.name,
+        category_icon: cat.icon,
+        category_color: cat.color,
+        parent_id: parentId,
+        is_favorite: false,
+        display_order: index + 1,
+        created_at: new Date().toISOString()
+      };
+    });
+    
+    console.log('✅ カテゴリデータ変換完了:', convertedCategories);
+    return convertedCategories;
+  });
 
   /**
    * 編集中の語句データ
@@ -137,85 +193,36 @@ const App: React.FC = () => {
   // ===== 関数定義 =====
 
   /**
-   * カテゴリ一覧を取得する関数
-   * APIからカテゴリデータを取得して状態を更新します
-   *
-   * @async
-   * @function fetchCategories
-   * @returns {Promise<void>}
+   * カテゴリ一覧を取得する関数（暫定的に無効化）
+   * 現在はハードコードされたカテゴリデータを使用
+   * TODO: 将来的に Firestore から取得するように変更
    */
   const fetchCategories = async () => {
-    try {
-      console.log('🔄 カテゴリ取得開始...');
-      const response = await fetch('http://localhost:4000/api/categories');
-      console.log('📡 レスポンス状態:', response.status, response.statusText);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ APIエラー詳細:', errorText);
-        throw new Error(`カテゴリの取得に失敗しました (${response.status}): ${errorText}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ カテゴリ取得成功:', data);
-      setCategories(data);
-    } catch (error) {
-      console.error('❌ カテゴリ取得エラー:', error);
-      setNotification({ 
-        message: `カテゴリの取得に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`, 
-        type: 'error' 
-      });
-    }
+    console.log('✅ カテゴリはハードコードデータを使用中（Firestore 移行予定）');
+    // カテゴリデータは useState の初期化時に設定済み
   };
 
-  // お気に入り切り替え関数
+  // お気に入り切り替え関数（暫定的に無効化）
+  // TODO: Firestore 移行時に実装
   const handleToggleFavorite = async (categoryId: number) => {
     try {
-      // 現在の状態を取得
       const currentCategory = categories.find(cat => cat.id === categoryId);
       if (!currentCategory) {
         throw new Error('カテゴリが見つかりません');
       }
 
-      // 子カテゴリを取得
-      const childCategories = categories.filter(cat => cat.parent_id === currentCategory.id);
-      const hasChildren = childCategories.length > 0;
-      
-      // 親カテゴリの場合の確認メッセージ
-      if (hasChildren) {
-        const action = currentCategory.is_favorite ? 'お気に入りから外す' : 'お気に入りに追加';
-        const message = `「${currentCategory.category_name}」を${action}しますか？\n\n💡 この操作により、配下の子カテゴリ（${childCategories.length}個）も同時に${action}されます。`;
-        
-        if (!confirm(message)) {
-          return;
-        }
-      }
-
       const newFavoriteState = !currentCategory.is_favorite;
-      console.log(`🌟 お気に入り切り替え開始: ${currentCategory.category_name} (ID: ${categoryId}) → ${newFavoriteState ? 'ON' : 'OFF'}`);
+      console.log(`🌟 お気に入り切り替え: ${currentCategory.category_name} → ${newFavoriteState ? 'ON' : 'OFF'}`);
 
-      const response = await fetch(`http://localhost:4000/api/categories/${categoryId}/favorite`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_favorite: newFavoriteState }),
-      });
-
-      if (!response.ok) {
-        throw new Error('お気に入りの切り替えに失敗しました');
-      }
-
-      const result = await response.json();
-      console.log(`✅ お気に入り切り替え成功:`, result);
+      // ローカル状態のみ更新（Firestore 未実装のため）
+      setCategories(prev => prev.map(cat => 
+        cat.id === categoryId ? { ...cat, is_favorite: newFavoriteState } : cat
+      ));
       
       setNotification({ 
-        message: result.message || (result.is_favorite ? 'お気に入りに追加しました' : 'お気に入りから削除しました'), 
+        message: newFavoriteState ? 'お気に入りに追加しました' : 'お気に入りから削除しました', 
         type: 'success' 
       });
-      
-      // カテゴリリストを更新
-      await fetchCategories();
     } catch (error) {
       console.error('❌ お気に入り切り替えエラー:', error);
       setNotification({ 
@@ -225,62 +232,19 @@ const App: React.FC = () => {
     }
   };
 
-  // 初回マウント時にAPIから取得
-  React.useEffect(() => {
-    // 語句データを取得
-    fetch('http://localhost:4000/api/terms')
-      .then(res => res.json())
-      .then(data => {
-        // DBの「word」フィールドをReactの「term」プロパティに変換
-        const convertedData = data.map((item: any) => ({
-          id: item.id,
-          term: item.word,  // DB「word」→React「term」
-          meaning: item.meaning,
-          example: item.example,
-          category: item.category,
-          createdAt: item.created_at
-        }));
-        setTerms(convertedData);
-      })
-      .catch(error => {
-        console.error('データ取得エラー:', error);
-        setNotification({ message: 'データの取得に失敗しました', type: 'error' });
-      });
-    
-    // カテゴリデータを取得
-    fetchCategories();
-  }, []);
+  // カテゴリデータは useState で初期化済み
+  // 語句データは useTermsFirestore フックが自動的に取得・同期
+  // React.useEffect は不要（API呼び出しなし）
 
-  // 語句追加（API）
-  const handleAddTerm = (termData: Omit<Term, 'id' | 'createdAt'>) => {
-    // DBのカラム名は「word」なので、React側の「term」を「word」に変換して送信
-    const apiData = {
-      word: termData.term,  // React側「term」→DB側「word」
-      meaning: termData.meaning,
-      example: termData.example,
-      category: termData.category
-    };
-    
-    console.log('送信データ:', apiData); // デバッグ用：送信内容を確認
-    
-    fetch('http://localhost:4000/api/terms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(apiData)
-    })
-      .then(res => {
-        console.log('APIレスポンス:', res.status); // デバッグ用：レスポンス確認
-        return res.json();
-      })
-      .then(newTerm => {
-        console.log('追加成功:', newTerm); // デバッグ用：追加結果確認
-        setTerms(prev => [...prev, { ...termData, id: newTerm.id, createdAt: new Date().toISOString() }]);
-        setNotification({ message: '用語を追加しました！', type: 'success' });
-      })
-      .catch(error => {
-        console.error('追加エラー:', error); // エラーハンドリング
-        setNotification({ message: '追加に失敗しました', type: 'error' });
-      });
+  // 語句追加（Firestore）
+  const handleAddTerm = async (termData: Omit<Term, 'id' | 'createdAt'>) => {
+    try {
+      await addTerm(termData);
+      setNotification({ message: '用語を追加しました！', type: 'success' });
+    } catch (error) {
+      console.error('追加エラー:', error);
+      setNotification({ message: '追加に失敗しました', type: 'error' });
+    }
   };
 
   // 編集開始
@@ -288,55 +252,27 @@ const App: React.FC = () => {
     setEditTerm(term);
   };
 
-  // 語句編集（API）
-  const handleSaveEdit = (id: string, termData: Omit<Term, 'id' | 'createdAt'>) => {
-    // DBのカラム名は「word」なので、React側の「term」を「word」に変換して送信
-    const apiData = {
-      word: termData.term,  // React側「term」→DB側「word」
-      meaning: termData.meaning,
-      example: termData.example,
-      category: termData.category
-    };
-    
-    console.log('編集データ:', apiData); // デバッグ用：送信内容を確認
-    
-    fetch(`http://localhost:4000/api/terms/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(apiData)
-    })
-      .then(res => {
-        console.log('編集APIレスポンス:', res.status); // デバッグ用
-        return res.json();
-      })
-      .then(() => {
-        setTerms(prev => prev.map(t => t.id === id ? { ...t, ...termData } : t));
-        setEditTerm(null);
-        setNotification({ message: '用語を更新しました！', type: 'success' });
-      })
-      .catch(error => {
-        console.error('編集エラー:', error); // エラーハンドリング
-        setNotification({ message: '更新に失敗しました', type: 'error' });
-      });
+  // 語句編集（Firestore）
+  const handleSaveEdit = async (id: string, termData: Omit<Term, 'id' | 'createdAt'>) => {
+    try {
+      await updateTerm(id, termData);
+      setEditTerm(null);
+      setNotification({ message: '用語を更新しました！', type: 'success' });
+    } catch (error) {
+      console.error('編集エラー:', error);
+      setNotification({ message: '更新に失敗しました', type: 'error' });
+    }
   };
 
-  // 語句削除（API）
-  const handleDeleteTerm = (id: string) => {
-    console.log('削除ID:', id); // デバッグ用：削除対象ID確認
-    
-    fetch(`http://localhost:4000/api/terms/${id}`, { method: 'DELETE' })
-      .then(res => {
-        console.log('削除APIレスポンス:', res.status); // デバッグ用
-        return res.json();
-      })
-      .then(() => {
-        setTerms(prev => prev.filter(t => t.id !== id));
-        setNotification({ message: '用語を削除しました！', type: 'success' });
-      })
-      .catch(error => {
-        console.error('削除エラー:', error); // エラーハンドリング
-        setNotification({ message: '削除に失敗しました', type: 'error' });
-      });
+  // 語句削除（Firestore）
+  const handleDeleteTerm = async (id: string) => {
+    try {
+      await deleteTerm(id);
+      setNotification({ message: '用語を削除しました！', type: 'success' });
+    } catch (error) {
+      console.error('削除エラー:', error);
+      setNotification({ message: '削除に失敗しました', type: 'error' });
+    }
   };
 
   // 今日の日付

@@ -36,6 +36,6 @@ const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-// Firestore テスト中: TestFirestore を表示
-// 元に戻す場合: <App /> に変更
-root.render(<TestFirestore />);
+// Firestore テスト完了: 本番アプリを表示
+// Firestore テストページを見る場合: <TestFirestore /> に変更
+root.render(<App />);
