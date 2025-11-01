@@ -289,7 +289,7 @@ const App: React.FC = () => {
   };
 
   // 語句編集（API）
-  const handleSaveEdit = (id: number, termData: Omit<Term, 'id' | 'createdAt'>) => {
+  const handleSaveEdit = (id: string, termData: Omit<Term, 'id' | 'createdAt'>) => {
     // DBのカラム名は「word」なので、React側の「term」を「word」に変換して送信
     const apiData = {
       word: termData.term,  // React側「term」→DB側「word」
@@ -321,7 +321,7 @@ const App: React.FC = () => {
   };
 
   // 語句削除（API）
-  const handleDeleteTerm = (id: number) => {
+  const handleDeleteTerm = (id: string) => {
     console.log('削除ID:', id); // デバッグ用：削除対象ID確認
     
     fetch(`http://localhost:4000/api/terms/${id}`, { method: 'DELETE' })

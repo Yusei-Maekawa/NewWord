@@ -46,7 +46,7 @@ import { Term } from '../types';
  */
 const convertFirestoreToTerm = (docData: any, docId: string): Term => {
   return {
-    id: parseInt(docId, 10) || 0,
+    id: docId,  // Firestore のドキュメント ID をそのまま使用
     category: docData.categoryId || docData.category || 'uncategorized',
     term: docData.word || docData.term || '',
     meaning: docData.meaning || '',
@@ -121,9 +121,9 @@ export const useTermsFirestore = () => {
    * Japanese: 指定された ID の語句ドキュメントを更新します。
    * English: Updates the term document with the specified ID.
    */
-  const updateTerm = async (id: number, termData: Omit<Term, 'id' | 'createdAt'>) => {
+  const updateTerm = async (id: string, termData: Omit<Term, 'id' | 'createdAt'>) => {
     try {
-      const termRef = doc(db, 'terms', String(id));
+      const termRef = doc(db, 'terms', id);  // 文字列 ID をそのまま使用
       await updateDoc(termRef, {
         word: termData.term,
         meaning: termData.meaning,
@@ -142,9 +142,9 @@ export const useTermsFirestore = () => {
    * Japanese: 指定された ID の語句ドキュメントを削除します。
    * English: Deletes the term document with the specified ID.
    */
-  const deleteTerm = async (id: number) => {
+  const deleteTerm = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'terms', String(id)));
+      await deleteDoc(doc(db, 'terms', id));  // 文字列 ID をそのまま使用
     } catch (err: any) {
       console.error('Failed to delete term:', err);
       setError(err.message);

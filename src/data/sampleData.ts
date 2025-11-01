@@ -33,7 +33,7 @@ export const sampleTerms: Term[] = [
    * プログラミングの基礎概念
    */
   {
-    id: 1,
+    id: '1',
     category: 'english',
     term: 'Algorithm',
     meaning: 'アルゴリズム - 問題を解決するための手順や計算方法',
@@ -46,7 +46,7 @@ export const sampleTerms: Term[] = [
    * データ管理の基礎概念
    */
   {
-    id: 2,
+    id: '2',
     category: 'english',
     term: 'Database',
     meaning: 'データベース - 構造化された情報の集合',
@@ -59,7 +59,7 @@ export const sampleTerms: Term[] = [
    * 開発ツールの基礎概念
    */
   {
-    id: 3,
+    id: '3',
     category: 'english',
     term: 'Framework',
     meaning: 'フレームワーク - アプリケーション開発のための基盤',
@@ -74,7 +74,7 @@ export const sampleTerms: Term[] = [
    * 応用情報技術者試験の重要概念
    */
   {
-    id: 4,
+    id: '4',
     category: 'applied',
     term: 'データベース正規化',
     meaning: 'データの重複を排除し、整合性を保つためのデータベース設計技法',
@@ -87,7 +87,7 @@ export const sampleTerms: Term[] = [
    * ネットワークの基礎プロトコル
    */
   {
-    id: 5,
+    id: '5',
     category: 'applied',
     term: 'TCP/IP',
     meaning: 'インターネットで使用される通信プロトコルの集合',
@@ -100,7 +100,7 @@ export const sampleTerms: Term[] = [
    * プログラミングパラダイムの基礎概念
    */
   {
-    id: 6,
+    id: '6',
     category: 'applied',
     term: 'オブジェクト指向',
     meaning: '現実世界のオブジェクトを模したプログラミング手法',
@@ -108,7 +108,7 @@ export const sampleTerms: Term[] = [
     createdAt: new Date().toISOString()
   },
   {
-    id: 7,
+    id: '7',
     category: 'advanced',
     term: 'マイクロサービス',
     meaning: 'アプリケーションを小さな独立したサービスに分割するアーキテクチャ',
@@ -116,7 +116,7 @@ export const sampleTerms: Term[] = [
     createdAt: new Date().toISOString()
   },
   {
-    id: 8,
+    id: '8',
     category: 'advanced',
     term: 'DevOps',
     meaning: '開発（Development）と運用（Operations）を統合した手法',
@@ -124,7 +124,7 @@ export const sampleTerms: Term[] = [
     createdAt: new Date().toISOString()
   },
   {
-    id: 9,
+    id: '9',
     category: 'advanced',
     term: 'コンテナ',
     meaning: 'アプリケーションとその実行環境を軽量で可搬性の高い形でパッケージ化する技術',
@@ -132,7 +132,7 @@ export const sampleTerms: Term[] = [
     createdAt: new Date().toISOString()
   },
   {
-    id: 10,
+    id: '10',
     category: 'gkentei',
     term: '深層学習',
     meaning: '多層のニューラルネットワークを用いた機械学習手法',
@@ -140,7 +140,7 @@ export const sampleTerms: Term[] = [
     createdAt: new Date().toISOString()
   },
   {
-    id: 11,
+    id: '11',
     category: 'gkentei',
     term: '過学習',
     meaning: '訓練データに特化しすぎて汎化性能が低下する現象',
@@ -148,7 +148,7 @@ export const sampleTerms: Term[] = [
     createdAt: new Date().toISOString()
   },
   {
-    id: 12,
+    id: '12',
     category: 'gkentei',
     term: 'バックプロパゲーション',
     meaning: 'ニューラルネットワークの重みを最適化する学習アルゴリズム',

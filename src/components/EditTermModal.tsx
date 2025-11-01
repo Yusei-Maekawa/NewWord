@@ -74,7 +74,7 @@ interface EditTermModalProps {
   isOpen: boolean;
   categories: Category[];
   onClose: () => void;
-  onSave: (id: number, termData: Omit<Term, 'id' | 'createdAt'>) => void;
+  onSave: (id: string, termData: Omit<Term, 'id' | 'createdAt'>) => void;
 }
 
 /**
