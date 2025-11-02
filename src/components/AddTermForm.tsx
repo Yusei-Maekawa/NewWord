@@ -230,14 +230,30 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     });
   };
 
-  // リッチテキストを安全にレンダリングする関数（TermsListと同じ）
+  // リッチテキストを安全にレンダリングする関数（プレビュー用）
   const renderRichText = (text: string) => {
     if (!text) return '';
     
     let formattedText = text;
     
+    // 画像マーカー [画像1], [画像2] を実際の画像に置き換え
+    formattedText = formattedText.replace(/\[画像(\d+)\]/g, (match, imageNum) => {
+      const imageIndex = parseInt(imageNum) - 1;
+      if (imageIndex >= 0 && imageIndex < uploadedImages.length) {
+        const imageData = uploadedImages[imageIndex];
+        return `<div class="uploaded-image-container" style="margin: 8px 0;"><img src="${imageData}" alt="画像${imageNum}" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 4px;" /></div>`;
+      }
+      return match;
+    });
+    
     // 既存のHTMLタグを完全に除去（HTMLが表示される問題を根本的に解決）
-    formattedText = formattedText.replace(/<[^>]*>/g, '');
+    formattedText = formattedText.replace(/<[^>]*>/g, (match) => {
+      // 画像タグは保護する
+      if (match.includes('uploaded-image-container') || match.includes('uploaded-image')) {
+        return match;
+      }
+      return '';
+    });
     
     // 改行文字を一時的に保護
     formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
@@ -248,23 +264,12 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       .replace(/&gt;/g, '')
       .replace(/&quot;/g, '')
       .replace(/&amp;/g, '')
-      .replace(/alt="[^"]*"/g, '')
-      .replace(/class="[^"]*"/g, '')
-      .replace(/style="[^"]*"/g, '')
-      .replace(/src="[^"]*"/g, '')
-      .replace(/\/>/g, '')
-      .replace(/>\s*</g, '><')
-      .replace(/alt="画像"\s*class="uploaded-image"\s*\/>/g, '')
-      .replace(/alt="画像"\s*class="uploaded-image"/g, '')
-      .replace(/class="uploaded-image"\s*\/>/g, '')
-      .replace(/class="uploaded-image"/g, '')
       .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
       .replace(/📸/g, '') // カメラ絵文字を除去
       .replace(/🖼️/g, '') // 額縁絵文字を除去
       .replace(/🎨/g, '') // アート絵文字を除去
       .replace(/🖊️/g, '') // ペン絵文字を除去
       .replace(/✏️/g, '') // 鉛筆絵文字を除去
-      .replace(/\[画像\]/g, '') // [画像]テキストを除去
       .replace(/\(画像\)/g, '') // (画像)テキストを除去
       .replace(/画像:/g, '') // 画像:テキストを除去
       .replace(/[ \t]+/g, ' ') // 複数のスペース・タブを1つにまとめる（改行は保護）
