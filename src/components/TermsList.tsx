@@ -141,6 +141,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import { Term } from '../types';
 import { getCategoryName } from '../utils/helpers';
 
@@ -570,18 +572,23 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                 />
               </div>
               <div className="term-card-actions" onClick={(e) => e.stopPropagation()}>
-                <button 
-                  className="btn btn-success btn-sm"
+                <Button 
+                  variant="contained"
+                  color="primary"
+                  size="small"
                   onClick={() => onEditTerm(term)}
+                  sx={{ mr: 1 }}
                 >
                   編集
-                </button>
-                <button 
-                  className="btn btn-danger btn-sm"
+                </Button>
+                <Button 
+                  variant="contained"
+                  color="error"
+                  size="small"
                   onClick={() => handleDelete(term.id, term.term)}
                 >
                   削除
-                </button>
+                </Button>
               </div>
             </div>
             );

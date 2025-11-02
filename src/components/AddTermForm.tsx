@@ -39,6 +39,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
 import { Term } from '../types';
 
 interface Category {
@@ -594,7 +595,16 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           )}
         </div>
         
-        <button type="submit" className="btn">追加</button>
+        <Button 
+          type="submit" 
+          variant="contained" 
+          color="primary"
+          size="large"
+          fullWidth
+          sx={{ mt: 2 }}
+        >
+          追加
+        </Button>
       </form>
     </section>
   );

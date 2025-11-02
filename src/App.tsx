@@ -152,6 +152,7 @@
 import React, { useState } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import Button from '@mui/material/Button';
 
 import Header from './components/Header';
 import { format } from 'date-fns';
@@ -442,7 +443,14 @@ const App: React.FC = () => {
           </div>
         </div>
         <StudyTimeInput onRecord={handleRecordTime} />
-        <button className="btn" style={{ margin: '20px' }} onClick={() => setShowSchedule(true)}>スケジュール一覧へ</button>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => setShowSchedule(true)}
+          sx={{ margin: '20px' }}
+        >
+          スケジュール一覧へ
+        </Button>
         {showSchedule ? (
           <SchedulePage
             terms={terms}
