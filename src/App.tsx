@@ -150,6 +150,8 @@
  */
 
 import React, { useState } from 'react';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
 import Header from './components/Header';
 import { format } from 'date-fns';
@@ -169,6 +171,7 @@ import { useCategoriesFirestore } from './hooks/useCategoriesFirestore';
 import './styles/App.css';
 import './utils/debugFirestore'; // デバッグツールを読み込む
 import { VERSION_INFO, printVersionInfo } from './version-config';
+import { theme } from './theme/theme';
 
 // 環境変数からバックエンドモードを取得（デフォルトはfirestore）
 const BACKEND_MODE = process.env.REACT_APP_BACKEND_MODE || 'firestore';
@@ -426,85 +429,88 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="app-container">
-      <Header />
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '2em', margin: '18px 0 8px 0' }}>
-        <div style={{ background: '#e0e7ef', borderRadius: '12px', padding: '12px 28px', fontWeight: 600, fontSize: '1.1em', color: '#2c3e50', boxShadow: '0 2px 8px rgba(44,62,80,0.08)' }}>
-          今日の語句追加数: <span style={{ color: '#007bff', fontWeight: 700 }}>{todayTerms}</span>
-        </div>
-        <div style={{ background: '#e0e7ef', borderRadius: '12px', padding: '12px 28px', fontWeight: 600, fontSize: '1.1em', color: '#2c3e50', boxShadow: '0 2px 8px rgba(44,62,80,0.08)' }}>
-          今日の勉強時間: <span style={{ color: '#28a745', fontWeight: 700 }}>{todayTime}分</span>
-        </div>
-      </div>
-      <StudyTimeInput onRecord={handleRecordTime} />
-      <button className="btn" style={{ margin: '20px' }} onClick={() => setShowSchedule(true)}>スケジュール一覧へ</button>
-      {showSchedule ? (
-        <SchedulePage
-          terms={terms}
-          onBack={() => setShowSchedule(false)}
-          studyLogs={studyLogs}
-          onDeleteLog={(date, category) => {
-            setStudyLogs(prev => prev.filter(log => !(log.date === date && log.category === category)));
-            setNotification({ message: '勉強記録を削除しました', type: 'success' });
-          }}
-        />
-      ) : (
-        <>
-          <CategoryNav
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
-            categories={categories}
-            onCategoryUpdate={fetchCategories}
-            onToggleFavorite={handleToggleFavorite}
-          />
-          <div className="main-layout">
-            <div className="left-panel">
-              <CsvImportForm onImportTerms={(importedTerms) => {
-                importedTerms.forEach(handleAddTerm);
-                setNotification({ message: `CSVから${importedTerms.length}件追加しました！`, type: 'success' });
-              }} />
-              <AddTermForm
-                onAddTerm={handleAddTerm}
-                activeCategory={activeCategory}
-                categories={categories.map(cat => ({
-                  id: cat.id,
-                  key: cat.category_key,
-                  name: cat.category_name,
-                  color: cat.category_color,
-                  icon: cat.category_icon,
-                  parent_id: cat.parent_id,
-                  is_favorite: cat.is_favorite,
-                  display_order: cat.display_order
-                }))}
-              />
-              <TermsList
-                terms={activeCategory === 'all' ? terms : terms.filter(t => t.category === activeCategory)}
-                categories={categories}
-                onEditTerm={handleEditTerm}
-                onDeleteTerm={handleDeleteTerm}
-              />
-            </div>
-            <div className="right-panel">
-              <StudySection terms={terms} activeCategory={activeCategory} />
-            </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div className="app-container">
+        <Header />
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '2em', margin: '18px 0 8px 0' }}>
+          <div style={{ background: '#e0e7ef', borderRadius: '12px', padding: '12px 28px', fontWeight: 600, fontSize: '1.1em', color: '#2c3e50', boxShadow: '0 2px 8px rgba(44,62,80,0.08)' }}>
+            今日の語句追加数: <span style={{ color: '#007bff', fontWeight: 700 }}>{todayTerms}</span>
           </div>
-          <EditTermModal
-            term={editTerm}
-            isOpen={!!editTerm}
-            categories={categories}
-            onClose={() => setEditTerm(null)}
-            onSave={handleSaveEdit}
+          <div style={{ background: '#e0e7ef', borderRadius: '12px', padding: '12px 28px', fontWeight: 600, fontSize: '1.1em', color: '#2c3e50', boxShadow: '0 2px 8px rgba(44,62,80,0.08)' }}>
+            今日の勉強時間: <span style={{ color: '#28a745', fontWeight: 700 }}>{todayTime}分</span>
+          </div>
+        </div>
+        <StudyTimeInput onRecord={handleRecordTime} />
+        <button className="btn" style={{ margin: '20px' }} onClick={() => setShowSchedule(true)}>スケジュール一覧へ</button>
+        {showSchedule ? (
+          <SchedulePage
+            terms={terms}
+            onBack={() => setShowSchedule(false)}
+            studyLogs={studyLogs}
+            onDeleteLog={(date, category) => {
+              setStudyLogs(prev => prev.filter(log => !(log.date === date && log.category === category)));
+              setNotification({ message: '勉強記録を削除しました', type: 'success' });
+            }}
           />
-          {notification && (
-            <Notification
-              message={notification.message}
-              type={notification.type}
-              onClose={() => setNotification(null)}
+        ) : (
+          <>
+            <CategoryNav
+              activeCategory={activeCategory}
+              onCategoryChange={setActiveCategory}
+              categories={categories}
+              onCategoryUpdate={fetchCategories}
+              onToggleFavorite={handleToggleFavorite}
             />
-          )}
-        </>
-      )}
-    </div>
+            <div className="main-layout">
+              <div className="left-panel">
+                <CsvImportForm onImportTerms={(importedTerms) => {
+                  importedTerms.forEach(handleAddTerm);
+                  setNotification({ message: `CSVから${importedTerms.length}件追加しました！`, type: 'success' });
+                }} />
+                <AddTermForm
+                  onAddTerm={handleAddTerm}
+                  activeCategory={activeCategory}
+                  categories={categories.map(cat => ({
+                    id: cat.id,
+                    key: cat.category_key,
+                    name: cat.category_name,
+                    color: cat.category_color,
+                    icon: cat.category_icon,
+                    parent_id: cat.parent_id,
+                    is_favorite: cat.is_favorite,
+                    display_order: cat.display_order
+                  }))}
+                />
+                <TermsList
+                  terms={activeCategory === 'all' ? terms : terms.filter(t => t.category === activeCategory)}
+                  categories={categories}
+                  onEditTerm={handleEditTerm}
+                  onDeleteTerm={handleDeleteTerm}
+                />
+              </div>
+              <div className="right-panel">
+                <StudySection terms={terms} activeCategory={activeCategory} />
+              </div>
+            </div>
+            <EditTermModal
+              term={editTerm}
+              isOpen={!!editTerm}
+              categories={categories}
+              onClose={() => setEditTerm(null)}
+              onSave={handleSaveEdit}
+            />
+            {notification && (
+              <Notification
+                message={notification.message}
+                type={notification.type}
+                onClose={() => setNotification(null)}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </ThemeProvider>
   );
 };
 

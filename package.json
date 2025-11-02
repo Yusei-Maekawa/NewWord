@@ -4,14 +4,14 @@
   "description": "英語、応用情報技術者試験、高度情報技術者試験、G検定の学習用語句を効率的に管理・復習するためのWebアプリケーションです。",
   "private": true,
   "scripts": {
-  "start": "react-scripts start",
-  "dev": "concurrently \"npm run server\" \"npm start\"",
-  "server": "node server.js",
-  "build": "react-scripts build",
-  "test": "react-scripts test",
-  "eject": "react-scripts eject",
-  "firebase:init-client": "node scripts/firebase_init_client.js",
-  "firebase:migrate": "node scripts/mysql_to_firestore.js"
+    "start": "react-scripts start",
+    "dev": "concurrently \"npm run server\" \"npm start\"",
+    "server": "node server.js",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "firebase:init-client": "node scripts/firebase_init_client.js",
+    "firebase:migrate": "node scripts/mysql_to_firestore.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,10 @@
     "url": "https://github.com/Yusei-Maekawa/English-Studying/issues"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.4",
+    "@mui/material": "^7.3.4",
     "@types/node": "^24.0.15",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
@@ -49,9 +53,9 @@
     ]
   },
   "devDependencies": {
-  "concurrently": "^7.6.0",
-  "firebase-admin": "^13.5.0",
-  "firebase": "^10.10.0",
-  "mysql2": "^3.14.3"
+    "concurrently": "^7.6.0",
+    "firebase": "^10.10.0",
+    "firebase-admin": "^13.5.0",
+    "mysql2": "^3.14.3"
   }
 }
