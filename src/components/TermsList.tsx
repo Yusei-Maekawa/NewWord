@@ -344,46 +344,9 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
       
       let formattedText = text;
       
-      // 既存のHTMLタグを完全に除去（HTMLが表示される問題を根本的に解決）
-      formattedText = formattedText.replace(/<[^>]*>/g, '');
-      
-      // 改行文字を一時的に保護
-      formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
-      
-    // HTMLエンティティや残ったHTML断片も除去
-    formattedText = formattedText
-      .replace(/&lt;/g, '')
-      .replace(/&gt;/g, '')
-      .replace(/&quot;/g, '')
-      .replace(/&amp;/g, '')
-      .replace(/alt="[^"]*"/g, '')
-      .replace(/class="[^"]*"/g, '')
-      .replace(/style="[^"]*"/g, '')
-      .replace(/src="[^"]*"/g, '')
-      .replace(/\/>/g, '')
-      .replace(/>\s*</g, '><')
-      .replace(/alt="画像"\s*class="uploaded-image"\s*\/>/g, '')
-      .replace(/alt="画像"\s*class="uploaded-image"/g, '')
-      .replace(/class="uploaded-image"\s*\/>/g, '')
-      .replace(/class="uploaded-image"/g, '')
-      .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
-      .replace(/📸/g, '') // カメラ絵文字を除去
-      .replace(/🖼️/g, '') // 額縁絵文字を除去
-      .replace(/🎨/g, '') // アート絵文字を除去
-      .replace(/🖊️/g, '') // ペン絵文字を除去
-      .replace(/✏️/g, '') // 鉛筆絵文字を除去
-      .replace(/\[画像\]/g, '') // [画像]テキストを除去
-      .replace(/\(画像\)/g, '') // (画像)テキストを除去
-      .replace(/画像:/g, '') // 画像:テキストを除去
-      .replace(/!\[画像\]/g, '') // マークダウンの画像記法 ![画像] を除去
-      .replace(/!\[.*?\]/g, '') // 任意のマークダウン画像記法 ![任意] を除去
-      .replace(/\(\s*data:image\/[a-zA-Z0-9+\/;=,]+\s*\)/g, '') // 画像URL部分も除去（念のため）
-      .replace(/[ \t]+/g, ' ') // 複数のスペース・タブを1つにまとめる（改行は保護）
-      .replace(/\s*\n\s*/g, '\n') // 改行周りの余分なスペースを除去
-      .trim();
-      
-      // 保護された改行文字をHTMLの<br>タグに変換
-      formattedText = formattedText.replace(/___NEWLINE___/g, '<br>');
+      // 画像タグを一時的にプレースホルダーに置き換えて保護
+      const imageMarkers: { [key: string]: string } = {};
+      let imageCount = 0;
       
       // マークダウン形式の画像を検出して変換 ![画像](data:image/...)
       formattedText = formattedText.replace(
@@ -391,8 +354,10 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         (match, dataUrl) => {
           console.log('TermsList: マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
           const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          // マークダウンのテキスト部分を完全に除去し、画像だけを表示
-          return `<div class="uploaded-image-container" style="display: block; margin: 8px 0;"><img src="${dataUrl}" alt="" class="uploaded-image" data-image-src="${dataUrl}" data-image-id="${imageId}" style="max-width: 100%; height: auto;" /></div>`;
+          const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+          imageMarkers[placeholder] = `<div class="uploaded-image-container" style="display: block; margin: 8px 0;"><img src="${dataUrl}" alt="" class="uploaded-image" data-image-src="${dataUrl}" data-image-id="${imageId}" style="max-width: 100%; height: auto;" /></div>`;
+          imageCount++;
+          return placeholder;
         }
       );
       
@@ -402,8 +367,10 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         (match, dataUrl) => {
           console.log('TermsList: 任意マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
           const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          // マークダウンのテキスト部分を完全に除去し、画像だけを表示
-          return `<div class="uploaded-image-container" style="display: block; margin: 8px 0;"><img src="${dataUrl}" alt="" class="uploaded-image" data-image-src="${dataUrl}" data-image-id="${imageId}" style="max-width: 100%; height: auto;" /></div>`;
+          const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+          imageMarkers[placeholder] = `<div class="uploaded-image-container" style="display: block; margin: 8px 0;"><img src="${dataUrl}" alt="" class="uploaded-image" data-image-src="${dataUrl}" data-image-id="${imageId}" style="max-width: 100%; height: auto;" /></div>`;
+          imageCount++;
+          return placeholder;
         }
       );
       
@@ -413,9 +380,38 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         (match) => {
           console.log('TermsList: 直接Base64画像検出:', { match: match.substring(0, 50) });
           const imageId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          return `<div class="uploaded-image-container"><img src="${match}" alt="画像" class="uploaded-image" data-image-src="${match}" data-image-id="${imageId}" /></div>`;
+          const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+          imageMarkers[placeholder] = `<div class="uploaded-image-container"><img src="${match}" alt="" class="uploaded-image" data-image-src="${match}" data-image-id="${imageId}" /></div>`;
+          imageCount++;
+          return placeholder;
         }
       );
+      
+      // 既存のHTMLタグを完全に除去
+      formattedText = formattedText.replace(/<[^>]*>/g, '');
+      
+      // 改行文字を一時的に保護
+      formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
+      
+      // HTMLエンティティや残ったHTML断片も除去
+      formattedText = formattedText
+        .replace(/&lt;/g, '')
+        .replace(/&gt;/g, '')
+        .replace(/&quot;/g, '')
+        .replace(/&amp;/g, '')
+        .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
+        .replace(/📸/g, '') // カメラ絵文字を除去
+        .replace(/🖼️/g, '') // 額縁絵文字を除去
+        .replace(/🎨/g, '') // アート絵文字を除去
+        .replace(/🖊️/g, '') // ペン絵文字を除去
+        .replace(/✏️/g, '') // 鉛筆絵文字を除去
+        .replace(/\(画像\)/g, '') // (画像)テキストを除去
+        .replace(/画像:/g, '') // 画像:テキストを除去
+        .replace(/[ \t]+/g, ' ') // 複数のスペース・タブを1つにまとめる（改行は保護）
+        .trim();
+      
+      // 保護された改行文字をHTMLの<br>タグに変換
+      formattedText = formattedText.replace(/___NEWLINE___/g, '<br>');
       
       // HTML対応のタグ処理システム
       console.log('TermsList 変換前:', { text: formattedText.substring(0, 200) });
@@ -473,6 +469,11 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
         .replace(/\*(.*?)\*/g, '<em>$1</em>') // *斜体*
         .replace(/`(.*?)`/g, '<code>$1</code>') // `コード`
         .replace(/~~(.*?)~~/g, '<del>$1</del>'); // ~~取り消し線~~
+      
+      // 最後に画像プレースホルダーを実際のHTMLに戻す
+      Object.keys(imageMarkers).forEach(placeholder => {
+        formattedText = formattedText.replace(placeholder, imageMarkers[placeholder]);
+      });
       
       console.log('TermsList renderRichText result:', { original: text.substring(0, 50), formatted: formattedText.substring(0, 200) });
       return formattedText;
@@ -597,7 +598,15 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
       )}
 
       {/* 詳細モーダル */}
-      {selectedTerm && (
+      {selectedTerm && (() => {
+        console.log('📋 詳細モーダル表示:', {
+          term: selectedTerm.term,
+          meaningLength: selectedTerm.meaning?.length,
+          exampleLength: selectedTerm.example?.length,
+          examplePreview: selectedTerm.example?.substring(0, 200),
+          hasImages: selectedTerm.example?.includes('data:image')
+        });
+        return (
         <div className="modal-overlay" onClick={handleCloseDetail}>
           <div className="modal-content term-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -631,6 +640,15 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                 <div 
                   className="rich-text-content"
                   dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.meaning || '', true) }}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (target.tagName === 'IMG' && target.classList.contains('uploaded-image')) {
+                      const imageSrc = (target as HTMLImageElement).getAttribute('data-image-src') || (target as HTMLImageElement).src;
+                      if (imageSrc) {
+                        setImageModal({ isOpen: true, imageSrc });
+                      }
+                    }
+                  }}
                 />
               </div>
               {selectedTerm.example && (
@@ -639,6 +657,15 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
                   <div 
                     className="rich-text-content"
                     dangerouslySetInnerHTML={{ __html: renderRichText(selectedTerm.example, true) }}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (target.tagName === 'IMG' && target.classList.contains('uploaded-image')) {
+                        const imageSrc = (target as HTMLImageElement).getAttribute('data-image-src') || (target as HTMLImageElement).src;
+                        if (imageSrc) {
+                          setImageModal({ isOpen: true, imageSrc });
+                        }
+                      }
+                    }}
                   />
                 </div>
               )}
@@ -682,7 +709,8 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* 画像モーダル */}
       {imageModal.isOpen && (

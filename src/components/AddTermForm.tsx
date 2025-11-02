@@ -236,24 +236,25 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     
     let formattedText = text;
     
-    // 画像マーカー [画像1], [画像2] を実際の画像に置き換え
+    // 画像タグを一時的にプレースホルダーに置き換えて保護
+    const imageMarkers: { [key: string]: string } = {};
+    let imageCount = 0;
+    
+    // 画像マーカー [画像1], [画像2] を実際の画像に置き換え（プレースホルダーで保護）
     formattedText = formattedText.replace(/\[画像(\d+)\]/g, (match, imageNum) => {
       const imageIndex = parseInt(imageNum) - 1;
       if (imageIndex >= 0 && imageIndex < uploadedImages.length) {
         const imageData = uploadedImages[imageIndex];
-        return `<div class="uploaded-image-container" style="margin: 8px 0;"><img src="${imageData}" alt="画像${imageNum}" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 4px;" /></div>`;
+        const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+        imageMarkers[placeholder] = `<div class="uploaded-image-container" style="margin: 8px 0;"><img src="${imageData}" alt="画像${imageNum}" class="uploaded-image" style="max-width: 100%; height: auto; border-radius: 4px;" /></div>`;
+        imageCount++;
+        return placeholder;
       }
       return match;
     });
     
-    // 既存のHTMLタグを完全に除去（HTMLが表示される問題を根本的に解決）
-    formattedText = formattedText.replace(/<[^>]*>/g, (match) => {
-      // 画像タグは保護する
-      if (match.includes('uploaded-image-container') || match.includes('uploaded-image')) {
-        return match;
-      }
-      return '';
-    });
+    // 既存のHTMLタグを完全に除去
+    formattedText = formattedText.replace(/<[^>]*>/g, '');
     
     // 改行文字を一時的に保護
     formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
@@ -323,6 +324,11 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       .replace(/\*(.*?)\*/g, '<em>$1</em>') // *斜体*
       .replace(/`(.*?)`/g, '<code>$1</code>') // `コード`
       .replace(/~~(.*?)~~/g, '<del>$1</del>'); // ~~取り消し線~~
+    
+    // 最後に画像プレースホルダーを実際のHTMLに戻す
+    Object.keys(imageMarkers).forEach(placeholder => {
+      formattedText = formattedText.replace(placeholder, imageMarkers[placeholder]);
+    });
     
     return formattedText;
   };
