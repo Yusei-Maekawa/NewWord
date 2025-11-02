@@ -140,7 +140,14 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     // undefined チェックを追加してエラーを防ぐ
     const termValue = formData.term || '';
     const meaningValue = formData.meaning || '';
-    const exampleValue = formData.example || '';
+    let exampleValue = formData.example || '';
+    
+    // 画像マーカー([画像1], [画像2]等)を実際のbase64データに置き換え
+    uploadedImages.forEach((imageData, index) => {
+      const imageMarker = `[画像${index + 1}]`;
+      const imageMarkdown = `![画像](${imageData})`;
+      exampleValue = exampleValue.replace(imageMarker, imageMarkdown);
+    });
     
     if (!termValue.trim() || !meaningValue.trim()) {
       alert('用語と意味は必須項目です。');
@@ -180,11 +187,12 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           const result = e.target?.result as string;
           setUploadedImages(prev => [...prev, result]);
           
-          // 画像をexampleフィールドに追加
-          const imageMarkdown = `\n![画像](${result})\n`;
+          // ユーザーにはbase64文字列を見せず、プレビューだけ表示
+          // テキストエリアには画像マーカーのみ追加
+          const imageMarker = `\n[画像${uploadedImages.length + 1}]\n`;
           setFormData(prev => ({ 
             ...prev, 
-            example: prev.example + imageMarkdown 
+            example: prev.example + imageMarker
           }));
         };
         reader.readAsDataURL(file);
@@ -194,15 +202,32 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
 
   // 画像を削除する関数
   const removeImage = (imageIndex: number) => {
-    const imageToRemove = uploadedImages[imageIndex];
     setUploadedImages(prev => prev.filter((_, index) => index !== imageIndex));
     
-    // exampleフィールドからも画像を削除
-    const imageMarkdown = `![画像](${imageToRemove})`;
-    setFormData(prev => ({
-      ...prev,
-      example: prev.example.replace(imageMarkdown, '').replace(/\n\n+/g, '\n\n').trim()
-    }));
+    // exampleフィールドから画像マーカーを削除して番号を振り直す
+    const imageMarkerRegex = /\[画像\d+\]/g;
+    setFormData(prev => {
+      let newExample = prev.example;
+      let markerCount = 0;
+      
+      // すべてのマーカーを検出して番号を振り直す
+      newExample = newExample.replace(imageMarkerRegex, (match) => {
+        markerCount++;
+        if (markerCount === imageIndex + 1) {
+          // 削除対象のマーカーは空文字に置き換え
+          return '';
+        } else if (markerCount > imageIndex + 1) {
+          // 削除後のマーカーは番号を1つ減らす
+          return `[画像${markerCount - 1}]`;
+        }
+        return match;
+      });
+      
+      return {
+        ...prev,
+        example: newExample.replace(/\n\n+/g, '\n\n').trim()
+      };
+    });
   };
 
   // リッチテキストを安全にレンダリングする関数（TermsListと同じ）

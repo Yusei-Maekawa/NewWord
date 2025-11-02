@@ -650,27 +650,35 @@ const TermsList: React.FC<TermsListProps> = ({ terms, categories, onEditTerm, on
               )}
             </div>
             <div className="modal-actions">
-              <button 
-                className="btn btn-success"
+              <Button 
+                variant="contained"
+                color="primary"
                 onClick={() => {
                   onEditTerm(selectedTerm);
                   handleCloseDetail();
                 }}
+                sx={{ mr: 1 }}
               >
                 編集
-              </button>
-              <button 
-                className="btn btn-danger"
+              </Button>
+              <Button 
+                variant="contained"
+                color="error"
                 onClick={() => {
                   handleDelete(selectedTerm.id, selectedTerm.term);
                   handleCloseDetail();
                 }}
+                sx={{ mr: 1 }}
               >
                 削除
-              </button>
-              <button className="btn btn-secondary" onClick={handleCloseDetail}>
+              </Button>
+              <Button 
+                variant="outlined"
+                color="primary"
+                onClick={handleCloseDetail}
+              >
                 閉じる
-              </button>
+              </Button>
             </div>
           </div>
         </div>
