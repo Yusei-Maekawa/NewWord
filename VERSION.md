@@ -22,6 +22,32 @@
 
 ## 📦 リリース履歴
 
+### [0.4.0] - 開発中 🚧
+
+#### 🎨 Added（追加機能）
+- **Material-UI v5導入**
+  - @mui/material, @emotion/react, @emotion/styled, @mui/icons-materialをインストール
+  - カスタムテーマ設定（src/theme/theme.ts）を作成
+  - カラーパレット（Primary: Blue, Secondary: Orange）
+  - タイポグラフィ（日本語フォント対応）
+  - コンポーネント共通スタイル
+
+- **Phase 1: Foundation Setup（完了）**
+  - ThemeProviderとCssBaselineをApp.tsxに適用
+  - 全体的なMUIテーマの基礎確立
+
+- **Phase 2: Common Components Migration（完了）**
+  - Header: AppBar, Toolbar, Typographyを使用
+  - Notification: Snackbar, Alertを使用
+  - モダンなUI/UXデザインに刷新
+
+#### 📝 Documentation（ドキュメント）
+- Material-UI移行計画書（MUI_MIGRATION_PLAN.md）を作成
+- 6週間のフェーズ別移行計画を策定
+- コンポーネントごとの移行手順とコード例を記載
+
+---
+
 ### [0.3.0] - 2025-11-02
 
 #### 🎉 Added（追加機能）
