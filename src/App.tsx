@@ -1,12 +1,123 @@
 /**
- * @fileoverview 学習用語句管理アプリケーションのメインコンポーネント
+ * src/App.tsx
  *
- * このファイルは、ReactアプリケーションのメインエントリーポイントとなるAppコンポーネントを定義しています。
- * 語句管理、学習記録、カテゴリ管理などの全ての機能を統合したメインアプリケーションです。
+ * ============================================================================
+ * 📖 ファイル概要 / File Overview
+ * ============================================================================
+ *
+ * 【日本語】
+ * 学習用語句管理アプリケーションのメインコンポーネント。
+ * ReactアプリケーションのエントリーポイントとなるAppコンポーネントを定義し、
+ * 語句管理、学習記録、カテゴリ管理などすべての機能を統合しています。
+ *
+ * 【主な機能】
+ * 1. 語句の一覧表示・追加・編集・削除（CRUD操作）
+ * 2. カテゴリによるフィルタリング・階層表示
+ * 3. お気に入り機能（語句・カテゴリ）
+ * 4. 学習時間の記録・集計
+ * 5. スケジュール管理・カレンダー表示
+ * 6. CSVインポート機能
+ * 7. Firestore/MySQL切り替え（環境変数REACT_APP_BACKEND_MODE）
+ * 8. 通知システム（成功・エラーメッセージ）
+ *
+ * 【English】
+ * Main component of the learning vocabulary management application.
+ * Defines the App component that serves as the entry point of the React application
+ * and integrates all features including term management, study records, and category management.
+ *
+ * 【Key Features】
+ * 1. List, add, edit, and delete terms (CRUD operations)
+ * 2. Filter by category and hierarchical display
+ * 3. Favorite functionality (terms and categories)
+ * 4. Record and aggregate study time
+ * 5. Schedule management and calendar display
+ * 6. CSV import functionality
+ * 7. Firestore/MySQL switching (via REACT_APP_BACKEND_MODE env var)
+ * 8. Notification system (success/error messages)
+ *
+ * ============================================================================
+ * 📦 状態管理 / State Management
+ * ============================================================================
+ *
+ * 【カスタムフック / Custom Hooks】
+ * - useTermsFirestore() - 語句データのFirestore管理
+ * - useTerms() - 語句データのMySQL管理（レガシー）
+ * - useCategoriesFirestore() - カテゴリデータのFirestore管理
+ *
+ * 【ローカル状態 / Local State】
+ * - activeCategory: string - 現在選択中のカテゴリ
+ * - editTerm: Term | null - 編集中の語句データ
+ * - notification: {message, type} | null - 通知メッセージ
+ * - showSchedule: boolean - スケジュールページ表示フラグ
+ * - studyLogs: StudyLog[] - 学習ログデータ
+ *
+ * ============================================================================
+ * 🔧 主要関数 / Main Functions
+ * ============================================================================
+ *
+ * 【語句操作 / Term Operations】
+ * 1. handleAddTerm(termData) - 語句追加
+ * 2. handleEditTerm(term) - 編集モーダルを開く
+ * 3. handleSaveEdit(id, termData) - 語句更新
+ * 4. handleDeleteTerm(id) - 語句削除
+ *
+ * 【カテゴリ操作 / Category Operations】
+ * 5. fetchCategories() - カテゴリデータ取得（空関数、Firestore自動同期）
+ * 6. handleToggleFavorite(categoryId) - カテゴリお気に入り切り替え
+ *
+ * 【学習記録 / Study Records】
+ * 7. handleRecordTime(minutes) - 学習時間記録
+ *
+ * 【通知 / Notifications】
+ * 8. setNotification({message, type}) - 通知表示
+ *
+ * ============================================================================
+ * 🎨 コンポーネント構成 / Component Structure
+ * ============================================================================
+ *
+ * App
+ * ├── Header - ヘッダー
+ * ├── StudyTimeInput - 学習時間入力
+ * ├── CategoryNav - カテゴリナビゲーション
+ * ├── AddTermForm - 語句追加フォーム
+ * ├── CsvImportForm - CSVインポート
+ * ├── TermsList - 語句一覧
+ * ├── StudySection - 学習セクション
+ * ├── SchedulePage - スケジュールページ（条件表示）
+ * ├── EditTermModal - 編集モーダル
+ * └── Notification - 通知システム
+ *
+ * ============================================================================
+ * 🔗 依存関係 / Dependencies
+ * ============================================================================
+ *
+ * React:
+ * - useState - 状態管理
+ * - useEffect - 副作用処理（将来的に追加予定）
+ *
+ * 外部ライブラリ:
+ * - date-fns: format - 日付フォーマット
+ *
+ * 内部:
+ * - types.ts: Term, StudyLog - 型定義
+ * - hooks: useTermsFirestore, useTerms, useCategoriesFirestore
+ * - components: 各種UIコンポーネント
+ * - utils: debugFirestore - デバッグツール
+ *
+ * ============================================================================
+ * ⚙️ 環境変数 / Environment Variables
+ * ============================================================================
+ *
+ * - REACT_APP_BACKEND_MODE: 'firestore' | 'mysql'
+ *   - デフォルト: 'firestore'
+ *   - Firestoreまたは MySQLバックエンドを切り替え
+ *
+ * ============================================================================
  *
  * @author Yusei Maekawa
- * @version 1.0.0
+ * @version 0.3.0
  * @since 2025-08-01
+ * @updated 2025-11-02
  */
 
 /**
@@ -54,11 +165,16 @@ import { Term, StudyLog } from './types';
 import StudyTimeInput from './components/StudyTimeInput';
 import { useTermsFirestore } from './hooks/useTermsFirestore';
 import { useTerms } from './hooks/useTerms';
-import { categories as categoryData } from './data/categories';
+import { useCategoriesFirestore } from './hooks/useCategoriesFirestore';
 import './styles/App.css';
+import './utils/debugFirestore'; // デバッグツールを読み込む
+import { VERSION_INFO, printVersionInfo } from './version-config';
 
 // 環境変数からバックエンドモードを取得（デフォルトはfirestore）
 const BACKEND_MODE = process.env.REACT_APP_BACKEND_MODE || 'firestore';
+
+// コンソールにバージョン情報を表示
+printVersionInfo();
 
 interface Category {
   id: number;
@@ -111,60 +227,58 @@ const App: React.FC = () => {
 
   console.log(`🔧 バックエンドモード: ${BACKEND_MODE}`);
 
+  // ===== カテゴリ管理（Firestore） =====
+  const { 
+    categories, 
+    loading: categoriesLoading, 
+    error: categoriesError,
+    toggleFavorite: toggleCategoryFavorite 
+  } = useCategoriesFirestore();
+
+  // カテゴリデータのデバッグログと循環参照チェック
+  React.useEffect(() => {
+    if (categories.length > 0) {
+      console.log('📋 カテゴリデータ取得:', categories.length, '件');
+      
+      const parents = categories.filter(c => c.parent_id === null);
+      const children = categories.filter(c => c.parent_id !== null);
+      
+      console.log('親カテゴリ:', parents.map(c => `${c.category_name} (ID: ${c.id})`));
+      console.log('子カテゴリ:', children.map(c => {
+        const parent = categories.find(p => p.id === c.parent_id);
+        return `${c.category_name} (ID: ${c.id}, 親: ${parent?.category_name || 'なし'}[${c.parent_id}])`;
+      }));
+      
+      // 循環参照チェック
+      const visited = new Set<number>();
+      const checkCircular = (catId: number, path: number[] = []): boolean => {
+        if (path.includes(catId)) {
+          console.error('🔴 循環参照を検出:', path.map(id => {
+            const cat = categories.find(c => c.id === id);
+            return `${cat?.category_name}(${id})`;
+          }).join(' -> '), `-> ${categories.find(c => c.id === catId)?.category_name}(${catId})`);
+          return true;
+        }
+        
+        const cat = categories.find(c => c.id === catId);
+        if (!cat || cat.parent_id === null) return false;
+        
+        return checkCircular(cat.parent_id, [...path, catId]);
+      };
+      
+      categories.forEach(cat => {
+        if (cat.parent_id !== null) {
+          checkCircular(cat.id);
+        }
+      });
+    }
+  }, [categories]);
+
   /**
    * 現在選択されているカテゴリ
    * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
    */
   const [activeCategory, setActiveCategory] = useState('all');
-
-  /**
-   * カテゴリデータの状態（暫定的にハードコードされたデータを使用）
-   * TODO: 将来的に Firestore に移行
-   * @type {[Category[], React.Dispatch<React.SetStateAction<Category[]>>]}
-   */
-  const [categories, setCategories] = useState<Category[]>(() => {
-    console.log('🔧 カテゴリデータ初期化開始...');
-    console.log('📦 categoryData:', categoryData);
-    
-    // categories.ts のデータを App.tsx の Category 型に変換
-    // 階層構造を作成:
-    // 1. 応用情報 > テクノロジ, マネジメント, ストラテジ
-    // 2. テクノロジ > セキュリティ, ネットワーク, データベース, 情報メディア
-    const convertedCategories = categoryData.map((cat, index) => {
-      let parentId: number | null = null;
-      
-      // 応用情報の子カテゴリとして設定
-      if (cat.key === 'applied_technology' || cat.key === 'applied_management' || cat.key === 'applied_strategy') {
-        const appliedIndex = categoryData.findIndex(c => c.key === 'applied');
-        if (appliedIndex !== -1) {
-          parentId = appliedIndex + 1;
-        }
-      }
-      
-      // テクノロジの子カテゴリとして設定
-      if (cat.key === 'security' || cat.key === 'network' || cat.key === 'database' || cat.key === 'information_media') {
-        const technologyIndex = categoryData.findIndex(c => c.key === 'applied_technology');
-        if (technologyIndex !== -1) {
-          parentId = technologyIndex + 1;
-        }
-      }
-      
-      return {
-        id: index + 1,
-        category_key: cat.key,
-        category_name: cat.name,
-        category_icon: cat.icon,
-        category_color: cat.color,
-        parent_id: parentId,
-        is_favorite: false,
-        display_order: index + 1,
-        created_at: new Date().toISOString()
-      };
-    });
-    
-    console.log('✅ カテゴリデータ変換完了:', convertedCategories);
-    return convertedCategories;
-  });
 
   /**
    * 編集中の語句データ
@@ -202,8 +316,11 @@ const App: React.FC = () => {
     // カテゴリデータは useState の初期化時に設定済み
   };
 
-  // お気に入り切り替え関数（暫定的に無効化）
-  // TODO: Firestore 移行時に実装
+  /**
+   * カテゴリのお気に入り切り替え（Firestoreで永続化）
+   * 親カテゴリをお気に入りにすると、子カテゴリも自動的にお気に入りになります
+   * @param {number} categoryId - 切り替えるカテゴリのID
+   */
   const handleToggleFavorite = async (categoryId: number) => {
     try {
       const currentCategory = categories.find(cat => cat.id === categoryId);
@@ -214,15 +331,23 @@ const App: React.FC = () => {
       const newFavoriteState = !currentCategory.is_favorite;
       console.log(`🌟 お気に入り切り替え: ${currentCategory.category_name} → ${newFavoriteState ? 'ON' : 'OFF'}`);
 
-      // ローカル状態のみ更新（Firestore 未実装のため）
-      setCategories(prev => prev.map(cat => 
-        cat.id === categoryId ? { ...cat, is_favorite: newFavoriteState } : cat
-      ));
+      // Firestoreでお気に入り状態を永続化（親カテゴリの場合は子カテゴリも連動）
+      const result = await toggleCategoryFavorite(categoryId);
       
-      setNotification({ 
-        message: newFavoriteState ? 'お気に入りに追加しました' : 'お気に入りから削除しました', 
-        type: 'success' 
-      });
+      if (result.success) {
+        const affectedCount = result.affectedCount ?? 1;
+        const message = newFavoriteState 
+          ? affectedCount > 1 
+            ? `お気に入りに追加しました（${affectedCount}件のカテゴリが更新されました）`
+            : 'お気に入りに追加しました'
+          : affectedCount > 1
+            ? `お気に入りから削除しました（${affectedCount}件のカテゴリが更新されました）`
+            : 'お気に入りから削除しました';
+        
+        setNotification({ message, type: 'success' });
+      } else {
+        throw new Error(result.error || '不明なエラー');
+      }
     } catch (error) {
       console.error('❌ お気に入り切り替えエラー:', error);
       setNotification({ 
@@ -349,9 +474,7 @@ const App: React.FC = () => {
                   icon: cat.category_icon,
                   parent_id: cat.parent_id,
                   is_favorite: cat.is_favorite,
-                  display_order: cat.display_order,
-                  breadcrumb: cat.breadcrumb,
-                  path: cat.path
+                  display_order: cat.display_order
                 }))}
               />
               <TermsList

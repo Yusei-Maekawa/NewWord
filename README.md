@@ -1,6 +1,13 @@
 # 🎓 学習用語句振り返りアプリ (React版)
 
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](./VERSION.md)
+[![Development Stage](https://img.shields.io/badge/stage-alpha-orange.svg)](./VERSION.md)
+[![License](https://img.shields.io/badge/license-ISC-green.svg)](./package.json)
+
 資格試験の学習用語句を効率的に管理・復習するためのReact Webアプリケーションです。
+
+> **現在のバージョン**: `0.3.0` - Alpha Release (開発段階)  
+> 詳細な変更履歴は[VERSION.md](./VERSION.md)をご覧ください。
 
 ## 📊 開発背景
 
@@ -118,10 +125,22 @@ StudyingEverything/
 ## 🎯 主な機能
 
 - ✅ **用語管理**: 追加・編集・削除・検索
-- ✅ **カテゴリ管理**: 階層構造・お気に入り
+- ✅ **カテゴリ管理**: 階層構造・お気に入り機能（Firestore永続化）
+- ✅ **お気に入り機能**: 用語・カテゴリのお気に入り登録（再読み込み後も保持）
+- ✅ **親子連動**: 親カテゴリをお気に入りにすると子カテゴリも自動でお気に入りに
 - ✅ **リッチテキスト**: 色・サイズ指定可能
-- ✅ **データ保護**: 3重バックアップ体制
-- ✅ **環境選択**: Docker/XAMPP両対応
+- ✅ **データ保護**: Firestore + 自動バックアップ体制
+- ✅ **環境選択**: Firestore（デフォルト）/MySQL切り替え可能
+
+### 📝 最新の更新（2025-11-02）
+
+**カテゴリお気に入り機能の完全実装**
+- ✅ `useCategoriesFirestore`フック実装（Firestore永続化）
+- ✅ 親カテゴリのお気に入り登録で子カテゴリも連動
+- ✅ 循環参照チェック機能追加（最大10階層）
+- ✅ 不正データの自動修復機能
+- ✅ デバッグツール追加（`window.debugFirestore`）
+- ✅ ボタンネストエラー修正（HTMLバリデーション対応）
 
 ## 🏗️ コンポーネント設計
 
@@ -389,5 +408,11 @@ interface StudyStats {
 ### 🛡️ 運用・保守
 - [データ保護システム](docs/DATA_PROTECTION_CHECKLIST.md) - バックアップ・復旧手順
 - [リリースチェックリスト](docs/RELEASE_CHECKLIST.md) - デプロイ前の確認事項
+
+### 📦 バージョン管理
+- [VERSION.md](./VERSION.md) - **バージョン履歴と変更ログ**
+  - セマンティックバージョニング採用
+  - リリースノート・機能追加履歴
+  - 今後のロードマップ
 
 

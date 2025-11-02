@@ -1,33 +1,60 @@
 /**
  * src/firebaseClient.ts
  *
- * Japanese:
- * クライアント (ブラウザ) 側で Firebase を初期化するファイルのテンプレートです。
- * - `firebaseConfig` の値は Firebase コンソールの Web アプリ設定から取得して置き換えてください。
- * - エクスポート:
- *   - `firebaseConfig` - クライアント用設定オブジェクト
- *   - `db` - Firestore のクライアントインスタンス
- *   - `auth` - Firebase Authentication のインスタンス
- *   - `storage` - Firebase Storage のインスタンス
+ * ============================================================================
+ * 📖 ファイル概要 / File Overview
+ * ============================================================================
  *
- * English:
- * Client-side Firebase initializer template for the browser.
- * - Replace `firebaseConfig` values with your project's config from the Firebase Console.
- * - Exports:
- *   - `firebaseConfig` - the client configuration object
- *   - `db` - Firestore client instance
- *   - `auth` - Authentication instance
- *   - `storage` - Storage instance
+ * 【日本語】
+ * クライアント (ブラウザ) 側で Firebase を初期化するファイル。
+ * Firebase Console から取得した設定値を使用して、Firestore、Authentication、
+ * Storage などの Firebase サービスを初期化します。
  *
- * Variables / 目次:
- * - firebaseConfig: object with apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId
- * - app: initialized Firebase app (internal)
- * - db: Firestore client (exported)
- * - auth: Auth client (exported)
- * - storage: Storage client (exported)
+ * 【主な機能】
+ * 1. Firebase アプリの初期化
+ * 2. Firestore データベースインスタンスのエクスポート
+ * 3. Authentication インスタンスのエクスポート
+ * 4. Storage インスタンスのエクスポート
  *
- * 変数の詳細 (Variables Details):
+ * 【English】
+ * Client-side Firebase initializer for the browser.
+ * Uses configuration values from Firebase Console to initialize Firebase services
+ * such as Firestore, Authentication, and Storage.
  *
+ * 【Key Features】
+ * 1. Initialize Firebase app
+ * 2. Export Firestore database instance
+ * 3. Export Authentication instance
+ * 4. Export Storage instance
+ *
+ * ============================================================================
+ * 📦 エクスポート変数 / Exported Variables
+ * ============================================================================
+ *
+ * - firebaseConfig: object - Firebase設定オブジェクト（apiKey, authDomain等）
+ * - db: Firestore - Firestoreクライアントインスタンス
+ * - auth: Auth - Firebase Authenticationインスタンス
+ * - storage: FirebaseStorage - Firebase Storageインスタンス
+ *
+ * ============================================================================
+ * 🔗 依存関係 / Dependencies
+ * ============================================================================
+ *
+ * Firebase SDK:
+ * - firebase/app: initializeApp
+ * - firebase/firestore: getFirestore
+ * - firebase/auth: getAuth
+ * - firebase/storage: getStorage
+ *
+ * ============================================================================
+ *
+ * @author Yusei Maekawa
+ * @version 0.3.0
+ * @since 2025-08-01
+ * @updated 2025-11-02
+ */
+
+/**
  * firebaseConfig (exported const)
  * - 日本語: Firebase プロジェクトのクライアント設定オブジェクト。Firebase コンソールから取得した値に置き換えてください。
  * - English: Client configuration object for Firebase project. Replace with values from Firebase Console.

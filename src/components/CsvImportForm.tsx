@@ -1,3 +1,46 @@
+/**
+ * src/components/CsvImportForm.tsx
+ *
+ * ============================================================================
+ * 📖 ファイル概要 / File Overview
+ * ============================================================================
+ *
+ * 【日本語】
+ * CSV形式のファイルから語句データを一括インポートするコンポーネント。
+ * ファイル選択後、CSV内容をパースして語句オブジェクトに変換します。
+ *
+ * 【主な機能】
+ * 1. CSVファイルのアップロード
+ * 2. CSVパース処理（カンマ区切り）
+ * 3. 必須項目チェック（term, meaning）
+ * 4. 例文の自動生成（example未指定時）
+ *
+ * 【English】
+ * Component for bulk importing term data from CSV files.
+ * Parses CSV content and converts it to term objects after file selection.
+ *
+ * 【Key Features】
+ * 1. CSV file upload
+ * 2. CSV parsing (comma-separated)
+ * 3. Required field validation (term, meaning)
+ * 4. Auto-generate examples (when example not specified)
+ *
+ * ============================================================================
+ * 📦 Props定義 / Props Definition
+ * ============================================================================
+ *
+ * - onImportTerms: (terms: Omit<Term, 'id' | 'createdAt'>[]) => void
+ *   - 日本語: インポート完了時のコールバック（語句配列を渡す）
+ *   - English: Callback on import completion (passes term array)
+ *
+ * ============================================================================
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ * @updated 2025-11-02
+ */
+
 import React, { useRef } from 'react';
 import { Term } from '../types';
 

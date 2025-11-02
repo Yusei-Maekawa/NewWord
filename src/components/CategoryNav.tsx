@@ -1,3 +1,110 @@
+/**
+ * src/components/CategoryNav.tsx
+ *
+ * ============================================================================
+ * 📖 ファイル概要 / File Overview
+ * ============================================================================
+ *
+ * 【日本語】
+ * カテゴリナビゲーションコンポーネント。
+ * カテゴリの階層表示、フィルタリング、お気に入り管理を行います。
+ * 親カテゴリの展開/折りたたみ、お気に入り表示切り替えなどのインタラクティブ機能を提供します。
+ *
+ * 【主な機能】
+ * 1. 階層構造のカテゴリ表示（親→子→孫）
+ * 2. カテゴリの展開/折りたたみ
+ * 3. お気に入りカテゴリのフィルタリング表示
+ * 4. アクティブカテゴリのハイライト
+ * 5. お気に入りボタンによる登録/解除
+ * 6. 循環参照チェック（無限ループ防止）
+ *
+ * 【English】
+ * Category navigation component.
+ * Handles hierarchical display, filtering, and favorite management of categories.
+ * Provides interactive features such as expand/collapse parent categories
+ * and toggle favorite display.
+ *
+ * 【Key Features】
+ * 1. Hierarchical category display (parent → child → grandchild)
+ * 2. Expand/collapse categories
+ * 3. Filter display by favorite categories
+ * 4. Highlight active category
+ * 5. Register/unregister favorites via favorite button
+ * 6. Circular reference check (prevent infinite loops)
+ *
+ * ============================================================================
+ * 📦 型定義 / Type Definitions
+ * ============================================================================
+ *
+ * Category - カテゴリデータ
+ * - id: number - カテゴリID
+ * - category_key: string - カテゴリキー
+ * - category_name: string - カテゴリ名
+ * - category_icon: string - カテゴリアイコン（絵文字）
+ * - category_color: string - カテゴリカラー（HEX）
+ * - parent_id: number | null - 親カテゴリID
+ * - is_favorite: boolean - お気に入りフラグ
+ * - display_order: number - 表示順序
+ * - created_at: string - 作成日時
+ *
+ * CategoryNavProps - コンポーネントProps
+ * - activeCategory: string - 現在選択中のカテゴリキー
+ * - onCategoryChange: (category: string) => void - カテゴリ変更コールバック
+ * - categories: Category[] - カテゴリデータ配列
+ * - onCategoryUpdate: () => void - カテゴリ更新通知
+ * - onToggleFavorite?: (categoryId: number) => Promise<void> - お気に入り切り替え
+ *
+ * ============================================================================
+ * 🔧 主要関数 / Main Functions
+ * ============================================================================
+ *
+ * 1. toggleExpanded(categoryId: number)
+ *    - 日本語: カテゴリの展開/折りたたみを切り替え
+ *    - English: Toggle expand/collapse of category
+ *
+ * 2. handleFavoriteToggle(categoryId: number, e: Event)
+ *    - 日本語: お気に入りボタンクリック処理
+ *    - English: Handle favorite button click
+ *
+ * 3. renderHierarchicalCategories()
+ *    - 日本語: 階層構造のカテゴリを再帰的にレンダリング
+ *    - English: Recursively render hierarchical categories
+ *
+ * 4. renderCategory(category: Category, level: number)
+ *    - 日本語: 単一カテゴリをレンダリング（再帰関数）
+ *    - English: Render single category (recursive function)
+ *    - 循環参照チェック機能付き
+ *    - 最大階層深さ: 10
+ *
+ * ============================================================================
+ * 🎨 UI構成 / UI Structure
+ * ============================================================================
+ *
+ * <nav className="category-nav">
+ *   ├── お気に入り表示切り替えボタン
+ *   ├── 「すべて」カテゴリボタン
+ *   └── 階層カテゴリセクション
+ *       ├── 親カテゴリ
+ *       │   ├── 展開ボタン (▶)
+ *       │   ├── カテゴリボタン
+ *       │   └── お気に入りボタン (★)
+ *       └── 子カテゴリ（展開時に表示）
+ *
+ * ============================================================================
+ * 🔗 依存関係 / Dependencies
+ * ============================================================================
+ *
+ * React:
+ * - useState - 展開状態、お気に入り表示切り替えの管理
+ *
+ * ============================================================================
+ *
+ * @author Yusei Maekawa
+ * @version 0.3.0
+ * @since 2025-08-01
+ * @updated 2025-11-02
+ */
+
 import React, { useState } from 'react';
 // import CategoryManager from './CategoryManager'; // 暫定的に無効化（Firestore 移行予定）
 
@@ -100,8 +207,29 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
     
     const rootCategories = displayCategories.filter(cat => cat.parent_id === null);
     const result: React.ReactElement[] = [];
+    const processedIds = new Set<number>(); // 循環参照防止用
 
     const renderCategory = (category: Category, level: number = 0) => {
+      // IDの検証
+      if (category.id === undefined || category.id === null) {
+        console.error(`❌ カテゴリにIDがありません: ${category.category_name}`);
+        return;
+      }
+      
+      // 無限ループ防止: 既に処理済みのIDはスキップ
+      if (processedIds.has(category.id)) {
+        console.warn(`⚠️ 循環参照を検出: ${category.category_name} (ID: ${category.id})`);
+        return;
+      }
+      
+      // 深さ制限（最大10階層まで）
+      if (level > 10) {
+        console.warn(`⚠️ 階層が深すぎます: ${category.category_name} (level: ${level})`);
+        return;
+      }
+
+      processedIds.add(category.id);
+
       // 表示対象の子カテゴリのみを取得
       const childCategories = displayCategories.filter(cat => cat.parent_id === category.id);
       const isActive = activeCategory === category.category_key;
@@ -137,30 +265,31 @@ const CategoryNav: React.FC<CategoryNavProps> = ({
                 '--category-color': category.category_color
               } as React.CSSProperties}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {category.category_icon} {category.category_name}
-                  {hasChildren && (
-                    <span style={{ 
-                      marginLeft: '4px', 
-                      fontSize: '11px', 
-                      opacity: 0.7 
-                    }}>
-                      ({childCategories.length})
-                    </span>
-                  )}
-                </span>
-                {onToggleFavorite && showAllCategories && (
-                  <button
-                    className={`favorite-button ${category.is_favorite ? 'favorited' : 'not-favorited'}`}
-                    onClick={(e) => handleFavoriteToggle(category.id, e)}
-                    title={category.is_favorite ? 'お気に入りから削除' : 'お気に入りに追加'}
-                  >
-                    ★
-                  </button>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {category.category_icon} {category.category_name}
+                {hasChildren && (
+                  <span style={{ 
+                    marginLeft: '4px', 
+                    fontSize: '11px', 
+                    opacity: 0.7 
+                  }}>
+                    ({childCategories.length})
+                  </span>
                 )}
               </span>
             </button>
+            {onToggleFavorite && showAllCategories && (
+              <button
+                className={`favorite-button ${category.is_favorite ? 'favorited' : 'not-favorited'}`}
+                onClick={(e) => handleFavoriteToggle(category.id, e)}
+                title={category.is_favorite ? 'お気に入りから削除' : 'お気に入りに追加'}
+                style={{
+                  marginLeft: '4px'
+                }}
+              >
+                ★
+              </button>
+            )}
           </div>
 
           {/* 子カテゴリを表示（アニメーション付き） */}

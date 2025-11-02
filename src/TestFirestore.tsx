@@ -1,11 +1,40 @@
 /**
  * src/TestFirestore.tsx
  *
- * 日本語: Firestore 接続テストページ
- * useTermsFirestore フックの動作確認用コンポーネント
+ * ============================================================================
+ * 📖 ファイル概要 / File Overview
+ * ============================================================================
  *
- * English: Firestore connection test page
- * Component for testing useTermsFirestore hook functionality
+ * 【日本語】
+ * Firestore接続テストページ。
+ * useTermsFirestoreフックの動作確認用コンポーネントです。
+ * CRUD操作（追加、読取、更新、削除）をテストできます。
+ *
+ * 【主な機能】
+ * 1. 語句データの一覧表示
+ * 2. 新規語句の追加
+ * 3. 語句の編集
+ * 4. 語句の削除
+ * 5. Firestore接続状態の確認
+ *
+ * 【English】
+ * Firestore connection test page.
+ * Component for testing useTermsFirestore hook functionality.
+ * Can test CRUD operations (Create, Read, Update, Delete).
+ *
+ * 【Key Features】
+ * 1. Display list of terms
+ * 2. Add new terms
+ * 3. Edit terms
+ * 4. Delete terms
+ * 5. Check Firestore connection status
+ *
+ * ============================================================================
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-11-01
+ * @updated 2025-11-02
  */
 
 import React, { useState } from 'react';

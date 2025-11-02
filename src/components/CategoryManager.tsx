@@ -1,3 +1,51 @@
+/**
+ * src/components/CategoryManager.tsx
+ *
+ * ============================================================================
+ * 📖 ファイル概要 / File Overview
+ * ============================================================================
+ *
+ * 【日本語】
+ * カテゴリ管理画面コンポーネント（モーダル形式）。
+ * カテゴリの追加、編集、削除、並び替えなどの管理機能を提供します。
+ * 階層構造の表示と親子関係の設定が可能です。
+ *
+ * 【主な機能】
+ * 1. カテゴリ一覧表示（階層構造）
+ * 2. カテゴリの追加・編集・削除
+ * 3. 表示順序の変更（ドラッグ&ドロップまたはボタン）
+ * 4. 親カテゴリの設定
+ * 5. カテゴリアイコン・カラーのカスタマイズ
+ *
+ * 【English】
+ * Category management screen component (modal format).
+ * Provides management functions such as adding, editing, deleting,
+ * and reordering categories. Supports hierarchical display and parent-child relationships.
+ *
+ * 【Key Features】
+ * 1. Display category list (hierarchical structure)
+ * 2. Add, edit, and delete categories
+ * 3. Change display order (drag & drop or buttons)
+ * 4. Set parent category
+ * 5. Customize category icon and color
+ *
+ * ============================================================================
+ * 📦 Props定義 / Props Definition
+ * ============================================================================
+ *
+ * CategoryManagerProps:
+ * - isOpen: boolean - モーダルの開閉状態
+ * - onClose: () => void - モーダルクローズ時のコールバック
+ * - onCategoryUpdate: () => void - カテゴリ更新時のコールバック
+ *
+ * ============================================================================
+ *
+ * @author Yusei Maekawa
+ * @version 1.0.0
+ * @since 2025-08-01
+ * @updated 2025-11-02
+ */
+
 import React, { useState, useEffect } from 'react';
 
 interface Category {
