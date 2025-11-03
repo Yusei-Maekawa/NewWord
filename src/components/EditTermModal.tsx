@@ -467,13 +467,23 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
     if (!editor) return;
 
     const selection = window.getSelection();
-    if (!selection) return;
+    if (!selection) {
+      // selectionが取得できない場合はツールバーを非表示
+      setFloatingToolbar({
+        anchorEl: null,
+        field: null,
+        selectedText: '',
+        selectionStart: 0,
+        selectionEnd: 0
+      });
+      return;
+    }
 
     // 選択範囲のHTMLをタグ形式に変換して取得
     const selectedText = getSelectedTextWithTags(selection);
 
     // テキストが選択されている場合のみツールバーを表示
-    if (selectedText.length > 0) {
+    if (selectedText.length > 0 && !selection.isCollapsed) {
       setFloatingToolbar({
         anchorEl: editor,
         field: field,
@@ -482,7 +492,7 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
         selectionEnd: 0    // WYSIWYGでは使用しない
       });
     } else {
-      // 選択が解除されたらツールバーを非表示
+      // 選択が解除されたら、または範囲が折りたたまれている場合はツールバーを非表示
       setFloatingToolbar({
         anchorEl: null,
         field: null,

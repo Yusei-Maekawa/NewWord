@@ -1021,6 +1021,90 @@ setTimeout(() => {
 
 ---
 
+### 🟡 フローティングツールバーの誤表示問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
+**ブランチ**: feature/term-management  
+**コミットID**: (今回のコミット)
+
+#### 問題
+- 編集画面でテキストを選択せず、ただクリックしただけでフローティングツールバーが表示される
+- 範囲選択していないのにツールバーが出るため、ユーザーが混乱する
+- 特に編集中のクリック操作時に頻繁に発生
+
+#### 原因
+**contentEditableの`onSelect`イベントが選択とクリックの両方で発火**:
+
+```typescript
+// 修正前のhandleTextSelection
+const handleTextSelection = (field: 'meaning' | 'example') => {
+  const selection = window.getSelection();
+  if (!selection) return;
+  
+  const selectedText = getSelectedTextWithTags(selection);
+  
+  // selectedText.length > 0 だけではカーソル位置でもtrueになる
+  if (selectedText.length > 0) {
+    setFloatingToolbar({ anchorEl: editor, ... });
+  }
+};
+```
+
+**問題点**:
+- `onSelect`イベントはテキスト選択時だけでなく、クリックによるカーソル移動でも発火する
+- `selectedText.length > 0`のチェックだけでは、カーソル位置（折りたたまれた選択範囲）と実際のテキスト選択を区別できない
+- `selection.isCollapsed`（選択が折りたたまれているか）のチェックが不足していた
+
+#### 修正内容
+**`selection.isCollapsed`チェックを追加**:
+
+```typescript
+const handleTextSelection = (field: 'meaning' | 'example') => {
+  const editor = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
+  if (!editor) return;
+
+  const selection = window.getSelection();
+  if (!selection) {
+    // selectionが取得できない場合はツールバーを非表示
+    setFloatingToolbar({ anchorEl: null, ... });
+    return;
+  }
+
+  const selectedText = getSelectedTextWithTags(selection);
+  
+  // テキストが選択されている かつ 範囲が折りたたまれていない場合のみ表示
+  if (selectedText.length > 0 && !selection.isCollapsed) {
+    setFloatingToolbar({ anchorEl: editor, ... });
+  } else {
+    // 選択が解除されたら、または範囲が折りたたまれている場合はツールバーを非表示
+    setFloatingToolbar({ anchorEl: null, ... });
+  }
+};
+```
+
+**`selection.isCollapsed`とは**:
+- `true`: 選択範囲が折りたたまれている（カーソル位置のみ、範囲なし）
+- `false`: 実際にテキスト範囲が選択されている
+
+**動作の流れ**：
+1. ユーザーがエディタをクリック → `onSelect`発火
+2. `selection.isCollapsed = true` → ツールバー非表示 ✅
+3. ユーザーがテキストをドラッグ選択 → `onSelect`発火
+4. `selectedText.length > 0 && !selection.isCollapsed` → ツールバー表示 ✅
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx`: `handleTextSelection`関数
+- `src/components/EditTermModal.tsx`: `handleTextSelection`関数
+
+#### 学んだこと
+- contentEditableの`onSelect`イベントは選択だけでなくクリックでも発火する
+- `Selection.isCollapsed`プロパティでカーソル位置と範囲選択を区別できる
+- UXを改善するには、イベントが発火するタイミングとユーザーの意図を正確に判断する必要がある
+- 同じ修正を複数のコンポーネント（AddTermForm, EditTermModal）に適用する必要があった
+
+---
+
 ## 今後のバグ修正もここに追記していきます
 
 各バグ修正を記録することで：
