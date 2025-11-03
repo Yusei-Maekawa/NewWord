@@ -121,6 +121,166 @@ dangerouslySetInnerHTML={{ __html: renderRichText(formData.example, true) }}
 
 ---
 
+## 2025年11月3日
+
+### 🔴 `textarea.setSelectionRange is not a function` エラー
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: WYSIWYG編集機能実装  
+**重要度**: 🔴Critical
+
+#### 問題
+- WYSIWYG編集機能実装後、書式を適用しようとすると`textarea.setSelectionRange is not a function`エラーが発生
+- アプリケーションが動作しない重大なバグ
+
+#### 原因
+- `contentEditable` divには`setSelectionRange`メソッドが存在しない
+- textareaからWYSIWYGエディタに変更したが、古いAPIを使用していた
+
+```typescript
+// 問題のあったコード
+setTimeout(() => {
+  textarea.focus();
+  textarea.setSelectionRange(start, start + formattedText.length); // ❌ エラー
+}, 0);
+```
+
+#### 修正内容
+- `setSelectionRange`呼び出しを削除
+- フォーカスのみを戻すように変更
+
+```typescript
+// 修正後のコード
+setTimeout(() => {
+  textarea.focus(); // ✅ フォーカスのみ
+}, 0);
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx` - `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx` - `applyFormatWithSelection`関数
+
+---
+
+### 🔴 `Cannot read properties of undefined (reading 'substring')` エラー
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: WYSIWYG編集機能実装  
+**重要度**: 🔴Critical
+
+#### 問題
+- フローティングツールバーから書式を適用しようとすると`Cannot read properties of undefined (reading 'substring')`エラーが発生
+- 書式適用機能が完全に動作しない
+
+#### 原因
+- `contentEditable` divには`value`プロパティが存在しない
+- `textarea.value.substring()`がエラーを引き起こす
+
+```typescript
+// 問題のあったコード
+const start = textarea.selectionStart; // ❌ undefined
+const end = textarea.selectionEnd;     // ❌ undefined
+const selectedText = textarea.value.substring(start, end); // ❌ エラー
+
+const currentValue = formData[field];
+const newValue = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
+```
+
+#### 修正内容
+1. `applyFormat`関数を簡素化（WYSIWYGではフローティングツールバーのみ使用）
+2. `applyFormatWithSelection`関数で、formData内でテキストを検索して置き換える方式に変更
+
+```typescript
+// 修正後のコード
+const applyFormat = (field: 'meaning' | 'example', format: string) => {
+  // WYSIWYGエディタではフローティングツールバーを使用するため、この関数は呼ばれない
+  alert('テキストを選択してからフローティングツールバーで書式を適用してください。');
+};
+
+const applyFormatWithSelection = (
+  field: 'meaning' | 'example', 
+  format: string, 
+  selectedText: string, 
+  start: number, 
+  end: number
+) => {
+  // WYSIWYGエディタでは、選択されたテキストをformData内で検索して置き換え
+  const currentValue = formData[field] || '';
+  const index = currentValue.indexOf(selectedText);
+  
+  if (index !== -1) {
+    // 最初に見つかった箇所を置き換え
+    const newValue = currentValue.substring(0, index) + formattedText + currentValue.substring(index + selectedText.length);
+    handleInputChange(field, newValue);
+  } else {
+    // 見つからない場合は末尾に追加
+    const newValue = currentValue + formattedText;
+    handleInputChange(field, newValue);
+  }
+};
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx` - `applyFormat`, `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx` - `applyFormat`, `applyFormatWithSelection`関数
+
+---
+
+### 🟠 選択した文字列が編集後に重複して表示される
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: WYSIWYG編集機能実装  
+**重要度**: 🟠High
+
+#### 問題
+- テキストを選択してフローティングツールバーから書式を適用すると、選択したテキストが重複して表示される
+- 例：「テスト」を赤色にすると「テスト[red]テスト[/red]」のように二重に表示される
+
+#### 原因
+- WYSIWYGエディタでは`selectionStart`/`selectionEnd`が正確に取得できない
+- contentEditableの選択範囲とformDataの文字列位置が一致しない
+- 誤った位置に書式が挿入される
+
+#### 修正内容
+- 選択範囲の位置情報（start/end）に頼らず、選択されたテキスト自体をformData内で検索
+- 最初に見つかった箇所を書式付きテキストで置き換える方式に変更
+
+```typescript
+// 修正後のアプローチ
+const currentValue = formData[field] || '';
+const index = currentValue.indexOf(selectedText); // テキストを検索
+
+if (index !== -1) {
+  // 見つかった位置で置き換え
+  const newValue = currentValue.substring(0, index) + formattedText + currentValue.substring(index + selectedText.length);
+  handleInputChange(field, newValue);
+}
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx` - `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx` - `applyFormatWithSelection`関数
+
+#### 学んだこと
+- contentEditableとtextareaではAPIが大きく異なる
+- 選択範囲の位置情報ではなく、選択されたテキスト内容で検索する方が堅牢
+- WYSIWYG実装では従来のDOM APIが使えないことを前提に設計する必要がある
+
+---
+
+### 📝 WYSIWYG編集機能実装の詳細
+
+今回のWYSIWYG編集機能実装に関する詳細なドキュメントは、以下のファイルを参照してください：
+
+📄 **[WYSIWYG_IMPLEMENTATION.md](./WYSIWYG_IMPLEMENTATION.md)**
+- 実装の目的と背景
+- 変更内容の詳細
+- 修正したバグの一覧
+- 内部データフロー
+- 今後の改善案
+
+---
+
 ## 今後のバグ修正もここに追記していきます
 
 各バグ修正を記録することで：

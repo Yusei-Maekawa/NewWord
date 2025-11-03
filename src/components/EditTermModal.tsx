@@ -50,6 +50,7 @@ import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import { Term } from '../types';
+import WysiwygEditor from './WysiwygEditor';
 
 interface Category {
   id: number;
@@ -132,6 +133,18 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   /**
+   * 意味フィールドのプレビュー表示状態
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
+  const [showMeaningPreview, setShowMeaningPreview] = useState(false);
+
+  /**
+   * 例文フィールドのプレビュー表示状態
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
+  const [showExamplePreview, setShowExamplePreview] = useState(false);
+
+  /**
    * フローティングツールバーの状態
    */
   const [floatingToolbar, setFloatingToolbar] = useState<{
@@ -148,9 +161,9 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
     selectionEnd: 0
   });
 
-  // テキストエリアの参照
-  const meaningTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const exampleTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // WYSIWYGエディタの参照
+  const meaningTextareaRef = useRef<HTMLDivElement>(null);
+  const exampleTextareaRef = useRef<HTMLDivElement>(null);
 
   /**
    * termプロパティが変更されたらフォームデータを更新
@@ -403,21 +416,22 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
 
   // テキスト選択時にフローティングツールバーを表示
   const handleTextSelection = (field: 'meaning' | 'example') => {
-    const textarea = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
-    if (!textarea) return;
+    const editor = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
+    if (!editor) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const selectedText = selection.toString();
 
     // テキストが選択されている場合のみツールバーを表示
-    if (start !== end && selectedText.length > 0) {
+    if (selectedText.length > 0) {
       setFloatingToolbar({
-        anchorEl: textarea,
+        anchorEl: editor,
         field: field,
         selectedText: selectedText,
-        selectionStart: start,
-        selectionEnd: end
+        selectionStart: 0, // WYSIWYGでは使用しない
+        selectionEnd: 0    // WYSIWYGでは使用しない
       });
     } else {
       // 選択が解除されたらツールバーを非表示
@@ -459,21 +473,10 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
     handleCloseFloatingToolbar();
   };
 
-  // テキストエリアに記法を適用する関数
+  // テキストエリアに記法を適用する関数（WYSIWYGエディタでは使用しない）
   const applyFormat = (field: 'meaning' | 'example', format: string) => {
-    const textarea = document.getElementById(field === 'meaning' ? 'editMeaning' : 'editExample') as HTMLTextAreaElement;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-    
-    if (selectedText.length === 0) {
-      alert('テキストを選択してからボタンをクリックしてください。');
-      return;
-    }
-
-    applyFormatWithSelection(field, format, selectedText, start, end);
+    // WYSIWYGエディタではフローティングツールバーを使用するため、この関数は呼ばれない
+    alert('テキストを選択してからフローティングツールバーで書式を適用してください。');
   };
 
   // 選択範囲情報を使って書式を適用する共通関数
@@ -484,8 +487,8 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
     start: number, 
     end: number
   ) => {
-    const textarea = document.getElementById(field === 'meaning' ? 'editMeaning' : 'editExample') as HTMLTextAreaElement;
-    if (!textarea) return;
+    const editor = document.getElementById(field === 'meaning' ? 'editMeaning' : 'editExample');
+    if (!editor) return;
 
     let formattedText = '';
     switch (format) {
@@ -538,14 +541,23 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
         formattedText = selectedText;
     }
 
-    const currentValue = formData[field];
-    const newValue = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
-    handleInputChange(field, newValue);
+    // WYSIWYGエディタでは、選択されたテキストをformData内で検索して置き換え
+    const currentValue = formData[field] || '';
+    const index = currentValue.indexOf(selectedText);
     
-    // フォーカスを戻して新しい位置にカーソルを設定
+    if (index !== -1) {
+      // 最初に見つかった箇所を置き換え
+      const newValue = currentValue.substring(0, index) + formattedText + currentValue.substring(index + selectedText.length);
+      handleInputChange(field, newValue);
+    } else {
+      // 見つからない場合は末尾に追加
+      const newValue = currentValue + formattedText;
+      handleInputChange(field, newValue);
+    }
+    
+    // フォーカスを戻す
     setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start, start + formattedText.length);
+      editor.focus();
     }, 0);
   };
 
@@ -660,25 +672,36 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
                 <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xlarge')} title="極大">極大</button>
               </div>
             </div>
-            <textarea
-              id="editMeaning"
-              ref={meaningTextareaRef}
-              value={formData.meaning}
-              onChange={(e) => handleInputChange('meaning', e.target.value)}
-              onSelect={() => handleTextSelection('meaning')}
-              onMouseUp={() => handleTextSelection('meaning')}
-              placeholder="**重要**な概念です。`コード`や*斜体*も使えます。&#10;改行も反映されます。"
-              rows={6}
-              required
-              spellCheck={false}
-            />
-            <div className="preview-section">
-              <h4>プレビュー:</h4>
-              <div 
-                className="rich-text-preview"
-                dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning, true) }}
+            <div className="rich-text-editor-wrapper">
+              <WysiwygEditor
+                id="editMeaning"
+                value={formData.meaning}
+                onChange={(value) => handleInputChange('meaning', value)}
+                onSelect={() => handleTextSelection('meaning')}
+                placeholder="テキストを入力してください。書式ツールバーから装飾を適用できます。"
+                rows={6}
+                editorRef={meaningTextareaRef}
               />
             </div>
+
+            {/* プレビューセクション（デバッグ用） */}
+            {showMeaningPreview && (
+              <div className="preview-section" style={{ marginTop: '8px' }}>
+                <h4>タグ形式（内部データ）:</h4>
+                <div style={{
+                  padding: '10px',
+                  background: '#f8f9fa',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all'
+                }}>
+                  {formData.meaning || '(空欄)'}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="form-group">
@@ -756,24 +779,34 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
                 </div>
               </div>
             )}
-            <textarea
-              id="editExample"
-              ref={exampleTextareaRef}
-              value={formData.example}
-              onChange={(e) => handleInputChange('example', e.target.value)}
-              onSelect={() => handleTextSelection('example')}
-              onMouseUp={() => handleTextSelection('example')}
-              placeholder="例文やコードサンプルなど。&#10;**太字**や`コード`も使えます。"
-              rows={4}
-              spellCheck={false}
-            />
-            {formData.example && (
-              <div className="preview-section">
-                <h4>プレビュー:</h4>
-                <div 
-                  className="rich-text-preview"
-                  dangerouslySetInnerHTML={{ __html: renderRichText(formData.example, true) }}
-                />
+            <div className="rich-text-editor-wrapper">
+              <WysiwygEditor
+                id="editExample"
+                value={formData.example}
+                onChange={(value) => handleInputChange('example', value)}
+                onSelect={() => handleTextSelection('example')}
+                placeholder="例文やコードサンプルなど。画像も追加可能です。"
+                rows={4}
+                editorRef={exampleTextareaRef}
+              />
+            </div>
+
+            {/* プレビューセクション（デバッグ用） */}
+            {showExamplePreview && (
+              <div className="preview-section" style={{ marginTop: '8px' }}>
+                <h4>タグ形式（内部データ）:</h4>
+                <div style={{
+                  padding: '10px',
+                  background: '#f8f9fa',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all'
+                }}>
+                  {formData.example || '(空欄)'}
+                </div>
               </div>
             )}
           </div>

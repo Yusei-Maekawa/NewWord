@@ -2837,3 +2837,96 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* =============================================================================
+ * 書式タグの視覚的軽量化スタイル
+ * ============================================================================= */
+
+/* リッチテキストエディタラッパー */
+.rich-text-editor-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* 書式タグハイライト付きテキストエリア */
+.rich-text-editor-wrapper textarea {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.6;
+  tab-size: 2;
+  width: 100%;
+}
+
+/* リッチテキスト用テキストエリア - タグを薄く表示 */
+.rich-text-textarea {
+  position: relative;
+  background: linear-gradient(
+    to bottom,
+    #fafbfc 0%,
+    #ffffff 100%
+  );
+  color: #2c3e50;
+}
+
+/* タグの視認性を下げるための疑似要素アプローチ */
+.rich-text-textarea::placeholder {
+  color: #95a5a6;
+  opacity: 0.6;
+}
+
+/* タグヒント表示エリア */
+.rich-text-editor-wrapper .tag-hints {
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #6c757d;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.rich-text-editor-wrapper .tag-hints span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* WYSIWYGエディタのスタイル */
+.wysiwyg-editor:empty:before {
+  content: attr(data-placeholder);
+  color: #95a5a6;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.wysiwyg-editor code {
+  background-color: #ecf0f1;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.wysiwyg-editor del {
+  color: #95a5a6;
+}
+
+.wysiwyg-editor::-webkit-scrollbar {
+  width: 8px;
+}
+
+.wysiwyg-editor::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.wysiwyg-editor::-webkit-scrollbar-thumb {
+  background: #bdc3c7;
+  border-radius: 4px;
+}
+
+.wysiwyg-editor::-webkit-scrollbar-thumb:hover {
+  background: #95a5a6;
+}
