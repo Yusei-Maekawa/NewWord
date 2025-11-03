@@ -43,6 +43,10 @@ import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { Term } from '../types';
 import WysiwygEditor from './WysiwygEditor';
 
@@ -147,9 +151,54 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     selectionEnd: 0
   });
 
+  /**
+   * カラーピッカーダイアログの状態
+   */
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [customColor, setCustomColor] = useState('#e74c3c');
+  const [showMoreColors, setShowMoreColors] = useState(false);
+  const [colorHistory, setColorHistory] = useState<string[]>([]);
+
   // WYSIWYGエディタの参照
   const meaningTextareaRef = useRef<HTMLDivElement>(null);
   const exampleTextareaRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * カラー履歴をLocalStorageから読み込み
+   */
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('customColorHistory');
+    if (savedHistory) {
+      try {
+        setColorHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error('カラー履歴の読み込みに失敗しました:', e);
+      }
+    }
+  }, []);
+
+  /**
+   * カラー履歴に色を追加
+   */
+  const addToColorHistory = (color: string) => {
+    setColorHistory(prev => {
+      // 既に存在する場合は先頭に移動
+      const filtered = prev.filter(c => c.toLowerCase() !== color.toLowerCase());
+      const newHistory = [color, ...filtered].slice(0, 10); // 最大10色
+      
+      // LocalStorageに保存
+      localStorage.setItem('customColorHistory', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  };
+
+  /**
+   * カラー履歴をクリア
+   */
+  const clearColorHistory = () => {
+    setColorHistory([]);
+    localStorage.removeItem('customColorHistory');
+  };
 
   /**
    * activeCategoryが変更されたらカテゴリも自動で変更
@@ -368,18 +417,80 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     return formattedText;
   };
 
+  /**
+   * 選択範囲のHTMLをタグ形式のテキストに変換
+   */
+  const getSelectedTextWithTags = (selection: Selection): string => {
+    if (selection.rangeCount === 0) return '';
+    
+    const range = selection.getRangeAt(0);
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+    
+    let html = container.innerHTML;
+    
+    // HTMLタグをカスタムタグに変換
+    html = html
+      // 色タグ
+      .replace(/<span style="color: #e74c3c; font-weight: 600;">(.*?)<\/span>/g, '[red]$1[/red]')
+      .replace(/<span style="color: #3498db; font-weight: 600;">(.*?)<\/span>/g, '[blue]$1[/blue]')
+      .replace(/<span style="color: #27ae60; font-weight: 600;">(.*?)<\/span>/g, '[green]$1[/green]')
+      .replace(/<span style="color: #f39c12; font-weight: 600;">(.*?)<\/span>/g, '[orange]$1[/orange]')
+      .replace(/<span style="color: #9b59b6; font-weight: 600;">(.*?)<\/span>/g, '[purple]$1[/purple]')
+      .replace(/<span style="color: #e91e63; font-weight: 600;">(.*?)<\/span>/g, '[pink]$1[/pink]')
+      // サイズタグ
+      .replace(/<span style="font-size: 0\.7em;">(.*?)<\/span>/g, '[xsmall]$1[/xsmall]')
+      .replace(/<span style="font-size: 0\.85em;">(.*?)<\/span>/g, '[small]$1[/small]')
+      .replace(/<span style="font-size: 1\.2em;">(.*?)<\/span>/g, '[large]$1[/large]')
+      .replace(/<span style="font-size: 1\.5em;">(.*?)<\/span>/g, '[xlarge]$1[/xlarge]')
+      // マークダウン風タグ
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<em>(.*?)<\/em>/g, '*$1*')
+      .replace(/<code>(.*?)<\/code>/g, '`$1`')
+      .replace(/<del>(.*?)<\/del>/g, '~~$1~~')
+      // 改行
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<div>(.*?)<\/div>/g, '\n$1');
+    
+    // HTMLエンティティをデコード
+    html = html
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&');
+    
+    // 残りのHTMLタグを除去（すべて削除されるまで繰り返すことで多重/悪意タグ対策）
+    let previousHtml;
+    do {
+      previousHtml = html;
+      html = html.replace(/<[^>]+>/g, '');
+    } while (html !== previousHtml);
+    
+    return html;
+  };
+
   // テキスト選択時にフローティングツールバーを表示
   const handleTextSelection = (field: 'meaning' | 'example') => {
     const editor = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
     if (!editor) return;
 
     const selection = window.getSelection();
-    if (!selection) return;
+    if (!selection) {
+      // selectionが取得できない場合はツールバーを非表示
+      setFloatingToolbar({
+        anchorEl: null,
+        field: null,
+        selectedText: '',
+        selectionStart: 0,
+        selectionEnd: 0
+      });
+      return;
+    }
 
-    const selectedText = selection.toString();
+    // 選択範囲のHTMLをタグ形式に変換して取得
+    const selectedText = getSelectedTextWithTags(selection);
 
     // テキストが選択されている場合のみツールバーを表示
-    if (selectedText.length > 0) {
+    if (selectedText.length > 0 && !selection.isCollapsed) {
       setFloatingToolbar({
         anchorEl: editor,
         field: field,
@@ -388,7 +499,7 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
         selectionEnd: 0    // WYSIWYGでは使用しない
       });
     } else {
-      // 選択が解除されたらツールバーを非表示
+      // 選択が解除されたら、または範囲が折りたたまれている場合はツールバーを非表示
       setFloatingToolbar({
         anchorEl: null,
         field: null,
@@ -444,74 +555,179 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     const editor = document.getElementById(field);
     if (!editor) return;
 
-    let formattedText = '';
+    const currentValue = formData[field] || '';
+    
+    // 色タグとサイズタグのカテゴリを定義
+    const colorFormats = ['red', 'blue', 'green', 'orange', 'purple', 'pink', 'yellow', 'brown', 'gray', 'black', 'cyan', 'lime'];
+    const sizeFormats = ['xsmall', 'small', 'normal', 'large', 'xlarge'];
+    const styleFormats = ['bold', 'italic', 'code', 'strike'];
+    
+    // 現在のフォーマットがどのカテゴリに属するか判定
+    const isColorFormat = colorFormats.includes(format) || format.startsWith('color=');
+    const isSizeFormat = sizeFormats.includes(format);
+    
+    // 既存のタグを除去する必要があるかチェック
+    let cleanedText = selectedText;
+    
+    // 色を変更する場合、既存の色タグを除去（プリセット色とカスタムカラー両方）
+    if (isColorFormat) {
+      // プリセット色の除去
+      colorFormats.forEach(color => {
+        const pattern = `[${color}]`;
+        const endPattern = `[/${color}]`;
+        if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+          cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+        }
+      });
+      
+      // カスタムカラーの除去 [color=#XXXXXX]...[/color]
+      const customColorPattern = /^\[color=#[0-9A-Fa-f]{6}\](.*)\[\/color\]$/;
+      const match = cleanedText.match(customColorPattern);
+      if (match) {
+        cleanedText = match[1];
+      }
+    }
+    
+    // サイズを変更する場合、既存のサイズタグを除去
+    if (isSizeFormat) {
+      sizeFormats.forEach(size => {
+        const pattern = `[${size}]`;
+        const endPattern = `[/${size}]`;
+        if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+          cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+        }
+      });
+    }
+    
+    // 書式のトグル動作：既に同じ書式が適用されている場合は除去
+    let formatPattern = '';
+    let isFormatted = false;
+    
     switch (format) {
       case 'bold':
-        formattedText = `**${selectedText}**`;
+        formatPattern = `**${cleanedText}**`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'italic':
-        formattedText = `*${selectedText}*`;
+        formatPattern = `*${cleanedText}*`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'code':
-        formattedText = `\`${selectedText}\``;
+        formatPattern = `\`${cleanedText}\``;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'strike':
-        formattedText = `~~${selectedText}~~`;
+        formatPattern = `~~${cleanedText}~~`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'red':
-        formattedText = `[red]${selectedText}[/red]`;
+        formatPattern = `[red]${cleanedText}[/red]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'blue':
-        formattedText = `[blue]${selectedText}[/blue]`;
+        formatPattern = `[blue]${cleanedText}[/blue]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'green':
-        formattedText = `[green]${selectedText}[/green]`;
+        formatPattern = `[green]${cleanedText}[/green]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'orange':
-        formattedText = `[orange]${selectedText}[/orange]`;
+        formatPattern = `[orange]${cleanedText}[/orange]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'purple':
-        formattedText = `[purple]${selectedText}[/purple]`;
+        formatPattern = `[purple]${cleanedText}[/purple]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'pink':
-        formattedText = `[pink]${selectedText}[/pink]`;
+        formatPattern = `[pink]${cleanedText}[/pink]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'yellow':
+        formatPattern = `[yellow]${cleanedText}[/yellow]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'brown':
+        formatPattern = `[brown]${cleanedText}[/brown]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'gray':
+        formatPattern = `[gray]${cleanedText}[/gray]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'black':
+        formatPattern = `[black]${cleanedText}[/black]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'cyan':
+        formatPattern = `[cyan]${cleanedText}[/cyan]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'lime':
+        formatPattern = `[lime]${cleanedText}[/lime]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'xsmall':
-        formattedText = `[xsmall]${selectedText}[/xsmall]`;
+        formatPattern = `[xsmall]${cleanedText}[/xsmall]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'small':
-        formattedText = `[small]${selectedText}[/small]`;
+        formatPattern = `[small]${cleanedText}[/small]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'normal':
-        formattedText = `[normal]${selectedText}[/normal]`;
+        formatPattern = `[normal]${cleanedText}[/normal]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'large':
-        formattedText = `[large]${selectedText}[/large]`;
+        formatPattern = `[large]${cleanedText}[/large]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'xlarge':
-        formattedText = `[xlarge]${selectedText}[/xlarge]`;
+        formatPattern = `[xlarge]${cleanedText}[/xlarge]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       default:
-        formattedText = selectedText;
+        // カスタムカラー color=#XXXXXX
+        if (format.startsWith('color=')) {
+          formatPattern = `[${format}]${cleanedText}[/color]`;
+          isFormatted = false; // カスタムカラーは常に適用
+        } else {
+          formatPattern = cleanedText;
+        }
     }
 
-    // WYSIWYGエディタでは、選択されたテキストをformData内で検索して置き換え
-    const currentValue = formData[field] || '';
-    const index = currentValue.indexOf(selectedText);
+    let newValue = '';
     
-    if (index !== -1) {
-      // 最初に見つかった箇所を置き換え
-      const newValue = currentValue.substring(0, index) + formattedText + currentValue.substring(index + selectedText.length);
-      handleInputChange(field, newValue);
+    if (isFormatted) {
+      // 既に同じ書式が適用されている場合は除去（トグルOFF）
+      newValue = currentValue.replace(formatPattern, cleanedText);
     } else {
-      // 見つからない場合は末尾に追加
-      const newValue = currentValue + formattedText;
-      handleInputChange(field, newValue);
+      // 書式を適用（トグルON）
+      // 元のselectedText（タグ付き）を検索して置き換え
+      const index = currentValue.indexOf(selectedText);
+      
+      if (index !== -1) {
+        // 最初に見つかった箇所を置き換え（元のselectedTextをformatPatternで置換）
+        newValue = currentValue.substring(0, index) + formatPattern + currentValue.substring(index + selectedText.length);
+      } else {
+        // 見つからない場合は末尾に追加
+        newValue = currentValue + formatPattern;
+      }
     }
     
-    // フォーカスを戻す
+    handleInputChange(field, newValue);
+    
+    // WYSIWYGエディタを再レンダリングするため、一時的にフォーカスを外して戻す
     setTimeout(() => {
-      editor.focus();
+      // フォーカスを外す（useEffectが発火してHTMLを更新）
+      editor.blur();
+      
+      // 少し待ってからフォーカスを戻す
+      setTimeout(() => {
+        editor.focus();
+      }, 10);
     }, 0);
   };
 
@@ -857,25 +1073,97 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
 
           <div style={{ width: '1px', background: '#ddd', margin: '0 4px' }} />
 
-          {/* 色ボタン */}
+          {/* 基本色ボタン (最初の4色は常に表示) */}
           <Tooltip title="赤色">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('red')} sx={{ color: '#e74c3c' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('red')} sx={{ color: '#e74c3c', minWidth: '32px' }}>
               A
             </IconButton>
           </Tooltip>
           <Tooltip title="青色">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('blue')} sx={{ color: '#3498db' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('blue')} sx={{ color: '#3498db', minWidth: '32px' }}>
               A
             </IconButton>
           </Tooltip>
           <Tooltip title="緑色">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('green')} sx={{ color: '#27ae60' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('green')} sx={{ color: '#27ae60', minWidth: '32px' }}>
               A
             </IconButton>
           </Tooltip>
           <Tooltip title="オレンジ">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('orange')} sx={{ color: '#f39c12' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('orange')} sx={{ color: '#f39c12', minWidth: '32px' }}>
               A
+            </IconButton>
+          </Tooltip>
+
+          {/* 追加色ボタン（展開式） */}
+          {showMoreColors && (
+            <>
+              <Tooltip title="紫色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('purple')} sx={{ color: '#9b59b6', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="ピンク">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('pink')} sx={{ color: '#e91e63', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="黄色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('yellow')} sx={{ color: '#f1c40f', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="茶色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('brown')} sx={{ color: '#8b4513', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="グレー">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('gray')} sx={{ color: '#7f8c8d', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="黒色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('black')} sx={{ color: '#2c3e50', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="シアン">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('cyan')} sx={{ color: '#00bcd4', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="ライム">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('lime')} sx={{ color: '#8bc34a', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+
+          {/* もっと見る/閉じるボタン */}
+          <Tooltip title={showMoreColors ? '色を閉じる' : 'もっと色を見る'}>
+            <IconButton 
+              size="small" 
+              onClick={() => setShowMoreColors(!showMoreColors)}
+              sx={{ fontSize: '12px', minWidth: '32px' }}
+            >
+              {showMoreColors ? '▲' : '▼'}
+            </IconButton>
+          </Tooltip>
+
+          {/* カスタムカラーボタン */}
+          <Tooltip title="カスタムカラー">
+            <IconButton 
+              size="small" 
+              onClick={() => setColorPickerOpen(true)}
+              sx={{ 
+                fontSize: '11px',
+                border: '1px solid #ddd',
+                minWidth: '32px'
+              }}
+            >
+              🎨
             </IconButton>
           </Tooltip>
 
@@ -899,6 +1187,110 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           </Tooltip>
         </div>
       </Popover>
+
+      {/* カスタムカラーピッカーダイアログ */}
+      <Dialog
+        open={colorPickerOpen}
+        onClose={() => setColorPickerOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>カスタムカラーを選択</DialogTitle>
+        <DialogContent>
+          <div style={{ padding: '20px 0' }}>
+            {/* カラーピッカー */}
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <input
+                type="color"
+                value={customColor}
+                onChange={(e) => setCustomColor(e.target.value)}
+                style={{
+                  width: '200px',
+                  height: '100px',
+                  border: '2px solid #ddd',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              />
+              <div style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
+                選択中の色: <strong style={{ color: customColor }}>{customColor.toUpperCase()}</strong>
+              </div>
+            </div>
+
+            {/* カラー履歴 */}
+            {colorHistory.length > 0 && (
+              <div style={{ marginTop: '24px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '12px' 
+                }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#555' }}>
+                    📋 最近使った色
+                  </div>
+                  <Button 
+                    size="small" 
+                    onClick={clearColorHistory}
+                    sx={{ fontSize: '11px', textTransform: 'none' }}
+                  >
+                    クリア
+                  </Button>
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '8px', 
+                  flexWrap: 'wrap',
+                  padding: '12px',
+                  background: '#f5f5f5',
+                  borderRadius: '8px'
+                }}>
+                  {colorHistory.map((color, index) => (
+                    <Tooltip key={index} title={color.toUpperCase()}>
+                      <div
+                        onClick={() => setCustomColor(color)}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          backgroundColor: color,
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          border: customColor.toLowerCase() === color.toLowerCase() 
+                            ? '3px solid #1976d2' 
+                            : '2px solid #ddd',
+                          transition: 'transform 0.2s, border 0.2s',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      />
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setColorPickerOpen(false)}>
+            キャンセル
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              addToColorHistory(customColor); // 履歴に追加
+              applyFormatFromToolbar(`color=${customColor}`);
+              setColorPickerOpen(false);
+            }}
+          >
+            適用
+          </Button>
+        </DialogActions>
+      </Dialog>
     </section>
   );
 };

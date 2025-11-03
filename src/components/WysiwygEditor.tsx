@@ -46,21 +46,79 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     
     let html = text;
     
-    // HTMLエスケープ（タグ以外）
+    // プレースホルダーマップ（カスタムタグ内のHTMLエスケープ文字を保護）
+    const placeholders: { [key: string]: string } = {};
+    let placeholderCount = 0;
+    
+    // 1. カスタムタグ内の内容を一時的にプレースホルダーに置き換え
+    // カスタムカラータグ [color=#XXXXXX]...[/color]
+    html = html.replace(/(\[color=#[0-9A-Fa-f]{6}\])(.*?)(\[\/color\])/g, (match, openTag, content, closeTag) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return openTag + placeholder + closeTag;
+    });
+    
+    // プリセットカラータグ
+    html = html.replace(/(\[(?:red|blue|green|orange|purple|pink|yellow|brown|gray|black|cyan|lime|xsmall|small|large|xlarge)\])(.*?)(\[\/(?:red|blue|green|orange|purple|pink|yellow|brown|gray|black|cyan|lime|xsmall|small|large|xlarge)\])/g, (match, openTag, content, closeTag) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return openTag + placeholder + closeTag;
+    });
+    
+    // マークダウン風タグも同様に
+    html = html.replace(/(\*\*)(.*?)(\*\*)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    html = html.replace(/(\*)(.*?)(\*)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    html = html.replace(/(`)(.*?)(`)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    html = html.replace(/(~~)(.*?)(~~)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    // 2. HTMLエスケープ（タグ外の<>を保護）
     html = html
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
     
-    // カスタムタグをHTMLに変換
+    // 3. カスタムタグをHTMLに変換
     html = html
-      // 色タグ
+      // カスタムカラータグ [color=#XXXXXX]
+      .replace(/\[color=(#[0-9A-Fa-f]{6})\](.*?)\[\/color\]/g, '<span style="color: $1; font-weight: 600;">$2</span>')
+      // プリセット色タグ (12色)
       .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c; font-weight: 600;">$1</span>')
       .replace(/\[blue\](.*?)\[\/blue\]/g, '<span style="color: #3498db; font-weight: 600;">$1</span>')
       .replace(/\[green\](.*?)\[\/green\]/g, '<span style="color: #27ae60; font-weight: 600;">$1</span>')
       .replace(/\[orange\](.*?)\[\/orange\]/g, '<span style="color: #f39c12; font-weight: 600;">$1</span>')
       .replace(/\[purple\](.*?)\[\/purple\]/g, '<span style="color: #9b59b6; font-weight: 600;">$1</span>')
       .replace(/\[pink\](.*?)\[\/pink\]/g, '<span style="color: #e91e63; font-weight: 600;">$1</span>')
+      .replace(/\[yellow\](.*?)\[\/yellow\]/g, '<span style="color: #f1c40f; font-weight: 600;">$1</span>')
+      .replace(/\[brown\](.*?)\[\/brown\]/g, '<span style="color: #8b4513; font-weight: 600;">$1</span>')
+      .replace(/\[gray\](.*?)\[\/gray\]/g, '<span style="color: #7f8c8d; font-weight: 600;">$1</span>')
+      .replace(/\[black\](.*?)\[\/black\]/g, '<span style="color: #2c3e50; font-weight: 600;">$1</span>')
+      .replace(/\[cyan\](.*?)\[\/cyan\]/g, '<span style="color: #00bcd4; font-weight: 600;">$1</span>')
+      .replace(/\[lime\](.*?)\[\/lime\]/g, '<span style="color: #8bc34a; font-weight: 600;">$1</span>')
       // サイズタグ
       .replace(/\[xsmall\](.*?)\[\/xsmall\]/g, '<span style="font-size: 0.7em;">$1</span>')
       .replace(/\[small\](.*?)\[\/small\]/g, '<span style="font-size: 0.85em;">$1</span>')
@@ -73,6 +131,17 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       .replace(/~~(.*?)~~/g, '<del>$1</del>')
       // 改行
       .replace(/\n/g, '<br>');
+    
+    // 4. プレースホルダーを元のコンテンツに戻す（HTMLエスケープして）
+    Object.keys(placeholders).forEach(placeholder => {
+      const content = placeholders[placeholder];
+      // HTMLエンティティに変換してから戻す
+      const escapedContent = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      html = html.replace(placeholder, escapedContent);
+    });
     
     return html;
   };
@@ -87,13 +156,21 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     
     // HTMLタグをカスタムタグに変換
     text = text
-      // 色タグ
+      // カスタムカラータグ（任意のHEXカラー）
+      .replace(/<span style="color: (#[0-9A-Fa-f]{6}); font-weight: 600;">(.*?)<\/span>/g, '[color=$1]$2[/color]')
+      // プリセット色タグ (12色)
       .replace(/<span style="color: #e74c3c; font-weight: 600;">(.*?)<\/span>/g, '[red]$1[/red]')
       .replace(/<span style="color: #3498db; font-weight: 600;">(.*?)<\/span>/g, '[blue]$1[/blue]')
       .replace(/<span style="color: #27ae60; font-weight: 600;">(.*?)<\/span>/g, '[green]$1[/green]')
       .replace(/<span style="color: #f39c12; font-weight: 600;">(.*?)<\/span>/g, '[orange]$1[/orange]')
       .replace(/<span style="color: #9b59b6; font-weight: 600;">(.*?)<\/span>/g, '[purple]$1[/purple]')
       .replace(/<span style="color: #e91e63; font-weight: 600;">(.*?)<\/span>/g, '[pink]$1[/pink]')
+      .replace(/<span style="color: #f1c40f; font-weight: 600;">(.*?)<\/span>/g, '[yellow]$1[/yellow]')
+      .replace(/<span style="color: #8b4513; font-weight: 600;">(.*?)<\/span>/g, '[brown]$1[/brown]')
+      .replace(/<span style="color: #7f8c8d; font-weight: 600;">(.*?)<\/span>/g, '[gray]$1[/gray]')
+      .replace(/<span style="color: #2c3e50; font-weight: 600;">(.*?)<\/span>/g, '[black]$1[/black]')
+      .replace(/<span style="color: #00bcd4; font-weight: 600;">(.*?)<\/span>/g, '[cyan]$1[/cyan]')
+      .replace(/<span style="color: #8bc34a; font-weight: 600;">(.*?)<\/span>/g, '[lime]$1[/lime]')
       // サイズタグ
       .replace(/<span style="font-size: 0\.7em;">(.*?)<\/span>/g, '[xsmall]$1[/xsmall]')
       .replace(/<span style="font-size: 0\.85em;">(.*?)<\/span>/g, '[small]$1[/small]')
