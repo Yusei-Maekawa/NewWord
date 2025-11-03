@@ -55,7 +55,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { Term } from '../types';
 import WysiwygEditor from './WysiwygEditor';
-
+import sanitizeHtml from 'sanitize-html';
 interface Category {
   id: number;
   category_key: string;
@@ -505,7 +505,7 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
       .replace(/&amp;/g, '&');
     
     // 残りのHTMLタグを除去
-    html = html.replace(/<[^>]+>/g, '');
+    html = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} });
     
     return html;
   };
