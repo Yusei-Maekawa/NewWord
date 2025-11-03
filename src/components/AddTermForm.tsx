@@ -43,6 +43,10 @@ import Button from '@mui/material/Button';
 import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { Term } from '../types';
 import WysiwygEditor from './WysiwygEditor';
 
@@ -146,6 +150,13 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     selectionStart: 0,
     selectionEnd: 0
   });
+
+  /**
+   * カラーピッカーダイアログの状態
+   */
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [customColor, setCustomColor] = useState('#e74c3c');
+  const [showMoreColors, setShowMoreColors] = useState(false);
 
   // WYSIWYGエディタの参照
   const meaningTextareaRef = useRef<HTMLDivElement>(null);
@@ -505,19 +516,20 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     const currentValue = formData[field] || '';
     
     // 色タグとサイズタグのカテゴリを定義
-    const colorFormats = ['red', 'blue', 'green', 'orange', 'purple', 'pink'];
+    const colorFormats = ['red', 'blue', 'green', 'orange', 'purple', 'pink', 'yellow', 'brown', 'gray', 'black', 'cyan', 'lime'];
     const sizeFormats = ['xsmall', 'small', 'normal', 'large', 'xlarge'];
     const styleFormats = ['bold', 'italic', 'code', 'strike'];
     
     // 現在のフォーマットがどのカテゴリに属するか判定
-    const isColorFormat = colorFormats.includes(format);
+    const isColorFormat = colorFormats.includes(format) || format.startsWith('color=');
     const isSizeFormat = sizeFormats.includes(format);
     
     // 既存のタグを除去する必要があるかチェック
     let cleanedText = selectedText;
     
-    // 色を変更する場合、既存の色タグを除去
+    // 色を変更する場合、既存の色タグを除去（プリセット色とカスタムカラー両方）
     if (isColorFormat) {
+      // プリセット色の除去
       colorFormats.forEach(color => {
         const pattern = `[${color}]`;
         const endPattern = `[/${color}]`;
@@ -525,6 +537,13 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
         }
       });
+      
+      // カスタムカラーの除去 [color=#XXXXXX]...[/color]
+      const customColorPattern = /^\[color=#[0-9A-Fa-f]{6}\](.*)\[\/color\]$/;
+      const match = cleanedText.match(customColorPattern);
+      if (match) {
+        cleanedText = match[1];
+      }
     }
     
     // サイズを変更する場合、既存のサイズタグを除去
@@ -583,6 +602,30 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
         formatPattern = `[pink]${cleanedText}[/pink]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
+      case 'yellow':
+        formatPattern = `[yellow]${cleanedText}[/yellow]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'brown':
+        formatPattern = `[brown]${cleanedText}[/brown]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'gray':
+        formatPattern = `[gray]${cleanedText}[/gray]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'black':
+        formatPattern = `[black]${cleanedText}[/black]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'cyan':
+        formatPattern = `[cyan]${cleanedText}[/cyan]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
+      case 'lime':
+        formatPattern = `[lime]${cleanedText}[/lime]`;
+        isFormatted = currentValue.includes(formatPattern);
+        break;
       case 'xsmall':
         formatPattern = `[xsmall]${cleanedText}[/xsmall]`;
         isFormatted = currentValue.includes(formatPattern);
@@ -604,7 +647,13 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
         isFormatted = currentValue.includes(formatPattern);
         break;
       default:
-        formatPattern = cleanedText;
+        // カスタムカラー color=#XXXXXX
+        if (format.startsWith('color=')) {
+          formatPattern = `[${format}]${cleanedText}[/color]`;
+          isFormatted = false; // カスタムカラーは常に適用
+        } else {
+          formatPattern = cleanedText;
+        }
     }
 
     let newValue = '';
@@ -982,25 +1031,97 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
 
           <div style={{ width: '1px', background: '#ddd', margin: '0 4px' }} />
 
-          {/* 色ボタン */}
+          {/* 基本色ボタン (最初の4色は常に表示) */}
           <Tooltip title="赤色">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('red')} sx={{ color: '#e74c3c' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('red')} sx={{ color: '#e74c3c', minWidth: '32px' }}>
               A
             </IconButton>
           </Tooltip>
           <Tooltip title="青色">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('blue')} sx={{ color: '#3498db' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('blue')} sx={{ color: '#3498db', minWidth: '32px' }}>
               A
             </IconButton>
           </Tooltip>
           <Tooltip title="緑色">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('green')} sx={{ color: '#27ae60' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('green')} sx={{ color: '#27ae60', minWidth: '32px' }}>
               A
             </IconButton>
           </Tooltip>
           <Tooltip title="オレンジ">
-            <IconButton size="small" onClick={() => applyFormatFromToolbar('orange')} sx={{ color: '#f39c12' }}>
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('orange')} sx={{ color: '#f39c12', minWidth: '32px' }}>
               A
+            </IconButton>
+          </Tooltip>
+
+          {/* 追加色ボタン（展開式） */}
+          {showMoreColors && (
+            <>
+              <Tooltip title="紫色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('purple')} sx={{ color: '#9b59b6', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="ピンク">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('pink')} sx={{ color: '#e91e63', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="黄色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('yellow')} sx={{ color: '#f1c40f', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="茶色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('brown')} sx={{ color: '#8b4513', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="グレー">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('gray')} sx={{ color: '#7f8c8d', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="黒色">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('black')} sx={{ color: '#2c3e50', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="シアン">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('cyan')} sx={{ color: '#00bcd4', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="ライム">
+                <IconButton size="small" onClick={() => applyFormatFromToolbar('lime')} sx={{ color: '#8bc34a', minWidth: '32px' }}>
+                  A
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+
+          {/* もっと見る/閉じるボタン */}
+          <Tooltip title={showMoreColors ? '色を閉じる' : 'もっと色を見る'}>
+            <IconButton 
+              size="small" 
+              onClick={() => setShowMoreColors(!showMoreColors)}
+              sx={{ fontSize: '12px', minWidth: '32px' }}
+            >
+              {showMoreColors ? '▲' : '▼'}
+            </IconButton>
+          </Tooltip>
+
+          {/* カスタムカラーボタン */}
+          <Tooltip title="カスタムカラー">
+            <IconButton 
+              size="small" 
+              onClick={() => setColorPickerOpen(true)}
+              sx={{ 
+                fontSize: '11px',
+                border: '1px solid #ddd',
+                minWidth: '32px'
+              }}
+            >
+              🎨
             </IconButton>
           </Tooltip>
 
@@ -1024,6 +1145,49 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           </Tooltip>
         </div>
       </Popover>
+
+      {/* カスタムカラーピッカーダイアログ */}
+      <Dialog
+        open={colorPickerOpen}
+        onClose={() => setColorPickerOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>カスタムカラーを選択</DialogTitle>
+        <DialogContent>
+          <div style={{ padding: '20px 0', textAlign: 'center' }}>
+            <input
+              type="color"
+              value={customColor}
+              onChange={(e) => setCustomColor(e.target.value)}
+              style={{
+                width: '200px',
+                height: '100px',
+                border: '2px solid #ddd',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            />
+            <div style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
+              選択中の色: <strong style={{ color: customColor }}>{customColor.toUpperCase()}</strong>
+            </div>
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setColorPickerOpen(false)}>
+            キャンセル
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              applyFormatFromToolbar(`color=${customColor}`);
+              setColorPickerOpen(false);
+            }}
+          >
+            適用
+          </Button>
+        </DialogActions>
+      </Dialog>
     </section>
   );
 };
