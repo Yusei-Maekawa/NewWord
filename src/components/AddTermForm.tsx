@@ -38,8 +38,11 @@
  * @property {string} example - 使用例・例文
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Button from '@mui/material/Button';
+import Popover from '@mui/material/Popover';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import { Term } from '../types';
 
 interface Category {
@@ -113,6 +116,21 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
    * @type {[string[], React.Dispatch<React.SetStateAction<string[]>>]}
    */
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+
+  /**
+   * フローティングツールバーの状態
+   */
+  const [floatingToolbar, setFloatingToolbar] = useState<{
+    anchorEl: HTMLElement | null;
+    field: 'meaning' | 'example' | null;
+  }>({
+    anchorEl: null,
+    field: null
+  });
+
+  // テキストエリアの参照
+  const meaningTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const exampleTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   /**
    * activeCategoryが変更されたらカテゴリも自動で変更
@@ -331,6 +349,44 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     return formattedText;
   };
 
+  // テキスト選択時にフローティングツールバーを表示
+  const handleTextSelection = (field: 'meaning' | 'example') => {
+    const textarea = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    // テキストが選択されている場合のみツールバーを表示
+    if (start !== end) {
+      setFloatingToolbar({
+        anchorEl: textarea,
+        field: field
+      });
+    } else {
+      // 選択が解除されたらツールバーを非表示
+      setFloatingToolbar({
+        anchorEl: null,
+        field: null
+      });
+    }
+  };
+
+  // フローティングツールバーを閉じる
+  const handleCloseFloatingToolbar = () => {
+    setFloatingToolbar({
+      anchorEl: null,
+      field: null
+    });
+  };
+
+  // フローティングツールバーから書式を適用
+  const applyFormatFromToolbar = (format: string) => {
+    if (!floatingToolbar.field) return;
+    applyFormat(floatingToolbar.field, format);
+    handleCloseFloatingToolbar();
+  };
+
   // テキストエリアに記法を適用する関数
   const applyFormat = (field: 'meaning' | 'example', format: string) => {
     const textarea = document.getElementById(field) as HTMLTextAreaElement;
@@ -524,11 +580,15 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           </div>
           <textarea
             id="meaning"
+            ref={meaningTextareaRef}
             value={formData.meaning}
             onChange={(e) => handleInputChange('meaning', e.target.value)}
+            onSelect={() => handleTextSelection('meaning')}
+            onMouseUp={() => handleTextSelection('meaning')}
             placeholder="**重要**な概念です。`コード`や*斜体*も使えます。&#10;改行も反映されます。"
             rows={6}
             required
+            spellCheck={false}
           />
           <div className="preview-section">
             <h4>プレビュー:</h4>
@@ -590,10 +650,14 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           </div>
           <textarea
             id="example"
+            ref={exampleTextareaRef}
             value={formData.example}
             onChange={(e) => handleInputChange('example', e.target.value)}
+            onSelect={() => handleTextSelection('example')}
+            onMouseUp={() => handleTextSelection('example')}
             placeholder="例文やコードサンプルなど。&#10;**太字**や`コード`も使えます。画像も追加できます。"
             rows={4}
+            spellCheck={false}
           />
           
           {/* アップロードした画像のプレビュー */}
@@ -640,6 +704,104 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           追加
         </Button>
       </form>
+
+      {/* フローティングツールバー */}
+      <Popover
+        open={Boolean(floatingToolbar.anchorEl)}
+        anchorEl={floatingToolbar.anchorEl}
+        onClose={handleCloseFloatingToolbar}
+        disableRestoreFocus
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        slotProps={{
+          paper: {
+            onMouseDown: (e) => {
+              // Popover内のクリックでフォーカスが外れないようにする
+              e.preventDefault();
+            }
+          }
+        }}
+        sx={{
+          '& .MuiPopover-paper': {
+            padding: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '4px',
+            flexWrap: 'wrap',
+            maxWidth: '400px'
+          }
+        }}
+      >
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {/* 書式ボタン */}
+          <Tooltip title="太字">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('bold')} sx={{ fontSize: '14px' }}>
+              <strong>B</strong>
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="斜体">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('italic')} sx={{ fontSize: '14px' }}>
+              <em>I</em>
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="取り消し線">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('strike')} sx={{ fontSize: '14px' }}>
+              <del>S</del>
+            </IconButton>
+          </Tooltip>
+
+          <div style={{ width: '1px', background: '#ddd', margin: '0 4px' }} />
+
+          {/* 色ボタン */}
+          <Tooltip title="赤色">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('red')} sx={{ color: '#e74c3c' }}>
+              A
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="青色">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('blue')} sx={{ color: '#3498db' }}>
+              A
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="緑色">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('green')} sx={{ color: '#27ae60' }}>
+              A
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="オレンジ">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('orange')} sx={{ color: '#f39c12' }}>
+              A
+            </IconButton>
+          </Tooltip>
+
+          <div style={{ width: '1px', background: '#ddd', margin: '0 4px' }} />
+
+          {/* サイズボタン */}
+          <Tooltip title="小">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('small')} sx={{ fontSize: '11px' }}>
+              小
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="標準">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('normal')} sx={{ fontSize: '14px' }}>
+              標
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="大">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('large')} sx={{ fontSize: '17px' }}>
+              大
+            </IconButton>
+          </Tooltip>
+        </div>
+      </Popover>
     </section>
   );
 };
