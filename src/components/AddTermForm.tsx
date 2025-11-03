@@ -157,10 +157,48 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [customColor, setCustomColor] = useState('#e74c3c');
   const [showMoreColors, setShowMoreColors] = useState(false);
+  const [colorHistory, setColorHistory] = useState<string[]>([]);
 
   // WYSIWYGエディタの参照
   const meaningTextareaRef = useRef<HTMLDivElement>(null);
   const exampleTextareaRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * カラー履歴をLocalStorageから読み込み
+   */
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('customColorHistory');
+    if (savedHistory) {
+      try {
+        setColorHistory(JSON.parse(savedHistory));
+      } catch (e) {
+        console.error('カラー履歴の読み込みに失敗しました:', e);
+      }
+    }
+  }, []);
+
+  /**
+   * カラー履歴に色を追加
+   */
+  const addToColorHistory = (color: string) => {
+    setColorHistory(prev => {
+      // 既に存在する場合は先頭に移動
+      const filtered = prev.filter(c => c.toLowerCase() !== color.toLowerCase());
+      const newHistory = [color, ...filtered].slice(0, 10); // 最大10色
+      
+      // LocalStorageに保存
+      localStorage.setItem('customColorHistory', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  };
+
+  /**
+   * カラー履歴をクリア
+   */
+  const clearColorHistory = () => {
+    setColorHistory([]);
+    localStorage.removeItem('customColorHistory');
+  };
 
   /**
    * activeCategoryが変更されたらカテゴリも自動で変更
@@ -1150,27 +1188,87 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       <Dialog
         open={colorPickerOpen}
         onClose={() => setColorPickerOpen(false)}
-        maxWidth="xs"
+        maxWidth="sm"
         fullWidth
       >
         <DialogTitle>カスタムカラーを選択</DialogTitle>
         <DialogContent>
-          <div style={{ padding: '20px 0', textAlign: 'center' }}>
-            <input
-              type="color"
-              value={customColor}
-              onChange={(e) => setCustomColor(e.target.value)}
-              style={{
-                width: '200px',
-                height: '100px',
-                border: '2px solid #ddd',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            />
-            <div style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
-              選択中の色: <strong style={{ color: customColor }}>{customColor.toUpperCase()}</strong>
+          <div style={{ padding: '20px 0' }}>
+            {/* カラーピッカー */}
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <input
+                type="color"
+                value={customColor}
+                onChange={(e) => setCustomColor(e.target.value)}
+                style={{
+                  width: '200px',
+                  height: '100px',
+                  border: '2px solid #ddd',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              />
+              <div style={{ marginTop: '16px', fontSize: '14px', color: '#666' }}>
+                選択中の色: <strong style={{ color: customColor }}>{customColor.toUpperCase()}</strong>
+              </div>
             </div>
+
+            {/* カラー履歴 */}
+            {colorHistory.length > 0 && (
+              <div style={{ marginTop: '24px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginBottom: '12px' 
+                }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#555' }}>
+                    📋 最近使った色
+                  </div>
+                  <Button 
+                    size="small" 
+                    onClick={clearColorHistory}
+                    sx={{ fontSize: '11px', textTransform: 'none' }}
+                  >
+                    クリア
+                  </Button>
+                </div>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '8px', 
+                  flexWrap: 'wrap',
+                  padding: '12px',
+                  background: '#f5f5f5',
+                  borderRadius: '8px'
+                }}>
+                  {colorHistory.map((color, index) => (
+                    <Tooltip key={index} title={color.toUpperCase()}>
+                      <div
+                        onClick={() => setCustomColor(color)}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          backgroundColor: color,
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          border: customColor.toLowerCase() === color.toLowerCase() 
+                            ? '3px solid #1976d2' 
+                            : '2px solid #ddd',
+                          transition: 'transform 0.2s, border 0.2s',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                      />
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
         <DialogActions>
@@ -1180,6 +1278,7 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
           <Button
             variant="contained"
             onClick={() => {
+              addToColorHistory(customColor); // 履歴に追加
               applyFormatFromToolbar(`color=${customColor}`);
               setColorPickerOpen(false);
             }}
