@@ -181,15 +181,22 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       .replace(/<em>(.*?)<\/em>/g, '*$1*')
       .replace(/<code>(.*?)<\/code>/g, '`$1`')
       .replace(/<del>(.*?)<\/del>/g, '~~$1~~')
-      // 改行
+      // 改行とdivタグの処理
       .replace(/<br\s*\/?>/g, '\n')
-      .replace(/<div>(.*?)<\/div>/g, '\n$1');
+      .replace(/<div><br\s*\/?><\/div>/g, '\n') // 空のdiv
+      .replace(/<div>(.*?)<\/div>/g, '\n$1') // 内容のあるdiv
+      .replace(/<\/div>/g, '') // 閉じタグの残り
+      .replace(/<div>/g, '\n'); // 開きタグの残り
     
     // HTMLエンティティをデコード
     text = text
+      .replace(/&nbsp;/g, ' ') // ノーブレークスペースを通常のスペースに
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&');
+    
+    // 先頭の余分な改行を削除
+    text = text.replace(/^\n+/, '');
     
     return text;
   };
@@ -226,6 +233,19 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     document.execCommand('insertText', false, text);
   };
 
+  /**
+   * キーボードイベントハンドラ
+   * デフォルトのUndo/Redo機能を無効化（親コンポーネントのカスタムUndo/Redoを使用）
+   */
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Ctrl+Z, Ctrl+Y, Ctrl+Shift+Z のデフォルト動作を無効化
+    if (e.ctrlKey && (e.key === 'z' || e.key === 'y')) {
+      // 親コンポーネントのハンドラーに処理を任せる
+      // preventDefault は呼ばない（親で処理する）
+      return;
+    }
+  };
+
   const minHeight = rows * 1.6 * 14; // rows * line-height * font-size
 
   return (
@@ -235,6 +255,7 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       contentEditable
       onInput={handleInput}
       onPaste={handlePaste}
+      onKeyDown={handleKeyDown}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
       onMouseUp={onSelect}
@@ -243,7 +264,9 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       style={{
         minHeight: `${minHeight}px`,
         padding: '10px',
-        border: '2px solid #ddd',
+        borderWidth: '2px',
+        borderStyle: 'solid',
+        borderColor: isFocused ? '#3498db' : '#ddd',
         borderRadius: '8px',
         fontSize: '14px',
         lineHeight: '1.6',
@@ -255,7 +278,6 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
         maxHeight: '400px',
         transition: 'border-color 0.2s ease',
         ...(isFocused && {
-          borderColor: '#3498db',
           boxShadow: '0 0 0 3px rgba(52, 152, 219, 0.1)'
         })
       }}

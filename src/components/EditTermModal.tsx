@@ -54,7 +54,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { Term } from '../types';
-import WysiwygEditor from './WysiwygEditor';
+import NotionEditor from './NotionEditor';
 
 interface Category {
   id: number;
@@ -173,6 +173,16 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
   const [showMoreColors, setShowMoreColors] = useState(false);
   const [colorHistory, setColorHistory] = useState<string[]>([]);
 
+  /**
+   * Undo/Redo機能の状態
+   */
+  const [meaningHistory, setMeaningHistory] = useState<string[]>([]);
+  const [meaningHistoryIndex, setMeaningHistoryIndex] = useState(-1);
+  const [exampleHistory, setExampleHistory] = useState<string[]>([]);
+  const [exampleHistoryIndex, setExampleHistoryIndex] = useState(-1);
+  const historyMaxSize = 50; // 最大履歴数
+  const isUndoingRef = useRef(false); // Undo/Redo中かどうかのフラグ
+
   // WYSIWYGエディタの参照
   const meaningTextareaRef = useRef<HTMLDivElement>(null);
   const exampleTextareaRef = useRef<HTMLDivElement>(null);
@@ -213,6 +223,118 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
     setColorHistory([]);
     localStorage.removeItem('customColorHistory');
   };
+
+  /**
+   * 履歴に値を追加（Undo/Redo用）
+   */
+  const addToHistory = (field: 'meaning' | 'example', value: string) => {
+    if (isUndoingRef.current) return; // Undo/Redo中は履歴追加しない
+
+    if (field === 'meaning') {
+      setMeaningHistory(prev => {
+        const newHistory = [...prev.slice(0, meaningHistoryIndex + 1), value];
+        return newHistory.slice(-historyMaxSize); // 最大サイズを超えたら古いものを削除
+      });
+      setMeaningHistoryIndex(prev => Math.min(prev + 1, historyMaxSize - 1));
+    } else {
+      setExampleHistory(prev => {
+        const newHistory = [...prev.slice(0, exampleHistoryIndex + 1), value];
+        return newHistory.slice(-historyMaxSize);
+      });
+      setExampleHistoryIndex(prev => Math.min(prev + 1, historyMaxSize - 1));
+    }
+  };
+
+  /**
+   * Undo（元に戻す）
+   */
+  const handleUndo = (field: 'meaning' | 'example') => {
+    const history = field === 'meaning' ? meaningHistory : exampleHistory;
+    const currentIndex = field === 'meaning' ? meaningHistoryIndex : exampleHistoryIndex;
+
+    if (currentIndex > 0) {
+      isUndoingRef.current = true;
+      const newIndex = currentIndex - 1;
+      const previousValue = history[newIndex];
+      
+      handleInputChange(field, previousValue);
+      
+      if (field === 'meaning') {
+        setMeaningHistoryIndex(newIndex);
+      } else {
+        setExampleHistoryIndex(newIndex);
+      }
+      
+      setTimeout(() => {
+        isUndoingRef.current = false;
+      }, 0);
+    }
+  };
+
+  /**
+   * Redo（やり直し）
+   */
+  const handleRedo = (field: 'meaning' | 'example') => {
+    const history = field === 'meaning' ? meaningHistory : exampleHistory;
+    const currentIndex = field === 'meaning' ? meaningHistoryIndex : exampleHistoryIndex;
+
+    if (currentIndex < history.length - 1) {
+      isUndoingRef.current = true;
+      const newIndex = currentIndex + 1;
+      const nextValue = history[newIndex];
+      
+      handleInputChange(field, nextValue);
+      
+      if (field === 'meaning') {
+        setMeaningHistoryIndex(newIndex);
+      } else {
+        setExampleHistoryIndex(newIndex);
+      }
+      
+      setTimeout(() => {
+        isUndoingRef.current = false;
+      }, 0);
+    }
+  };
+
+  /**
+   * グローバルキーボードショートカット（Undo/Redo）
+   * キャプチャフェーズで処理して、選択中のテキストに対しても動作させる
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // フォーカスされているエディタを判定
+      const activeElement = document.activeElement;
+      let targetField: 'meaning' | 'example' | null = null;
+
+      if (activeElement?.id === 'editMeaning' || meaningTextareaRef.current?.contains(activeElement as Node)) {
+        targetField = 'meaning';
+      } else if (activeElement?.id === 'editExample' || exampleTextareaRef.current?.contains(activeElement as Node)) {
+        targetField = 'example';
+      }
+
+      if (!targetField) return; // エディタ外なら何もしない
+
+      // Ctrl+Z: Undo
+      if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleUndo(targetField);
+        return;
+      }
+      // Ctrl+Y または Ctrl+Shift+Z: Redo
+      if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'Z')) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleRedo(targetField);
+        return;
+      }
+    };
+
+    // キャプチャフェーズでイベントを捕捉（選択中のテキストに対しても動作）
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [meaningHistory, meaningHistoryIndex, exampleHistory, exampleHistoryIndex]);
 
   /**
    * termプロパティが変更されたらフォームデータを更新
@@ -280,6 +402,11 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // 履歴に追加（meaningとexampleのみ）
+    if (field === 'meaning' || field === 'example') {
+      addToHistory(field, value);
+    }
   };
 
   // 画像ファイルを処理する関数
@@ -850,47 +977,12 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
                 </div>
               )}
             </div>
-            <div className="rich-text-toolbar">
-              <div className="toolbar-section">
-                <span className="toolbar-label">書式:</span>
-                <button type="button" className="format-btn" onClick={() => applyFormat('meaning', 'bold')} title="太字">
-                  <strong>B</strong>
-                </button>
-                <button type="button" className="format-btn" onClick={() => applyFormat('meaning', 'italic')} title="斜体">
-                  <em>I</em>
-                </button>
-                <button type="button" className="format-btn" onClick={() => applyFormat('meaning', 'code')} title="コード">
-                  <code>C</code>
-                </button>
-                <button type="button" className="format-btn" onClick={() => applyFormat('meaning', 'strike')} title="取り消し線">
-                  <del>S</del>
-                </button>
-              </div>
-              <div className="toolbar-section">
-                <span className="toolbar-label">色:</span>
-                <button type="button" className="color-btn red" onClick={() => applyFormat('meaning', 'red')} title="赤色">赤</button>
-                <button type="button" className="color-btn blue" onClick={() => applyFormat('meaning', 'blue')} title="青色">青</button>
-                <button type="button" className="color-btn green" onClick={() => applyFormat('meaning', 'green')} title="緑色">緑</button>
-                <button type="button" className="color-btn orange" onClick={() => applyFormat('meaning', 'orange')} title="オレンジ">橙</button>
-                <button type="button" className="color-btn purple" onClick={() => applyFormat('meaning', 'purple')} title="紫色">紫</button>
-                <button type="button" className="color-btn pink" onClick={() => applyFormat('meaning', 'pink')} title="ピンク">桃</button>
-              </div>
-              <div className="toolbar-section">
-                <span className="toolbar-label">サイズ:</span>
-                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xsmall')} title="極小">極小</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'small')} title="小">小</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'normal')} title="標準">標準</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'large')} title="大">大</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xlarge')} title="極大">極大</button>
-              </div>
-            </div>
             <div className="rich-text-editor-wrapper">
-              <WysiwygEditor
+              <NotionEditor
                 id="editMeaning"
                 value={formData.meaning}
                 onChange={(value) => handleInputChange('meaning', value)}
-                onSelect={() => handleTextSelection('meaning')}
-                placeholder="テキストを入力してください。書式ツールバーから装飾を適用できます。"
+                placeholder='テキストを入力... "/" でコマンド'
                 rows={6}
                 editorRef={meaningTextareaRef}
               />
@@ -918,58 +1010,30 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
           
           <div className="form-group">
             <label htmlFor="editExample">例文・使用例・スクショ等:</label>
-            <div className="rich-text-toolbar">
-              <div className="toolbar-section">
-                <span className="toolbar-label">書式:</span>
-                <button type="button" className="format-btn" onClick={() => applyFormat('example', 'bold')} title="太字">
-                  <strong>B</strong>
-                </button>
-                <button type="button" className="format-btn" onClick={() => applyFormat('example', 'italic')} title="斜体">
-                  <em>I</em>
-                </button>
-                <button type="button" className="format-btn" onClick={() => applyFormat('example', 'code')} title="コード">
-                  <code>C</code>
-                </button>
-                <button type="button" className="format-btn" onClick={() => applyFormat('example', 'strike')} title="取り消し線">
-                  <del>S</del>
-                </button>
-              </div>
-              <div className="toolbar-section">
-                <span className="toolbar-label">色:</span>
-                <button type="button" className="color-btn red" onClick={() => applyFormat('example', 'red')} title="赤色">赤</button>
-                <button type="button" className="color-btn blue" onClick={() => applyFormat('example', 'blue')} title="青色">青</button>
-                <button type="button" className="color-btn green" onClick={() => applyFormat('example', 'green')} title="緑色">緑</button>
-                <button type="button" className="color-btn orange" onClick={() => applyFormat('example', 'orange')} title="オレンジ">橙</button>
-                <button type="button" className="color-btn purple" onClick={() => applyFormat('example', 'purple')} title="紫色">紫</button>
-                <button type="button" className="color-btn pink" onClick={() => applyFormat('example', 'pink')} title="ピンク">桃</button>
-              </div>
-              <div className="toolbar-section">
-                <span className="toolbar-label">サイズ:</span>
-                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'xsmall')} title="極小">極小</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'small')} title="小">小</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'normal')} title="標準">標準</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'large')} title="大">大</button>
-                <button type="button" className="size-btn" onClick={() => applyFormat('example', 'xlarge')} title="極大">極大</button>
-              </div>
-              <div className="toolbar-section">
-                <span className="toolbar-label">画像:</span>
-                <input
-                  type="file"
-                  id="editImageUpload"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  type="button"
-                  className="format-btn"
-                  onClick={() => document.getElementById('editImageUpload')?.click()}
-                  title="画像を追加"
-                >
-                  📷 画像追加
-                </button>
-              </div>
+            <div style={{ marginBottom: '10px' }}>
+              <input
+                type="file"
+                id="editImageUpload"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
+              <button
+                type="button"
+                onClick={() => document.getElementById('editImageUpload')?.click()}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid #e0e0e0',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+                title="画像を追加"
+              >
+                📷 画像を追加
+              </button>
             </div>
             {uploadedImages.length > 0 && (
               <div className="uploaded-images-preview">
@@ -992,12 +1056,11 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
               </div>
             )}
             <div className="rich-text-editor-wrapper">
-              <WysiwygEditor
+              <NotionEditor
                 id="editExample"
                 value={formData.example}
                 onChange={(value) => handleInputChange('example', value)}
-                onSelect={() => handleTextSelection('example')}
-                placeholder="例文やコードサンプルなど。画像も追加可能です。"
+                placeholder='例文やコードサンプルなど... "/" でコマンド'
                 rows={4}
                 editorRef={exampleTextareaRef}
               />
@@ -1294,31 +1357,34 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
                   background: '#f5f5f5',
                   borderRadius: '8px'
                 }}>
-                  {colorHistory.map((color, index) => (
-                    <Tooltip key={index} title={color.toUpperCase()}>
-                      <div
-                        onClick={() => setCustomColor(color)}
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          backgroundColor: color,
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          border: customColor.toLowerCase() === color.toLowerCase() 
-                            ? '3px solid #1976d2' 
-                            : '2px solid #ddd',
-                          transition: 'transform 0.2s, border 0.2s',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'scale(1.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                      />
-                    </Tooltip>
-                  ))}
+                  {colorHistory.map((color, index) => {
+                    const isSelected = customColor.toLowerCase() === color.toLowerCase();
+                    return (
+                      <Tooltip key={index} title={color.toUpperCase()}>
+                        <div
+                          onClick={() => setCustomColor(color)}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            backgroundColor: color,
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            borderWidth: isSelected ? '3px' : '2px',
+                            borderStyle: 'solid',
+                            borderColor: isSelected ? '#1976d2' : '#ddd',
+                            transition: 'transform 0.2s, border-width 0.2s, border-color 0.2s',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        />
+                      </Tooltip>
+                    );
+                  })}
                 </div>
               </div>
             )}
