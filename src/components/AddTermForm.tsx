@@ -253,18 +253,16 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       return match;
     });
     
-    // 既存のHTMLタグを完全に除去
-    formattedText = formattedText.replace(/<[^>]*>/g, '');
+    // ユーザーが入力した < > をHTMLエンティティに変換して保護
+    formattedText = formattedText
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     
     // 改行文字を一時的に保護
     formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
     
-    // HTMLエンティティや残ったHTML断片も除去
+    // 不要な絵文字や記号を除去
     formattedText = formattedText
-      .replace(/&lt;/g, '')
-      .replace(/&gt;/g, '')
-      .replace(/&quot;/g, '')
-      .replace(/&amp;/g, '')
       .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
       .replace(/📸/g, '') // カメラ絵文字を除去
       .replace(/🖼️/g, '') // 額縁絵文字を除去
