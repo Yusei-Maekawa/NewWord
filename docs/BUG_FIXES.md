@@ -17,7 +17,111 @@
 
 ---
 
-## 2025年11月2日（過去の修正分）
+## 2025年11月2日
+
+### 🟠 プレビューでHTMLタグが表示される問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX  
+**コミットID**: `0d82d95`
+
+#### 問題
+- 語句追加・編集画面のプレビューで、画像のHTMLタグ（`alt="画像1" class="uploaded-image" style="..."`）が生のテキストとして表示されてしまう
+- ユーザーに技術的な情報が見えてしまい、UXが悪い
+- ITに詳しくないユーザーには混乱を招く
+
+#### 原因
+1. `renderRichText`関数で画像をHTMLタグに変換
+2. その後のHTML除去処理で画像タグも部分的に除去されてしまう
+3. 結果として不完全なHTMLタグの文字列が残る
+
+```typescript
+// 問題のあったコード
+formattedText = formattedText.replace(/\[画像(\d+)\]/g, (match, imageNum) => {
+  return `<img src="${imageData}" alt="画像${imageNum}" class="uploaded-image" />`;
+});
+// この後のHTML除去処理で部分的に削除される
+formattedText = formattedText.replace(/<[^>]*>/g, '');
+```
+
+#### 修正内容
+**プレースホルダー方式の導入**：
+1. 画像HTMLタグを生成する前に、一時的なプレースホルダー（`___IMAGE_PLACEHOLDER_0___`など）に置き換え
+2. HTML除去処理を実行（プレースホルダーは保護される）
+3. すべての処理が完了した後、プレースホルダーを実際の画像HTMLに戻す
+
+```typescript
+// 修正後のコード
+const imageMarkers: { [key: string]: string } = {};
+let imageCount = 0;
+
+// Step 1: 画像をプレースホルダーに置き換え
+formattedText = formattedText.replace(/\[画像(\d+)\]/g, (match, imageNum) => {
+  const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+  imageMarkers[placeholder] = `<img src="${imageData}" alt="画像${imageNum}" />`;
+  imageCount++;
+  return placeholder;
+});
+
+// Step 2: HTML除去処理（プレースホルダーは保護される）
+formattedText = formattedText.replace(/<[^>]*>/g, '');
+
+// Step 3: 最後にプレースホルダーを実際のHTMLに戻す
+Object.keys(imageMarkers).forEach(placeholder => {
+  formattedText = formattedText.replace(placeholder, imageMarkers[placeholder]);
+});
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx` - `renderRichText`関数
+- `src/components/EditTermModal.tsx` - `renderRichText`関数
+- `src/components/TermsList.tsx` - `renderRichText`関数
+
+#### 学んだこと
+- HTMLの動的生成と除去処理の順序が重要
+- ユーザー向けテキスト処理では、技術的な情報を完全に隠す必要がある
+- プレースホルダーパターンは複雑な文字列処理で有効
+
+---
+
+### 🟡 EditTermModalでisModalパラメータが渡されていない
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: バグ修正  
+**関連コミット**: 同上（`0d82d95`）
+
+#### 問題
+- `EditTermModal`のプレビューで`renderRichText`関数を呼び出す際、`isModal`パラメータを渡していなかった
+- デフォルト値の`false`が使われ、画像処理が正しく動作しない可能性があった
+
+#### 原因
+- コピー＆ペーストで関数呼び出しを追加した際、パラメータの追加を忘れた
+
+```typescript
+// 問題のあったコード
+dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning) }}
+dangerouslySetInnerHTML={{ __html: renderRichText(formData.example) }}
+```
+
+#### 修正内容
+- `isModal: true`パラメータを追加
+
+```typescript
+// 修正後のコード
+dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning, true) }}
+dangerouslySetInnerHTML={{ __html: renderRichText(formData.example, true) }}
+```
+
+#### 影響範囲
+- `src/components/EditTermModal.tsx` - プレビュー表示部分（2箇所）
+
+#### 学んだこと
+- 関数のデフォルトパラメータに頼りすぎない
+- コードレビュー時は関数呼び出しの引数も確認する
+
+---
+
+## 2025年11月3日
 
 ### 🔴 HTMLタグ記号（`<>`）が消える問題
 
@@ -178,111 +282,7 @@ const [floatingToolbar, setFloatingToolbar] = useState<{
 - 選択範囲情報を状態として保存することで、フォーカスが移動しても書式適用可能
 - UXでは「今何をしているか」の視覚的フィードバックが重要
 
----
-
-### 🟠 プレビューでHTMLタグが表示される問題
-
-**バージョン**: v0.4.0-dev  
-**カテゴリ**: UI/UX  
-**コミットID**: `0d82d95`
-
-#### 問題
-- 語句追加・編集画面のプレビューで、画像のHTMLタグ（`alt="画像1" class="uploaded-image" style="..."`）が生のテキストとして表示されてしまう
-- ユーザーに技術的な情報が見えてしまい、UXが悪い
-- ITに詳しくないユーザーには混乱を招く
-
-#### 原因
-1. `renderRichText`関数で画像をHTMLタグに変換
-2. その後のHTML除去処理で画像タグも部分的に除去されてしまう
-3. 結果として不完全なHTMLタグの文字列が残る
-
-```typescript
-// 問題のあったコード
-formattedText = formattedText.replace(/\[画像(\d+)\]/g, (match, imageNum) => {
-  return `<img src="${imageData}" alt="画像${imageNum}" class="uploaded-image" />`;
-});
-// この後のHTML除去処理で部分的に削除される
-formattedText = formattedText.replace(/<[^>]*>/g, '');
-```
-
-#### 修正内容
-**プレースホルダー方式の導入**：
-1. 画像HTMLタグを生成する前に、一時的なプレースホルダー（`___IMAGE_PLACEHOLDER_0___`など）に置き換え
-2. HTML除去処理を実行（プレースホルダーは保護される）
-3. すべての処理が完了した後、プレースホルダーを実際の画像HTMLに戻す
-
-```typescript
-// 修正後のコード
-const imageMarkers: { [key: string]: string } = {};
-let imageCount = 0;
-
-// Step 1: 画像をプレースホルダーに置き換え
-formattedText = formattedText.replace(/\[画像(\d+)\]/g, (match, imageNum) => {
-  const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
-  imageMarkers[placeholder] = `<img src="${imageData}" alt="画像${imageNum}" />`;
-  imageCount++;
-  return placeholder;
-});
-
-// Step 2: HTML除去処理（プレースホルダーは保護される）
-formattedText = formattedText.replace(/<[^>]*>/g, '');
-
-// Step 3: 最後にプレースホルダーを実際のHTMLに戻す
-Object.keys(imageMarkers).forEach(placeholder => {
-  formattedText = formattedText.replace(placeholder, imageMarkers[placeholder]);
-});
-```
-
-#### 影響範囲
-- `src/components/AddTermForm.tsx` - `renderRichText`関数
-- `src/components/EditTermModal.tsx` - `renderRichText`関数
-- `src/components/TermsList.tsx` - `renderRichText`関数
-
-#### 学んだこと
-- HTMLの動的生成と除去処理の順序が重要
-- ユーザー向けテキスト処理では、技術的な情報を完全に隠す必要がある
-- プレースホルダーパターンは複雑な文字列処理で有効
-
----
-
-### 🟡 EditTermModalでisModalパラメータが渡されていない
-
-**バージョン**: v0.4.0-dev  
-**カテゴリ**: バグ修正  
-**関連コミット**: 同上（`0d82d95`）
-
-#### 問題
-- `EditTermModal`のプレビューで`renderRichText`関数を呼び出す際、`isModal`パラメータを渡していなかった
-- デフォルト値の`false`が使われ、画像処理が正しく動作しない可能性があった
-
-#### 原因
-- コピー＆ペーストで関数呼び出しを追加した際、パラメータの追加を忘れた
-
-```typescript
-// 問題のあったコード
-dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning) }}
-dangerouslySetInnerHTML={{ __html: renderRichText(formData.example) }}
-```
-
-#### 修正内容
-- `isModal: true`パラメータを追加
-
-```typescript
-// 修正後のコード
-dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning, true) }}
-dangerouslySetInnerHTML={{ __html: renderRichText(formData.example, true) }}
-```
-
-#### 影響範囲
-- `src/components/EditTermModal.tsx` - プレビュー表示部分（2箇所）
-
-#### 学んだこと
-- 関数のデフォルトパラメータに頼りすぎない
-- コードレビュー時は関数呼び出しの引数も確認する
-
----
-
-## 2025年11月3日
+----
 
 ### 🔴 `textarea.setSelectionRange is not a function` エラー
 
