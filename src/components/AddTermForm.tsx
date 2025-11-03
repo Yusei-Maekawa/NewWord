@@ -446,81 +446,114 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
 
     const currentValue = formData[field] || '';
     
-    // 書式のトグル動作：既に書式が適用されている場合は除去
+    // 色タグとサイズタグのカテゴリを定義
+    const colorFormats = ['red', 'blue', 'green', 'orange', 'purple', 'pink'];
+    const sizeFormats = ['xsmall', 'small', 'normal', 'large', 'xlarge'];
+    const styleFormats = ['bold', 'italic', 'code', 'strike'];
+    
+    // 現在のフォーマットがどのカテゴリに属するか判定
+    const isColorFormat = colorFormats.includes(format);
+    const isSizeFormat = sizeFormats.includes(format);
+    
+    // 既存のタグを除去する必要があるかチェック
+    let cleanedText = selectedText;
+    
+    // 色を変更する場合、既存の色タグを除去
+    if (isColorFormat) {
+      colorFormats.forEach(color => {
+        const pattern = `[${color}]`;
+        const endPattern = `[/${color}]`;
+        if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+          cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+        }
+      });
+    }
+    
+    // サイズを変更する場合、既存のサイズタグを除去
+    if (isSizeFormat) {
+      sizeFormats.forEach(size => {
+        const pattern = `[${size}]`;
+        const endPattern = `[/${size}]`;
+        if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+          cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+        }
+      });
+    }
+    
+    // 書式のトグル動作：既に同じ書式が適用されている場合は除去
     let formatPattern = '';
     let isFormatted = false;
-    let strippedText = selectedText;
     
     switch (format) {
       case 'bold':
-        formatPattern = `**${selectedText}**`;
+        formatPattern = `**${cleanedText}**`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'italic':
-        formatPattern = `*${selectedText}*`;
+        formatPattern = `*${cleanedText}*`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'code':
-        formatPattern = `\`${selectedText}\``;
+        formatPattern = `\`${cleanedText}\``;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'strike':
-        formatPattern = `~~${selectedText}~~`;
+        formatPattern = `~~${cleanedText}~~`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'red':
-        formatPattern = `[red]${selectedText}[/red]`;
+        formatPattern = `[red]${cleanedText}[/red]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'blue':
-        formatPattern = `[blue]${selectedText}[/blue]`;
+        formatPattern = `[blue]${cleanedText}[/blue]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'green':
-        formatPattern = `[green]${selectedText}[/green]`;
+        formatPattern = `[green]${cleanedText}[/green]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'orange':
-        formatPattern = `[orange]${selectedText}[/orange]`;
+        formatPattern = `[orange]${cleanedText}[/orange]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'purple':
-        formatPattern = `[purple]${selectedText}[/purple]`;
+        formatPattern = `[purple]${cleanedText}[/purple]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'pink':
-        formatPattern = `[pink]${selectedText}[/pink]`;
+        formatPattern = `[pink]${cleanedText}[/pink]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'xsmall':
-        formatPattern = `[xsmall]${selectedText}[/xsmall]`;
+        formatPattern = `[xsmall]${cleanedText}[/xsmall]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'small':
-        formatPattern = `[small]${selectedText}[/small]`;
+        formatPattern = `[small]${cleanedText}[/small]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'normal':
-        formatPattern = `[normal]${selectedText}[/normal]`;
+        formatPattern = `[normal]${cleanedText}[/normal]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'large':
-        formatPattern = `[large]${selectedText}[/large]`;
+        formatPattern = `[large]${cleanedText}[/large]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       case 'xlarge':
-        formatPattern = `[xlarge]${selectedText}[/xlarge]`;
+        formatPattern = `[xlarge]${cleanedText}[/xlarge]`;
         isFormatted = currentValue.includes(formatPattern);
         break;
       default:
-        formatPattern = selectedText;
+        formatPattern = cleanedText;
     }
 
     let newValue = '';
     
     if (isFormatted) {
-      // 既に書式が適用されている場合は除去（トグルOFF）
-      newValue = currentValue.replace(formatPattern, selectedText);
+      // 既に同じ書式が適用されている場合は除去（トグルOFF）
+      newValue = currentValue.replace(formatPattern, cleanedText);
     } else {
       // 書式を適用（トグルON）
       const index = currentValue.indexOf(selectedText);

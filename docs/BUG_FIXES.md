@@ -575,6 +575,105 @@ Object.keys(placeholders).forEach(placeholder => {
 - 同様の問題が過去にもあった（画像タグ問題）→ パターンとして学習すべき
 
 ---
+### 🟠 色変更時に古い色タグが残る問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX  
+**ブランチ**: feature/term-management
+
+#### 問題
+- WYSIWYG編集で、既に色がついているテキスト（例: `[red]テスト[/red]`）に対して別の色（例: 青）を適用すると、古い色タグが残ってしまう
+- 結果: `[blue][red]テスト[/red][/blue]` のように二重にタグが付く
+- サイズ変更でも同じ問題が発生（例: `[large][small]text[/small][/large]`）
+- ユーザーが意図した見た目にならず、混乱を招く
+
+#### 原因
+`applyFormatWithSelection`関数で、**同一カテゴリ**のフォーマット間の競合を考慮していなかった：
+
+```typescript
+// 問題のあったコード
+const formatPattern = `[blue]${selectedText}[/blue]`;
+const isFormatted = currentValue.includes(formatPattern);
+
+if (isFormatted) {
+  newValue = currentValue.replace(formatPattern, selectedText);
+} else {
+  // selectedText が既に [red]text[/red] の場合でも
+  // そのまま [blue][red]text[/red][/blue] になってしまう
+  newValue = currentValue.replace(selectedText, formatPattern);
+}
+```
+
+- `selectedText`に既存のタグが含まれている場合、それをチェックせずにそのまま新しいタグで囲んでしまう
+- 色カテゴリやサイズカテゴリ内で排他的であるべきという制約が実装されていなかった
+
+#### 修正内容
+**フォーマットカテゴリの概念を導入**：
+
+1. フォーマットを3つのカテゴリに分類：
+   - **色フォーマット**: `red`, `blue`, `green`, `orange`, `purple`, `pink`
+   - **サイズフォーマット**: `xsmall`, `small`, `normal`, `large`, `xlarge`
+   - **スタイルフォーマット**: `bold`, `italic`, `code`, `strike`（重複適用可能）
+
+2. 色またはサイズを適用する前に、`selectedText`から既存の同カテゴリタグを除去：
+
+```typescript
+const colorFormats = ['red', 'blue', 'green', 'orange', 'purple', 'pink'];
+const sizeFormats = ['xsmall', 'small', 'normal', 'large', 'xlarge'];
+
+const isColorFormat = colorFormats.includes(format);
+const isSizeFormat = sizeFormats.includes(format);
+
+let cleanedText = selectedText;
+
+// 色を変更する場合、既存の色タグを除去
+if (isColorFormat) {
+  colorFormats.forEach(color => {
+    const pattern = `[${color}]`;
+    const endPattern = `[/${color}]`;
+    if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+      cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+    }
+  });
+}
+
+// サイズを変更する場合、既存のサイズタグを除去
+if (isSizeFormat) {
+  sizeFormats.forEach(size => {
+    const pattern = `[${size}]`;
+    const endPattern = `[/${size}]`;
+    if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+      cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+    }
+  });
+}
+
+// cleanedText を使って新しいフォーマットパターンを作成
+formatPattern = `[blue]${cleanedText}[/blue]`;
+```
+
+3. 操作の流れ：
+   - ユーザーが `[red]テスト[/red]` を選択して青ボタンをクリック
+   - `selectedText = "[red]テスト[/red]"`
+   - 色フォーマット検出 → 既存の赤タグを除去 → `cleanedText = "テスト"`
+   - 新しい青タグを適用 → `[blue]テスト[/blue]`
+
+#### 影響範囲
+- **修正ファイル**:
+  - `src/components/AddTermForm.tsx`: `applyFormatWithSelection`関数（約40行追加）
+  - `src/components/EditTermModal.tsx`: `applyFormatWithSelection`関数（約40行追加）
+
+- **動作への影響**:
+  - ✅ 色の変更が正しく動作（古い色が消えて新しい色のみ適用）
+  - ✅ サイズの変更が正しく動作（古いサイズが消えて新しいサイズのみ適用）
+  - ✅ 太字・斜体などのスタイルは重複適用可能（意図通り）
+  - ✅ トグル動作は引き続き正常（同じボタンを2回押すと解除）
+
+#### 学んだこと
+1. **フォーマットにはカテゴリがある**: すべてのフォーマットを同じように扱うのではなく、排他的なグループ（色、サイズ）と重複可能なグループ（スタイル）を区別する必要がある
+2. **ユーザーの期待を理解**: 色を変更するとき、ユーザーは「色を追加」ではなく「色を置き換える」ことを期待している
+3. **段階的なデータクリーニング**: 新しい値を適用する前に、競合する古い値を除去するステップを設けることで、データの一貫性を保つ
+4. **DRY原則の適用**: 色のループとサイズのループは似た構造なので、将来的にはヘルパー関数に抽出できる
 
 ## 今後のバグ修正もここに追記していきます
 
