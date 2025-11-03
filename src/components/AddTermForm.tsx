@@ -44,6 +44,7 @@ import Popover from '@mui/material/Popover';
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import { Term } from '../types';
+import WysiwygEditor from './WysiwygEditor';
 
 interface Category {
   id: number;
@@ -112,6 +113,18 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
   const [showRichTextHelp, setShowRichTextHelp] = useState(false);
 
   /**
+   * 意味フィールドのプレビュー表示状態
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
+  const [showMeaningPreview, setShowMeaningPreview] = useState(false);
+
+  /**
+   * 例文フィールドのプレビュー表示状態
+   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   */
+  const [showExamplePreview, setShowExamplePreview] = useState(false);
+
+  /**
    * アップロードされた画像の状態
    * @type {[string[], React.Dispatch<React.SetStateAction<string[]>>]}
    */
@@ -123,14 +136,20 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
   const [floatingToolbar, setFloatingToolbar] = useState<{
     anchorEl: HTMLElement | null;
     field: 'meaning' | 'example' | null;
+    selectedText: string;
+    selectionStart: number;
+    selectionEnd: number;
   }>({
     anchorEl: null,
-    field: null
+    field: null,
+    selectedText: '',
+    selectionStart: 0,
+    selectionEnd: 0
   });
 
-  // テキストエリアの参照
-  const meaningTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const exampleTextareaRef = useRef<HTMLTextAreaElement>(null);
+  // WYSIWYGエディタの参照
+  const meaningTextareaRef = useRef<HTMLDivElement>(null);
+  const exampleTextareaRef = useRef<HTMLDivElement>(null);
 
   /**
    * activeCategoryが変更されたらカテゴリも自動で変更
@@ -351,23 +370,31 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
 
   // テキスト選択時にフローティングツールバーを表示
   const handleTextSelection = (field: 'meaning' | 'example') => {
-    const textarea = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
-    if (!textarea) return;
+    const editor = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
+    if (!editor) return;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const selectedText = selection.toString();
 
     // テキストが選択されている場合のみツールバーを表示
-    if (start !== end) {
+    if (selectedText.length > 0) {
       setFloatingToolbar({
-        anchorEl: textarea,
-        field: field
+        anchorEl: editor,
+        field: field,
+        selectedText: selectedText,
+        selectionStart: 0, // WYSIWYGでは使用しない
+        selectionEnd: 0    // WYSIWYGでは使用しない
       });
     } else {
       // 選択が解除されたらツールバーを非表示
       setFloatingToolbar({
         anchorEl: null,
-        field: null
+        field: null,
+        selectedText: '',
+        selectionStart: 0,
+        selectionEnd: 0
       });
     }
   };
@@ -376,30 +403,46 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
   const handleCloseFloatingToolbar = () => {
     setFloatingToolbar({
       anchorEl: null,
-      field: null
+      field: null,
+      selectedText: '',
+      selectionStart: 0,
+      selectionEnd: 0
     });
   };
 
   // フローティングツールバーから書式を適用
   const applyFormatFromToolbar = (format: string) => {
     if (!floatingToolbar.field) return;
-    applyFormat(floatingToolbar.field, format);
-    handleCloseFloatingToolbar();
-  };
-
-  // テキストエリアに記法を適用する関数
-  const applyFormat = (field: 'meaning' | 'example', format: string) => {
-    const textarea = document.getElementById(field) as HTMLTextAreaElement;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
+    
+    // 保存した選択範囲情報を使用
+    const { field, selectedText, selectionStart, selectionEnd } = floatingToolbar;
     
     if (selectedText.length === 0) {
       alert('テキストを選択してからボタンをクリックしてください。');
+      handleCloseFloatingToolbar();
       return;
     }
+
+    applyFormatWithSelection(field, format, selectedText, selectionStart, selectionEnd);
+    handleCloseFloatingToolbar();
+  };
+
+  // テキストエリアに記法を適用する関数（WYSIWYGエディタでは使用しない）
+  const applyFormat = (field: 'meaning' | 'example', format: string) => {
+    // WYSIWYGエディタではフローティングツールバーを使用するため、この関数は呼ばれない
+    alert('テキストを選択してからフローティングツールバーで書式を適用してください。');
+  };
+
+  // 選択範囲情報を使って書式を適用する共通関数
+  const applyFormatWithSelection = (
+    field: 'meaning' | 'example', 
+    format: string, 
+    selectedText: string, 
+    start: number, 
+    end: number
+  ) => {
+    const editor = document.getElementById(field);
+    if (!editor) return;
 
     let formattedText = '';
     switch (format) {
@@ -452,14 +495,23 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
         formattedText = selectedText;
     }
 
-    const currentValue = formData[field];
-    const newValue = currentValue.substring(0, start) + formattedText + currentValue.substring(end);
-    handleInputChange(field, newValue);
+    // WYSIWYGエディタでは、選択されたテキストをformData内で検索して置き換え
+    const currentValue = formData[field] || '';
+    const index = currentValue.indexOf(selectedText);
     
-    // フォーカスを戻して新しい位置にカーソルを設定
+    if (index !== -1) {
+      // 最初に見つかった箇所を置き換え
+      const newValue = currentValue.substring(0, index) + formattedText + currentValue.substring(index + selectedText.length);
+      handleInputChange(field, newValue);
+    } else {
+      // 見つからない場合は末尾に追加
+      const newValue = currentValue + formattedText;
+      handleInputChange(field, newValue);
+    }
+    
+    // フォーカスを戻す
     setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start, start + formattedText.length);
+      editor.focus();
     }, 0);
   };
 
@@ -578,25 +630,40 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
               <button type="button" className="size-btn" onClick={() => applyFormat('meaning', 'xlarge')} title="極大">極大</button>
             </div>
           </div>
-          <textarea
-            id="meaning"
-            ref={meaningTextareaRef}
-            value={formData.meaning}
-            onChange={(e) => handleInputChange('meaning', e.target.value)}
-            onSelect={() => handleTextSelection('meaning')}
-            onMouseUp={() => handleTextSelection('meaning')}
-            placeholder="**重要**な概念です。`コード`や*斜体*も使えます。&#10;改行も反映されます。"
-            rows={6}
-            required
-            spellCheck={false}
-          />
-          <div className="preview-section">
-            <h4>プレビュー:</h4>
-            <div 
-              className="rich-text-preview"
-              dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning) }}
+          <div className="rich-text-editor-wrapper">
+            <WysiwygEditor
+              id="meaning"
+              value={formData.meaning}
+              onChange={(value) => handleInputChange('meaning', value)}
+              onSelect={() => handleTextSelection('meaning')}
+              placeholder="テキストを入力してください。書式ツールバーから装飾を適用できます。"
+              rows={6}
+              editorRef={meaningTextareaRef}
             />
           </div>
+
+          {/* プレビューセクション（デバッグ用） */}
+          {showMeaningPreview && (
+            <div className="preview-section" style={{ marginTop: '8px' }}>
+              <h4>タグ形式（内部データ）:</h4>
+              <div style={{
+                padding: '10px',
+                background: '#f8f9fa',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all'
+              }}>
+                {formData.meaning || '(空欄)'}
+              </div>
+              <div 
+                className="rich-text-preview"
+                dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning) }}
+              />
+            </div>
+          )}
         </div>
         
         <div className="form-group">
@@ -648,17 +715,17 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
               </label>
             </div>
           </div>
-          <textarea
-            id="example"
-            ref={exampleTextareaRef}
-            value={formData.example}
-            onChange={(e) => handleInputChange('example', e.target.value)}
-            onSelect={() => handleTextSelection('example')}
-            onMouseUp={() => handleTextSelection('example')}
-            placeholder="例文やコードサンプルなど。&#10;**太字**や`コード`も使えます。画像も追加できます。"
-            rows={4}
-            spellCheck={false}
-          />
+          <div className="rich-text-editor-wrapper">
+            <WysiwygEditor
+              id="example"
+              value={formData.example}
+              onChange={(value) => handleInputChange('example', value)}
+              onSelect={() => handleTextSelection('example')}
+              placeholder="例文やコードサンプルなど。画像も追加可能です。"
+              rows={4}
+              editorRef={exampleTextareaRef}
+            />
+          </div>
           
           {/* アップロードした画像のプレビュー */}
           {uploadedImages.length > 0 && (
@@ -682,13 +749,22 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
             </div>
           )}
           
-          {formData.example && (
-            <div className="preview-section">
-              <h4>プレビュー:</h4>
-              <div 
-                className="rich-text-preview"
-                dangerouslySetInnerHTML={{ __html: renderRichText(formData.example) }}
-              />
+          {/* プレビューセクション（デバッグ用） */}
+          {showExamplePreview && (
+            <div className="preview-section" style={{ marginTop: '8px' }}>
+              <h4>タグ形式（内部データ）:</h4>
+              <div style={{
+                padding: '10px',
+                background: '#f8f9fa',
+                border: '1px solid #dee2e6',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all'
+              }}>
+                {formData.example || '(空欄)'}
+              </div>
             </div>
           )}
         </div>
@@ -733,13 +809,34 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             borderRadius: '8px',
             display: 'flex',
-            flexDirection: 'row',
-            gap: '4px',
-            flexWrap: 'wrap',
+            flexDirection: 'column',
+            gap: '8px',
             maxWidth: '400px'
           }
         }}
       >
+        {/* 選択テキストの表示 */}
+        {floatingToolbar.selectedText && (
+          <div style={{ 
+            padding: '6px 8px', 
+            background: '#f0f0f0', 
+            borderRadius: '4px',
+            fontSize: '13px',
+            color: '#333',
+            maxHeight: '60px',
+            overflow: 'auto',
+            wordBreak: 'break-word',
+            borderLeft: '3px solid #1976d2'
+          }}>
+            <div style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>選択中:</div>
+            <div style={{ fontWeight: 500 }}>
+              {floatingToolbar.selectedText.length > 50 
+                ? floatingToolbar.selectedText.substring(0, 50) + '...' 
+                : floatingToolbar.selectedText}
+            </div>
+          </div>
+        )}
+        
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {/* 書式ボタン */}
           <Tooltip title="太字">

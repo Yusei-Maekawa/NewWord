@@ -214,8 +214,8 @@ interface Term {
 ### フェーズ1: 懸念点解消
 - [x] types.tsにisFavorite, imageUrlを追加
 - [x] useTermsFirestore.tsにtoggleFavorite関数を追加
-- [ ] UIにお気に入りボタン追加
-- [ ] 画像アップロード機能実装
+- [×] UIにお気に入りボタン追加
+- [×] 画像アップロード機能実装
 - [ ] 一覧画面での画像表示
 
 ### フェーズ2: UI/UX改善
