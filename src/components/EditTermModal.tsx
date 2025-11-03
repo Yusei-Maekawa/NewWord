@@ -44,7 +44,11 @@
  * @property {string} example - 使用例・例文
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Button from '@mui/material/Button';
+import Popover from '@mui/material/Popover';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import { Term } from '../types';
 
 interface Category {
@@ -128,29 +132,49 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   /**
+   * フローティングツールバーの状態
+   */
+  const [floatingToolbar, setFloatingToolbar] = useState<{
+    anchorEl: HTMLElement | null;
+    field: 'meaning' | 'example' | null;
+  }>({
+    anchorEl: null,
+    field: null
+  });
+
+  // テキストエリアの参照
+  const meaningTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const exampleTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
    * termプロパティが変更されたらフォームデータを更新
    * 編集対象の語句が変更された場合にフォームを初期化する
    */
   useEffect(() => {
     if (term) {
+      // 既存の画像を抽出
+      const existingImages: string[] = [];
+      let exampleText = term.example || '';
+      
+      // ![画像](data:image/...)形式の画像を検出
+      const imageMatches = exampleText.match(/!\[画像\]\((data:image\/[^)]+)\)/g);
+      if (imageMatches) {
+        imageMatches.forEach((match, index) => {
+          const srcMatch = match.match(/!\[画像\]\((data:image\/[^)]+)\)/);
+          if (srcMatch && srcMatch[1]) {
+            existingImages.push(srcMatch[1]);
+            // textareaには[画像N]マーカーを表示
+            exampleText = exampleText.replace(match, `[画像${index + 1}]`);
+          }
+        });
+      }
+      
       setFormData({
         category: term.category,
         term: term.term,
         meaning: term.meaning,
-        example: term.example || ''
+        example: exampleText
       });
-      
-      // 既存の画像を抽出
-      const existingImages: string[] = [];
-      const imageMatches = (term.example || '').match(/!\[画像\]\((data:image\/[^)]+)\)/g);
-      if (imageMatches) {
-        imageMatches.forEach(match => {
-          const srcMatch = match.match(/!\[画像\]\((data:image\/[^)]+)\)/);
-          if (srcMatch && srcMatch[1]) {
-            existingImages.push(srcMatch[1]);
-          }
-        });
-      }
       setUploadedImages(existingImages);
     }
   }, [term]);
@@ -161,12 +185,19 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
     // undefined チェックを追加してエラーを防ぐ
     const termValue = formData.term || '';
     const meaningValue = formData.meaning || '';
-    const exampleValue = formData.example || '';
+    let exampleValue = formData.example || '';
     
     if (!termValue.trim() || !meaningValue.trim()) {
       alert('用語と意味は必須項目です。');
       return;
     }
+
+    // [画像N]マーカーを![画像](data:image/...)に変換
+    uploadedImages.forEach((imageData, index) => {
+      const imageMarker = `[画像${index + 1}]`;
+      const imageMarkdown = `![画像](${imageData})`;
+      exampleValue = exampleValue.replace(imageMarker, imageMarkdown);
+    });
 
     if (term) {
       onSave(term.id, {
@@ -193,14 +224,16 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
         const reader = new FileReader();
         reader.onload = (e) => {
           const result = e.target?.result as string;
-          setUploadedImages(prev => [...prev, result]);
-          
-          // 画像をexampleフィールドに追加
-          const imageMarkdown = `\n![画像](${result})\n`;
-          setFormData(prev => ({ 
-            ...prev, 
-            example: prev.example + imageMarkdown 
-          }));
+          setUploadedImages(prev => {
+            const newImages = [...prev, result];
+            // textareaには[画像N]マーカーを追加
+            const imageMarker = `\n[画像${newImages.length}]\n`;
+            setFormData(prevData => ({ 
+              ...prevData, 
+              example: prevData.example + imageMarker 
+            }));
+            return newImages;
+          });
         };
         reader.readAsDataURL(file);
       }
@@ -209,15 +242,33 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
 
   // 画像を削除する関数
   const removeImage = (imageIndex: number) => {
-    const imageToRemove = uploadedImages[imageIndex];
-    setUploadedImages(prev => prev.filter((_, index) => index !== imageIndex));
-    
-    // exampleフィールドからも画像を削除
-    const imageMarkdown = `![画像](${imageToRemove})`;
-    setFormData(prev => ({
-      ...prev,
-      example: prev.example.replace(imageMarkdown, '').replace(/\n\n+/g, '\n\n').trim()
-    }));
+    setUploadedImages(prev => {
+      const newImages = prev.filter((_, index) => index !== imageIndex);
+      
+      // exampleフィールドから対応する[画像N]マーカーを削除し、番号を振り直す
+      setFormData(prevData => {
+        let newExample = prevData.example;
+        // 削除する画像のマーカーを削除
+        const imageMarker = `[画像${imageIndex + 1}]`;
+        newExample = newExample.replace(imageMarker, '');
+        
+        // 残りの画像マーカーの番号を振り直す
+        newImages.forEach((_, newIndex) => {
+          const oldMarker = `[画像${newIndex + (newIndex >= imageIndex ? 2 : 1)}]`;
+          const newMarker = `[画像${newIndex + 1}]`;
+          if (newIndex >= imageIndex) {
+            newExample = newExample.replace(oldMarker, newMarker);
+          }
+        });
+        
+        return {
+          ...prevData,
+          example: newExample.replace(/\n\n+/g, '\n\n').trim()
+        };
+      });
+      
+      return newImages;
+    });
   };
 
   // リッチテキストを安全にレンダリングする関数（TermsListと同じ）
@@ -229,50 +280,33 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
       
       let formattedText = text;
       
-      // 既存のHTMLタグを完全に除去（HTMLが表示される問題を根本的に解決）
-      formattedText = formattedText.replace(/<[^>]*>/g, '');
+      // 画像タグを一時的にプレースホルダーに置き換えて保護
+      const imageMarkers: { [key: string]: string } = {};
+      let imageCount = 0;
       
-      // 改行文字を一時的に保護
-      formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
-      
-    // HTMLエンティティや残ったHTML断片も除去
-    formattedText = formattedText
-      .replace(/&lt;/g, '')
-      .replace(/&gt;/g, '')
-      .replace(/&quot;/g, '')
-      .replace(/&amp;/g, '')
-      .replace(/alt="[^"]*"/g, '')
-      .replace(/class="[^"]*"/g, '')
-      .replace(/style="[^"]*"/g, '')
-      .replace(/src="[^"]*"/g, '')
-      .replace(/\/>/g, '')
-      .replace(/>\s*</g, '><')
-      .replace(/alt="画像"\s*class="uploaded-image"\s*\/>/g, '')
-      .replace(/alt="画像"\s*class="uploaded-image"/g, '')
-      .replace(/class="uploaded-image"\s*\/>/g, '')
-      .replace(/class="uploaded-image"/g, '')
-      .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
-      .replace(/📸/g, '') // カメラ絵文字を除去
-      .replace(/🖼️/g, '') // 額縁絵文字を除去
-      .replace(/🎨/g, '') // アート絵文字を除去
-      .replace(/🖊️/g, '') // ペン絵文字を除去
-      .replace(/✏️/g, '') // 鉛筆絵文字を除去
-      .replace(/\[画像\]/g, '') // [画像]テキストを除去
-      .replace(/\(画像\)/g, '') // (画像)テキストを除去
-      .replace(/画像:/g, '') // 画像:テキストを除去
-      .replace(/[ \t]+/g, ' ') // 複数のスペース・タブを1つにまとめる（改行は保護）
-      .trim();
-      
-      // 保護された改行文字をHTMLの<br>タグに変換
-      formattedText = formattedText.replace(/___NEWLINE___/g, '<br>');      // 改行をHTMLの<br>タグに変換
-      formattedText = formattedText.replace(/\n/g, '<br>');
+      // [画像N]マーカーを実際の画像に変換（プレビュー用）
+      formattedText = formattedText.replace(/\[画像(\d+)\]/g, (match, imageNum) => {
+        const imageIndex = parseInt(imageNum) - 1;
+        const imageData = uploadedImages[imageIndex];
+        if (imageData) {
+          console.log('EditTermModal: [画像N]マーカー変換:', { imageNum, hasData: !!imageData });
+          const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+          imageMarkers[placeholder] = `<div class="uploaded-image-container" style="display: block; margin: 8px 0;"><img src="${imageData}" alt="画像${imageNum}" class="uploaded-image" style="max-width: 100%; height: auto;" /></div>`;
+          imageCount++;
+          return placeholder;
+        }
+        return match; // 画像が見つからない場合はマーカーをそのまま表示
+      });
       
       // マークダウン形式の画像を検出して変換 ![画像](data:image/...)
       formattedText = formattedText.replace(
         /!\[画像\]\((data:image\/[a-zA-Z0-9+\/;=,]+)\)/g, 
         (match, dataUrl) => {
           console.log('EditTermModal: マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
-          return `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+          const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+          imageMarkers[placeholder] = `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+          imageCount++;
+          return placeholder;
         }
       );
       
@@ -281,7 +315,10 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
         /!\[.*?\]\((data:image\/[a-zA-Z0-9+\/;=,]+)\)/g, 
         (match, dataUrl) => {
           console.log('EditTermModal: 任意マークダウン画像検出:', { match: match.substring(0, 50), dataUrl: dataUrl.substring(0, 50) });
-          return `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+          const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+          imageMarkers[placeholder] = `<div class="uploaded-image-container"><img src="${dataUrl}" alt="画像" class="uploaded-image" /></div>`;
+          imageCount++;
+          return placeholder;
         }
       );
       
@@ -290,9 +327,36 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
         /data:image\/[a-zA-Z0-9+\/;=,]+/g,
         (match) => {
           console.log('EditTermModal: 直接Base64画像検出:', { match: match.substring(0, 50) });
-          return `<div class="uploaded-image-container"><img src="${match}" alt="画像" class="uploaded-image" /></div>`;
+          const placeholder = `___IMAGE_PLACEHOLDER_${imageCount}___`;
+          imageMarkers[placeholder] = `<div class="uploaded-image-container"><img src="${match}" alt="画像" class="uploaded-image" /></div>`;
+          imageCount++;
+          return placeholder;
         }
       );
+      
+      // ユーザーが入力した < > をHTMLエンティティに変換して保護
+      formattedText = formattedText
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      
+      // 改行文字を一時的に保護
+      formattedText = formattedText.replace(/\n/g, '___NEWLINE___');
+      
+      // 不要な絵文字や記号を除去
+      formattedText = formattedText
+        .replace(/📷/g, '') // 写真マーク（カメラ絵文字）を除去
+        .replace(/📸/g, '') // カメラ絵文字を除去
+        .replace(/🖼️/g, '') // 額縁絵文字を除去
+        .replace(/🎨/g, '') // アート絵文字を除去
+        .replace(/🖊️/g, '') // ペン絵文字を除去
+        .replace(/✏️/g, '') // 鉛筆絵文字を除去
+        .replace(/\(画像\)/g, '') // (画像)テキストを除去
+        .replace(/画像:/g, '') // 画像:テキストを除去
+        .replace(/[ \t]+/g, ' ') // 複数のスペース・タブを1つにまとめる（改行は保護）
+        .trim();
+      
+      // 保護された改行文字をHTMLの<br>タグに変換
+      formattedText = formattedText.replace(/___NEWLINE___/g, '<br>');
       
       // 色指定記法をHTMLに変換 - [red]テキスト[/red] 形式
       formattedText = formattedText
@@ -319,11 +383,54 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
         .replace(/`(.*?)`/g, '<code>$1</code>') // `コード`
         .replace(/~~(.*?)~~/g, '<del>$1</del>'); // ~~取り消し線~~
       
+      // 最後に画像プレースホルダーを実際のHTMLに戻す
+      Object.keys(imageMarkers).forEach(placeholder => {
+        formattedText = formattedText.replace(placeholder, imageMarkers[placeholder]);
+      });
+      
       return formattedText;
     } catch (error) {
       console.error('EditTermModal renderRichText error:', error);
       return text.replace(/\n/g, '<br>');
     }
+  };
+
+  // テキスト選択時にフローティングツールバーを表示
+  const handleTextSelection = (field: 'meaning' | 'example') => {
+    const textarea = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    // テキストが選択されている場合のみツールバーを表示
+    if (start !== end) {
+      setFloatingToolbar({
+        anchorEl: textarea,
+        field: field
+      });
+    } else {
+      // 選択が解除されたらツールバーを非表示
+      setFloatingToolbar({
+        anchorEl: null,
+        field: null
+      });
+    }
+  };
+
+  // フローティングツールバーを閉じる
+  const handleCloseFloatingToolbar = () => {
+    setFloatingToolbar({
+      anchorEl: null,
+      field: null
+    });
+  };
+
+  // フローティングツールバーから書式を適用
+  const applyFormatFromToolbar = (format: string) => {
+    if (!floatingToolbar.field) return;
+    applyFormat(floatingToolbar.field, format);
+    handleCloseFloatingToolbar();
   };
 
   // テキストエリアに記法を適用する関数
@@ -515,17 +622,21 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
             </div>
             <textarea
               id="editMeaning"
+              ref={meaningTextareaRef}
               value={formData.meaning}
               onChange={(e) => handleInputChange('meaning', e.target.value)}
+              onSelect={() => handleTextSelection('meaning')}
+              onMouseUp={() => handleTextSelection('meaning')}
               placeholder="**重要**な概念です。`コード`や*斜体*も使えます。&#10;改行も反映されます。"
               rows={6}
               required
+              spellCheck={false}
             />
             <div className="preview-section">
               <h4>プレビュー:</h4>
               <div 
                 className="rich-text-preview"
-                dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning) }}
+                dangerouslySetInnerHTML={{ __html: renderRichText(formData.meaning, true) }}
               />
             </div>
           </div>
@@ -607,30 +718,146 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
             )}
             <textarea
               id="editExample"
+              ref={exampleTextareaRef}
               value={formData.example}
               onChange={(e) => handleInputChange('example', e.target.value)}
+              onSelect={() => handleTextSelection('example')}
+              onMouseUp={() => handleTextSelection('example')}
               placeholder="例文やコードサンプルなど。&#10;**太字**や`コード`も使えます。"
               rows={4}
+              spellCheck={false}
             />
             {formData.example && (
               <div className="preview-section">
                 <h4>プレビュー:</h4>
                 <div 
                   className="rich-text-preview"
-                  dangerouslySetInnerHTML={{ __html: renderRichText(formData.example) }}
+                  dangerouslySetInnerHTML={{ __html: renderRichText(formData.example, true) }}
                 />
               </div>
             )}
           </div>
           
           <div className="form-actions">
-            <button type="submit" className="btn">更新</button>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary"
+              size="large"
+              sx={{ mr: 2 }}
+            >
+              更新
+            </Button>
+            <Button 
+              type="button" 
+              variant="outlined"
+              color="primary"
+              size="large"
+              onClick={onClose}
+            >
               キャンセル
-            </button>
+            </Button>
           </div>
         </form>
       </div>
+
+      {/* フローティングツールバー */}
+      <Popover
+        open={Boolean(floatingToolbar.anchorEl)}
+        anchorEl={floatingToolbar.anchorEl}
+        onClose={handleCloseFloatingToolbar}
+        disableRestoreFocus
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        transformOrigin={{
+          vertical: 'bottom',
+          horizontal: 'center',
+        }}
+        slotProps={{
+          paper: {
+            onMouseDown: (e) => {
+              // Popover内のクリックでフォーカスが外れないようにする
+              e.preventDefault();
+            }
+          }
+        }}
+        sx={{
+          '& .MuiPopover-paper': {
+            padding: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '4px',
+            flexWrap: 'wrap',
+            maxWidth: '400px'
+          }
+        }}
+      >
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+          {/* 書式ボタン */}
+          <Tooltip title="太字">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('bold')} sx={{ fontSize: '14px' }}>
+              <strong>B</strong>
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="斜体">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('italic')} sx={{ fontSize: '14px' }}>
+              <em>I</em>
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="取り消し線">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('strike')} sx={{ fontSize: '14px' }}>
+              <del>S</del>
+            </IconButton>
+          </Tooltip>
+
+          <div style={{ width: '1px', background: '#ddd', margin: '0 4px' }} />
+
+          {/* 色ボタン */}
+          <Tooltip title="赤色">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('red')} sx={{ color: '#e74c3c' }}>
+              A
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="青色">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('blue')} sx={{ color: '#3498db' }}>
+              A
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="緑色">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('green')} sx={{ color: '#27ae60' }}>
+              A
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="オレンジ">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('orange')} sx={{ color: '#f39c12' }}>
+              A
+            </IconButton>
+          </Tooltip>
+
+          <div style={{ width: '1px', background: '#ddd', margin: '0 4px' }} />
+
+          {/* サイズボタン */}
+          <Tooltip title="小">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('small')} sx={{ fontSize: '11px' }}>
+              小
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="標準">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('normal')} sx={{ fontSize: '14px' }}>
+              標
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="大">
+            <IconButton size="small" onClick={() => applyFormatFromToolbar('large')} sx={{ fontSize: '17px' }}>
+              大
+            </IconButton>
+          </Tooltip>
+        </div>
+      </Popover>
     </div>
   );
 };

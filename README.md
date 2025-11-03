@@ -114,6 +114,7 @@ StudyingEverything/
 - [データ保護システム](docs/DATA_PROTECTION_CHECKLIST.md) - バックアップ・復旧手順
 - [データベースバックアップ](docs/README_DB_BACKUP.md) - バックアップの詳細
 - [リリースチェックリスト](docs/RELEASE_CHECKLIST.md) - デプロイ前確認事項
+- [バグ修正履歴](docs/BUG_FIXES.md) - 🐛 バグ修正の記録と学び
 
 ## 📚 開発ドキュメント
 
