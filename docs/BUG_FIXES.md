@@ -16,96 +16,6 @@
 - **コミットID**: 関連するgitコミット
 ---
 
-## 2025年11月3日（続き5）
-
-### 🟠 フォーマット適用後にWYSIWYGエディタが更新されない問題
-
-**バージョン**: v0.4.0-dev  
-**カテゴリ**: UI/UX, WYSIWYGエディタ  
-**ブランチ**: feature/term-management
-
-#### 問題
-- 編集画面で色やサイズを変更しても、WYSIWYGエディタに反映されない
-- タグ形式（`[blue]aiueo[/blue]`）がそのまま表示される
-- 内部データは正しく更新されているが、画面表示が追いつかない
-
-#### 原因
-**WYSIWYGエディタの`useEffect`がフォーカス中に更新をスキップ**:
-
-`WysiwygEditor.tsx`の`useEffect`の実装：
-
-```typescript
-useEffect(() => {
-  if (ref.current && !isFocused) {  // ← !isFocused の条件
-    const html = tagsToHtml(value);
-    if (ref.current.innerHTML !== html) {
-      ref.current.innerHTML = html;
-    }
-  }
-}, [value, isFocused]);
-```
-
-**動作フロー**：
-1. ユーザーが赤文字の`aiueo`を選択して青色ボタンをクリック
-2. `applyFormatWithSelection`が`[red]aiueo[/red]` → `[blue]aiueo[/blue]`に変更
-3. `handleInputChange(field, newValue)`で`formData`を更新
-4. `WysiwygEditor`の`value` propが`[blue]aiueo[/blue]`に変更
-5. `useEffect`が発火するが、`isFocused = true`のため更新をスキップ ❌
-6. エディタのHTMLは`<span style="color: red;">aiueo</span>`のまま（古い状態）
-
-**なぜ`!isFocused`の条件があるのか**：
-- ユーザーが入力中に外部から`value`が変わると、カーソル位置や入力内容がリセットされる
-- しかし、フォーマット適用は「意図的な更新」なので、再レンダリングが必要
-
-#### 修正内容
-**blur/focusパターンで強制再レンダリング**:
-
-```typescript
-// 修正後のコード
-handleInputChange(field, newValue);
-
-// WYSIWYGエディタを再レンダリングするため、一時的にフォーカスを外して戻す
-setTimeout(() => {
-  // フォーカスを外す（useEffectが発火してHTMLを更新）
-  editor.blur();
-  
-  // 少し待ってからフォーカスを戻す
-  setTimeout(() => {
-    editor.focus();
-  }, 10);
-}, 0);
-```
-
-**動作の流れ**：
-1. `formData`を更新：`[blue]aiueo[/blue]`
-2. `editor.blur()`でフォーカスを外す → `isFocused = false`
-3. `useEffect`が発火して`tagsToHtml`を実行 → `<span style="color: blue;">aiueo</span>`
-4. `editor.innerHTML`が更新される ✅
-5. 10ms後に`editor.focus()`でフォーカスを戻す → ユーザーは編集を継続可能
-
-**タイミング調整**：
-- `setTimeout(..., 0)`: 現在のイベントループが完了してから実行（stateの更新を待つ）
-- `setTimeout(..., 10)`: `blur()`後のReactの再レンダリングを待ってから`focus()`
-
-#### 影響範囲
-- **修正ファイル**:
-  - `src/components/AddTermForm.tsx`: `applyFormatWithSelection`関数
-  - `src/components/EditTermModal.tsx`: `applyFormatWithSelection`関数
-
-- **動作への影響**:
-  - ✅ フォーマット適用後すぐに反映される
-  - ✅ タグが表示されずにWYSIWYG表示が保たれる
-  - ✅ ユーザーは編集を継続できる（フォーカスが戻る）
-  - ⚠️ 10msの遅延があるが、体感できないレベル
-
-#### 学んだこと
-1. **contentEditable/WYSIWYGの難しさ**: フォーカス状態とReactのstate管理のバランスが重要
-2. **非同期処理の活用**: `blur`→更新待ち→`focus`のパターンで強制再レンダリングが可能
-3. **useEffectの条件分岐**: 最適化のための条件（`!isFocused`）が、特定のケースで問題になることがある
-4. **デバッグ時の観察**: 「データは正しい」「表示が間違っている」→ レンダリングのタイミング問題を疑う
-
----
-
 ## 2025年11月2日
 
 ### 🟠 プレビューでHTMLタグが表示される問題
@@ -964,6 +874,150 @@ Object.keys(placeholders).forEach(placeholder => {
 2. **ブラウザのHTML解釈**: `<aiueo>`のような文字列は、エスケープしないとHTMLタグとして解釈される
 3. **プレースホルダーパターンの落とし穴**: 保護したコンテンツを戻す際も、適切にエスケープする必要がある
 4. **デバッグの重要性**: 詳細画面では動作するが編集画面では動作しない → 両者で使用している処理の違いを特定することが重要
+
+---
+
+### 🟠 色変更時に古い色タグが残る問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
+**ブランチ**: feature/term-management  
+**コミットID**: `cfd5d9f`
+
+#### 問題
+- 既に色がついているテキスト（例: `[red]テスト[/red]`）に対して別の色（例: 青）を適用すると、古い色タグが残ってしまう
+- 結果: `[blue][red]テスト[/red][/blue]` のように二重にタグが付く
+- サイズ変更でも同じ問題が発生（例: `[large][small]text[/small][/large]`）
+
+#### 原因
+**同一カテゴリのフォーマット間の競合を考慮していなかった**:
+
+```typescript
+// 問題のあったコード
+const formatPattern = `[blue]${selectedText}[/blue]`;
+const isFormatted = currentValue.includes(formatPattern);
+
+if (isFormatted) {
+  newValue = currentValue.replace(formatPattern, selectedText);
+} else {
+  // selectedText が既に [red]text[/red] の場合でも
+  // そのまま [blue][red]text[/red][/blue] になってしまう
+  newValue = currentValue.replace(selectedText, formatPattern);
+}
+```
+
+#### 修正内容
+**フォーマットカテゴリの概念を導入**:
+
+```typescript
+// 色タグとサイズタグのカテゴリを定義
+const colorFormats = ['red', 'blue', 'green', 'orange', 'purple', 'pink'];
+const sizeFormats = ['xsmall', 'small', 'normal', 'large', 'xlarge'];
+
+const isColorFormat = colorFormats.includes(format);
+const isSizeFormat = sizeFormats.includes(format);
+
+let cleanedText = selectedText;
+
+// 色を変更する場合、既存の色タグを除去
+if (isColorFormat) {
+  colorFormats.forEach(color => {
+    const pattern = `[${color}]`;
+    const endPattern = `[/${color}]`;
+    if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+      cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+    }
+  });
+}
+
+// サイズも同様に処理
+if (isSizeFormat) {
+  sizeFormats.forEach(size => {
+    const pattern = `[${size}]`;
+    const endPattern = `[/${size}]`;
+    if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+      cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+    }
+  });
+}
+
+// cleanedText を使って新しいフォーマットパターンを作成
+formatPattern = `[blue]${cleanedText}[/blue]`;
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx`: `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx`: `applyFormatWithSelection`関数
+
+#### 学んだこと
+- フォーマットにはカテゴリ（排他的グループ）がある
+- ユーザーは「色を追加」ではなく「色を置き換える」ことを期待している
+- 競合する古い値を除去するステップが重要
+
+---
+
+### 🟠 フォーマット適用後にWYSIWYGエディタが更新されない問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
+**ブランチ**: feature/term-management  
+**コミットID**: `572fa32`
+
+#### 問題
+- 編集画面で色やサイズを変更しても、WYSIWYGエディタに反映されない
+- タグ形式（`[blue]aiueo[/blue]`）がそのまま表示される
+- 内部データは正しく更新されているが、画面表示が追いつかない
+
+#### 原因
+**WYSIWYGエディタの`useEffect`がフォーカス中に更新をスキップ**:
+
+```typescript
+// WysiwygEditor.tsx
+useEffect(() => {
+  if (ref.current && !isFocused) {  // ← !isFocused の条件
+    const html = tagsToHtml(value);
+    if (ref.current.innerHTML !== html) {
+      ref.current.innerHTML = html;
+    }
+  }
+}, [value, isFocused]);
+```
+
+フォーマット適用時、エディタは`isFocused = true`のままなので、`useEffect`が発火しても更新をスキップしてしまう。
+
+#### 修正内容
+**blur/focusパターンで強制再レンダリング**:
+
+```typescript
+handleInputChange(field, newValue);
+
+// WYSIWYGエディタを再レンダリングするため、一時的にフォーカスを外して戻す
+setTimeout(() => {
+  // フォーカスを外す（useEffectが発火してHTMLを更新）
+  editor.blur();
+  
+  // 少し待ってからフォーカスを戻す
+  setTimeout(() => {
+    editor.focus();
+  }, 10);
+}, 0);
+```
+
+**動作の流れ**：
+1. `formData`を更新：`[blue]aiueo[/blue]`
+2. `editor.blur()`でフォーカスを外す → `isFocused = false`
+3. `useEffect`が発火して`tagsToHtml`を実行 → `<span style="color: blue;">aiueo</span>`
+4. `editor.innerHTML`が更新される ✅
+5. 10ms後に`editor.focus()`でフォーカスを戻す
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx`: `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx`: `applyFormatWithSelection`関数
+
+#### 学んだこと
+- contentEditable/WYSIWYGではフォーカス状態とReactのstate管理のバランスが重要
+- 非同期処理（blur→更新待ち→focus）で強制再レンダリングが可能
+- useEffectの最適化条件が特定ケースで問題になることがある
 
 ---
 
