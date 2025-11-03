@@ -368,6 +368,53 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     return formattedText;
   };
 
+  /**
+   * 選択範囲のHTMLをタグ形式のテキストに変換
+   */
+  const getSelectedTextWithTags = (selection: Selection): string => {
+    if (selection.rangeCount === 0) return '';
+    
+    const range = selection.getRangeAt(0);
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+    
+    let html = container.innerHTML;
+    
+    // HTMLタグをカスタムタグに変換
+    html = html
+      // 色タグ
+      .replace(/<span style="color: #e74c3c; font-weight: 600;">(.*?)<\/span>/g, '[red]$1[/red]')
+      .replace(/<span style="color: #3498db; font-weight: 600;">(.*?)<\/span>/g, '[blue]$1[/blue]')
+      .replace(/<span style="color: #27ae60; font-weight: 600;">(.*?)<\/span>/g, '[green]$1[/green]')
+      .replace(/<span style="color: #f39c12; font-weight: 600;">(.*?)<\/span>/g, '[orange]$1[/orange]')
+      .replace(/<span style="color: #9b59b6; font-weight: 600;">(.*?)<\/span>/g, '[purple]$1[/purple]')
+      .replace(/<span style="color: #e91e63; font-weight: 600;">(.*?)<\/span>/g, '[pink]$1[/pink]')
+      // サイズタグ
+      .replace(/<span style="font-size: 0\.7em;">(.*?)<\/span>/g, '[xsmall]$1[/xsmall]')
+      .replace(/<span style="font-size: 0\.85em;">(.*?)<\/span>/g, '[small]$1[/small]')
+      .replace(/<span style="font-size: 1\.2em;">(.*?)<\/span>/g, '[large]$1[/large]')
+      .replace(/<span style="font-size: 1\.5em;">(.*?)<\/span>/g, '[xlarge]$1[/xlarge]')
+      // マークダウン風タグ
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<em>(.*?)<\/em>/g, '*$1*')
+      .replace(/<code>(.*?)<\/code>/g, '`$1`')
+      .replace(/<del>(.*?)<\/del>/g, '~~$1~~')
+      // 改行
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<div>(.*?)<\/div>/g, '\n$1');
+    
+    // HTMLエンティティをデコード
+    html = html
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&');
+    
+    // 残りのHTMLタグを除去
+    html = html.replace(/<[^>]+>/g, '');
+    
+    return html;
+  };
+
   // テキスト選択時にフローティングツールバーを表示
   const handleTextSelection = (field: 'meaning' | 'example') => {
     const editor = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
@@ -376,7 +423,8 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     const selection = window.getSelection();
     if (!selection) return;
 
-    const selectedText = selection.toString();
+    // 選択範囲のHTMLをタグ形式に変換して取得
+    const selectedText = getSelectedTextWithTags(selection);
 
     // テキストが選択されている場合のみツールバーを表示
     if (selectedText.length > 0) {
@@ -556,10 +604,11 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       newValue = currentValue.replace(formatPattern, cleanedText);
     } else {
       // 書式を適用（トグルON）
+      // 元のselectedText（タグ付き）を検索して置き換え
       const index = currentValue.indexOf(selectedText);
       
       if (index !== -1) {
-        // 最初に見つかった箇所を置き換え
+        // 最初に見つかった箇所を置き換え（元のselectedTextをformatPatternで置換）
         newValue = currentValue.substring(0, index) + formatPattern + currentValue.substring(index + selectedText.length);
       } else {
         // 見つからない場合は末尾に追加
@@ -569,9 +618,15 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
     
     handleInputChange(field, newValue);
     
-    // フォーカスを戻す
+    // WYSIWYGエディタを再レンダリングするため、一時的にフォーカスを外して戻す
     setTimeout(() => {
-      editor.focus();
+      // フォーカスを外す（useEffectが発火してHTMLを更新）
+      editor.blur();
+      
+      // 少し待ってからフォーカスを戻す
+      setTimeout(() => {
+        editor.focus();
+      }, 10);
     }, 0);
   };
 

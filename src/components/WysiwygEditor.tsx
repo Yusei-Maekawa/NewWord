@@ -115,9 +115,15 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       // 改行
       .replace(/\n/g, '<br>');
     
-    // 4. プレースホルダーを元のコンテンツに戻す
+    // 4. プレースホルダーを元のコンテンツに戻す（HTMLエスケープして）
     Object.keys(placeholders).forEach(placeholder => {
-      html = html.replace(placeholder, placeholders[placeholder]);
+      const content = placeholders[placeholder];
+      // HTMLエンティティに変換してから戻す
+      const escapedContent = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      html = html.replace(placeholder, escapedContent);
     });
     
     return html;

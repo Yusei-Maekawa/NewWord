@@ -14,6 +14,95 @@
 - **修正内容**: どのように修正したか
 - **影響範囲**: どのファイル・機能が変更されたか
 - **コミットID**: 関連するgitコミット
+---
+
+## 2025年11月3日（続き5）
+
+### 🟠 フォーマット適用後にWYSIWYGエディタが更新されない問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
+**ブランチ**: feature/term-management
+
+#### 問題
+- 編集画面で色やサイズを変更しても、WYSIWYGエディタに反映されない
+- タグ形式（`[blue]aiueo[/blue]`）がそのまま表示される
+- 内部データは正しく更新されているが、画面表示が追いつかない
+
+#### 原因
+**WYSIWYGエディタの`useEffect`がフォーカス中に更新をスキップ**:
+
+`WysiwygEditor.tsx`の`useEffect`の実装：
+
+```typescript
+useEffect(() => {
+  if (ref.current && !isFocused) {  // ← !isFocused の条件
+    const html = tagsToHtml(value);
+    if (ref.current.innerHTML !== html) {
+      ref.current.innerHTML = html;
+    }
+  }
+}, [value, isFocused]);
+```
+
+**動作フロー**：
+1. ユーザーが赤文字の`aiueo`を選択して青色ボタンをクリック
+2. `applyFormatWithSelection`が`[red]aiueo[/red]` → `[blue]aiueo[/blue]`に変更
+3. `handleInputChange(field, newValue)`で`formData`を更新
+4. `WysiwygEditor`の`value` propが`[blue]aiueo[/blue]`に変更
+5. `useEffect`が発火するが、`isFocused = true`のため更新をスキップ ❌
+6. エディタのHTMLは`<span style="color: red;">aiueo</span>`のまま（古い状態）
+
+**なぜ`!isFocused`の条件があるのか**：
+- ユーザーが入力中に外部から`value`が変わると、カーソル位置や入力内容がリセットされる
+- しかし、フォーマット適用は「意図的な更新」なので、再レンダリングが必要
+
+#### 修正内容
+**blur/focusパターンで強制再レンダリング**:
+
+```typescript
+// 修正後のコード
+handleInputChange(field, newValue);
+
+// WYSIWYGエディタを再レンダリングするため、一時的にフォーカスを外して戻す
+setTimeout(() => {
+  // フォーカスを外す（useEffectが発火してHTMLを更新）
+  editor.blur();
+  
+  // 少し待ってからフォーカスを戻す
+  setTimeout(() => {
+    editor.focus();
+  }, 10);
+}, 0);
+```
+
+**動作の流れ**：
+1. `formData`を更新：`[blue]aiueo[/blue]`
+2. `editor.blur()`でフォーカスを外す → `isFocused = false`
+3. `useEffect`が発火して`tagsToHtml`を実行 → `<span style="color: blue;">aiueo</span>`
+4. `editor.innerHTML`が更新される ✅
+5. 10ms後に`editor.focus()`でフォーカスを戻す → ユーザーは編集を継続可能
+
+**タイミング調整**：
+- `setTimeout(..., 0)`: 現在のイベントループが完了してから実行（stateの更新を待つ）
+- `setTimeout(..., 10)`: `blur()`後のReactの再レンダリングを待ってから`focus()`
+
+#### 影響範囲
+- **修正ファイル**:
+  - `src/components/AddTermForm.tsx`: `applyFormatWithSelection`関数
+  - `src/components/EditTermModal.tsx`: `applyFormatWithSelection`関数
+
+- **動作への影響**:
+  - ✅ フォーマット適用後すぐに反映される
+  - ✅ タグが表示されずにWYSIWYG表示が保たれる
+  - ✅ ユーザーは編集を継続できる（フォーカスが戻る）
+  - ⚠️ 10msの遅延があるが、体感できないレベル
+
+#### 学んだこと
+1. **contentEditable/WYSIWYGの難しさ**: フォーカス状態とReactのstate管理のバランスが重要
+2. **非同期処理の活用**: `blur`→更新待ち→`focus`のパターンで強制再レンダリングが可能
+3. **useEffectの条件分岐**: 最適化のための条件（`!isFocused`）が、特定のケースで問題になることがある
+4. **デバッグ時の観察**: 「データは正しい」「表示が間違っている」→ レンダリングのタイミング問題を疑う
 
 ---
 
@@ -674,6 +763,209 @@ formatPattern = `[blue]${cleanedText}[/blue]`;
 2. **ユーザーの期待を理解**: 色を変更するとき、ユーザーは「色を追加」ではなく「色を置き換える」ことを期待している
 3. **段階的なデータクリーニング**: 新しい値を適用する前に、競合する古い値を除去するステップを設けることで、データの一貫性を保つ
 4. **DRY原則の適用**: 色のループとサイズのループは似た構造なので、将来的にはヘルパー関数に抽出できる
+
+### 🔴 `<aiueo>`のような記号を含むテキストが消滅する問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: データ処理  
+**ブランチ**: feature/term-management
+
+#### 問題
+1. **記号テキストの消滅**:
+   - `<aiueo>`のような`<>`を含むテキストを選択して色や書式を適用すると、テキストが完全に消滅する
+   - ユーザーが入力した重要な情報が失われてしまう致命的なバグ
+
+2. **プレースホルダーが変換されない**:
+   - 書式適用後に`[red]___PLACEHOLDER_0___[/red]`のようにプレースホルダーがそのまま表示される
+   - 本来のテキスト（`<aiueo>`）が戻らない
+
+#### 原因
+**データフロー不整合**:
+
+1. WYSIWYGエディタ内のHTMLレンダリング：
+   ```
+   ユーザー入力: <aiueo>
+   → HTMLエンティティ化: &lt;aiueo&gt;
+   → 色タグ適用: [red]&lt;aiueo&gt;[/red]
+   → HTML表示: <span style="color:red"><aiueo></span>
+   ```
+
+2. 選択時の問題：
+   ```typescript
+   // 問題のあったコード
+   const selectedText = selection.toString();
+   // → レンダリング後のテキストを取得: "<aiueo>"
+   
+   const currentValue = formData[field];
+   // → 保存されているタグ形式: "[red]&lt;aiueo&gt;[/red]"
+   
+   const index = currentValue.indexOf(selectedText);
+   // → "<aiueo>" を "[red]&lt;aiueo&gt;[/red]" 内で検索
+   // → 見つからない（-1）
+   
+   // 見つからない場合は末尾に追加
+   newValue = currentValue + formatPattern;
+   // → 元のテキストはそのまま、新しいフォーマットが末尾に追加されてしまう
+   ```
+
+3. プレースホルダー問題：
+   - WysiwygEditor.tsxの`tagsToHtml`関数がタグ内容をプレースホルダーに置き換え
+   - しかし`applyFormatWithSelection`で使用する際、プレースホルダーが元に戻らない
+
+#### 修正内容
+**選択範囲のHTML→タグ変換関数を追加**:
+
+```typescript
+/**
+ * 選択範囲のHTMLをタグ形式のテキストに変換
+ */
+const getSelectedTextWithTags = (selection: Selection): string => {
+  if (selection.rangeCount === 0) return '';
+  
+  const range = selection.getRangeAt(0);
+  const container = document.createElement('div');
+  container.appendChild(range.cloneContents());
+  
+  let html = container.innerHTML;
+  
+  // HTMLタグをカスタムタグに変換
+  html = html
+    // 色タグ
+    .replace(/<span style="color: #e74c3c; font-weight: 600;">(.*?)<\/span>/g, '[red]$1[/red]')
+    .replace(/<span style="color: #3498db; font-weight: 600;">(.*?)<\/span>/g, '[blue]$1[/blue]')
+    // ... 他の色、サイズ、スタイル
+    
+  // HTMLエンティティをデコード
+  html = html
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+  
+  // 残りのHTMLタグを除去
+  html = html.replace(/<[^>]+>/g, '');
+  
+  return html;
+};
+
+// handleTextSelectionで使用
+const selectedText = getSelectedTextWithTags(selection);
+// → 正しくタグ形式で取得: "[red]<aiueo>[/red]" or "<aiueo>"
+```
+
+**動作の流れ**:
+1. ユーザーが`<aiueo>`を選択
+2. `getSelectedTextWithTags`がHTML（`&lt;aiueo&gt;`）をタグ形式（`<aiueo>`）に変換
+3. `formData`内の値と正しく一致するようになる
+4. `currentValue.indexOf(selectedText)`が正常に動作
+5. 既存のテキストが正しく置き換えられる
+
+#### 影響範囲
+- **修正ファイル**:
+  - `src/components/AddTermForm.tsx`: `getSelectedTextWithTags`関数追加、`handleTextSelection`修正
+  - `src/components/EditTermModal.tsx`: 同上
+
+- **動作への影響**:
+  - ✅ `<>`を含むテキストが消滅しない
+  - ✅ プレースホルダーが正しく元のテキストに変換される
+  - ✅ 色・サイズ・スタイルがすべて正常に適用される
+  - ✅ HTMLエンティティと実際のテキストの不整合が解消
+
+#### 学んだこと
+1. **WYSIWYGエディタの本質的な課題**: 表示用のHTML表現とデータ保存用のテキスト表現を常に同期させる必要がある
+2. **データフロー追跡の重要性**: ユーザー入力 → HTMLエンコード → タグ変換 → HTML表示 → 選択取得 → タグ変換 の各ステップを正確に理解する
+3. **エスケープ/デコードの対称性**: HTMLエンティティ化（`<` → `&lt;`）とデコード（`&lt;` → `<`）が完全に対になっていることを確認
+4. **選択範囲API**: `selection.toString()`はレンダリング後のテキストを返すため、内部データ形式と一致しない。`selection.getRangeAt(0).cloneContents()`でHTMLを取得し、カスタムタグに逆変換する必要がある
+
+---
+
+## 2025年11月3日（続き3）
+
+### 🟠 編集画面で`<>`記号が表示されない問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
+**ブランチ**: feature/term-management
+
+#### 問題
+- **編集画面**（EditTermModal）のWYSIWYGエディタで、`<aiueo>`のような`<>`記号を含むテキストに色やサイズを適用すると、テキストが表示されない
+- 詳細画面（TermsList）では正しく表示されるが、編集画面でのみ問題が発生
+- 例：`[red]<aiueo>[/red]`を保存して編集画面を開くと、`<aiueo>`が見えない
+
+#### 原因
+**プレースホルダー復元時のHTMLエスケープ漏れ**:
+
+`WysiwygEditor.tsx`の`tagsToHtml`関数の処理フロー：
+
+1. カスタムタグ内の内容をプレースホルダーに保護：
+   ```typescript
+   // [red]<aiueo>[/red] の処理
+   content = "<aiueo>"
+   placeholders["___PLACEHOLDER_0___"] = "<aiueo>"
+   html = "[red]___PLACEHOLDER_0___[/red]"
+   ```
+
+2. HTMLエスケープ（タグ外の`<>`を変換）：
+   ```typescript
+   // この時点ではプレースホルダーなので変換されない
+   html = "[red]___PLACEHOLDER_0___[/red]" // 変化なし
+   ```
+
+3. カスタムタグをHTMLに変換：
+   ```typescript
+   html = '<span style="color: #e74c3c;">___PLACEHOLDER_0___</span>'
+   ```
+
+4. **プレースホルダーを元に戻す（問題箇所）**：
+   ```typescript
+   // 問題のあったコード
+   html = html.replace(placeholder, placeholders[placeholder]);
+   // → '<span style="color: #e74c3c;"><aiueo></span>'
+   //    ブラウザが <aiueo> をHTMLタグとして解釈してしまう！
+   ```
+
+ブラウザは`<aiueo>`を未知のHTMLタグと判断し、**表示しない**または**削除**してしまいます。
+
+#### 修正内容
+**プレースホルダー復元時にHTMLエンティティ化**:
+
+```typescript
+// 修正後のコード
+// 4. プレースホルダーを元のコンテンツに戻す（HTMLエスケープして）
+Object.keys(placeholders).forEach(placeholder => {
+  const content = placeholders[placeholder];
+  // HTMLエンティティに変換してから戻す
+  const escapedContent = content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  html = html.replace(placeholder, escapedContent);
+});
+```
+
+**動作の流れ**：
+1. `[red]<aiueo>[/red]`を読み込み
+2. プレースホルダーに保護：`[red]___PLACEHOLDER_0___[/red]`（`<aiueo>`を保存）
+3. HTMLタグ変換：`<span style="color: #e74c3c;">___PLACEHOLDER_0___</span>`
+4. プレースホルダー復元（HTMLエスケープして）：`<span style="color: #e74c3c;">&lt;aiueo&gt;</span>`
+5. ブラウザ表示：赤文字で「<aiueo>」が正しく表示される ✅
+
+#### 影響範囲
+- **修正ファイル**:
+  - `src/components/WysiwygEditor.tsx`: `tagsToHtml`関数のプレースホルダー復元処理
+
+- **動作への影響**:
+  - ✅ 編集画面で`<>`記号が正しく表示される
+  - ✅ 色・サイズ・スタイルが適用された`<>`記号も表示される
+  - ✅ ブラウザがHTMLタグとして誤認識しなくなる
+  - ✅ HTMLエンティティの二重エスケープは発生しない（プレースホルダーで保護されているため）
+
+#### 学んだこと
+1. **二段階HTMLエスケープの必要性**: タグ外と、タグ内（プレースホルダー復元時）の両方でエスケープが必要
+2. **ブラウザのHTML解釈**: `<aiueo>`のような文字列は、エスケープしないとHTMLタグとして解釈される
+3. **プレースホルダーパターンの落とし穴**: 保護したコンテンツを戻す際も、適切にエスケープする必要がある
+4. **デバッグの重要性**: 詳細画面では動作するが編集画面では動作しない → 両者で使用している処理の違いを特定することが重要
+
+---
 
 ## 今後のバグ修正もここに追記していきます
 
