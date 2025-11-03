@@ -17,7 +17,168 @@
 
 ---
 
-## 2025年11月2日
+## 2025年11月2日（過去の修正分）
+
+### 🔴 HTMLタグ記号（`<>`）が消える問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: データ処理  
+**重要度**: 🔴Critical  
+**コミットID**: `8385e06`
+
+#### 問題
+- ユーザーが「意味・説明」や「例文」で`<`や`>`を使うと、保存後に消えてしまう
+- 例：「`<div>`タグを使う」→「タグを使う」になる
+- プログラミング用語を扱うアプリなのに、コード記号が使えない致命的なバグ
+
+#### 原因
+- base64画像対策として追加した`replace(/<[^>]*>/g, '')`処理が、ユーザーが入力した`<>`記号も削除してしまっていた
+- HTMLインジェクション対策が過剰だった
+
+```typescript
+// 問題のあったコード（AddTermForm.tsx）
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // ❌ ユーザー入力の<>も削除されてしまう
+  const cleanedMeaning = formData.meaning.replace(/<[^>]*>/g, '');
+  const cleanedExample = formData.example.replace(/<[^>]*>/g, '');
+  
+  onAddTerm({
+    ...formData,
+    meaning: cleanedMeaning,
+    example: cleanedExample,
+  });
+};
+```
+
+#### 修正内容
+1. **HTML除去処理を削除**：ユーザー入力の`<>`を保持
+2. **renderRichText関数でエスケープ**：表示時に安全にHTMLエスケープ
+3. **base64画像は別途処理**：`dangerouslySetInnerHTML`使用時のみ注意
+
+```typescript
+// 修正後のコード
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  // ✅ HTML除去処理を削除、生データをそのまま保存
+  onAddTerm({
+    ...formData,
+    meaning: formData.meaning,
+    example: formData.example,
+  });
+};
+
+// renderRichText関数内で適切にエスケープ
+const renderRichText = (text: string) => {
+  let formattedText = text
+    .replace(/&/g, '&amp;')   // &を最初にエスケープ
+    .replace(/</g, '&lt;')    // <をエスケープ
+    .replace(/>/g, '&gt;');   // >をエスケープ
+  
+  // その後、カスタムタグを処理
+  formattedText = formattedText
+    .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c;">$1</span>')
+    // ...
+  
+  return formattedText;
+};
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx` - `handleSubmit`関数、`renderRichText`関数
+- `src/components/EditTermModal.tsx` - `handleSubmit`関数、`renderRichText`関数
+- `src/components/TermsList.tsx` - `renderRichText`関数
+
+#### 学んだこと
+- ユーザー入力を削除するのではなく、表示時にエスケープする方が安全
+- XSS対策はReactの`dangerouslySetInnerHTML`を慎重に使うことで対応
+- プログラミング学習アプリでは、コード記号の入力が必須要件
+
+---
+
+### 🟡 フローティングツールバーの選択範囲が見えなくなる問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX  
+**重要度**: 🟡Medium  
+**コミットID**: `5bdc1c2`, `624eb5b`
+
+#### 問題
+- テキストを選択してフローティングツールバーが表示されると、選択部分が見えなくなる
+- どのテキストに書式を適用しようとしているか分からない
+- ツールバーをクリックした瞬間に選択が解除されてしまう
+
+#### 原因
+1. Popoverがフォーカスを奪うため、選択がクリアされる
+2. 選択範囲の情報が保存されていない
+3. ツールバー表示で選択部分が隠れる
+
+#### 修正内容（2段階）
+
+**第1段階**（コミット`5bdc1c2`）：
+- フローティングツールバーをカーソル位置に表示
+- Material-UIの`Popover`コンポーネントを使用
+- テキスト選択時に`handleTextSelection`関数を実行
+
+```typescript
+const handleTextSelection = (field: 'meaning' | 'example') => {
+  const textarea = document.getElementById(field) as HTMLTextAreaElement;
+  if (!textarea) return;
+  
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = textarea.value.substring(start, end);
+  
+  if (selectedText.length > 0) {
+    setFloatingToolbar({
+      anchorEl: textarea,
+      field: field
+    });
+  }
+};
+```
+
+**第2段階**（コミット`624eb5b`）：
+- 選択範囲情報（start/end/selectedText）を状態として保存
+- ツールバー上部に選択中のテキストを表示（50文字まで）
+- 書式適用時は保存した選択範囲を使用
+
+```typescript
+const [floatingToolbar, setFloatingToolbar] = useState<{
+  anchorEl: HTMLElement | null;
+  field: 'meaning' | 'example' | null;
+  selectedText: string;        // ✅ 追加
+  selectionStart: number;      // ✅ 追加
+  selectionEnd: number;        // ✅ 追加
+}>({
+  anchorEl: null,
+  field: null,
+  selectedText: '',
+  selectionStart: 0,
+  selectionEnd: 0
+});
+
+// ツールバー内で選択テキストを表示
+<div style={{ padding: '8px', borderBottom: '1px solid #ddd' }}>
+  <Typography variant="caption" color="text.secondary">
+    選択中: {floatingToolbar.selectedText.substring(0, 50)}
+    {floatingToolbar.selectedText.length > 50 && '...'}
+  </Typography>
+</div>
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx` - フローティングツールバー実装
+- `src/components/EditTermModal.tsx` - フローティングツールバー実装
+
+#### 学んだこと
+- Popoverは`disableRestoreFocus`を使ってもフォーカス管理が難しい
+- 選択範囲情報を状態として保存することで、フォーカスが移動しても書式適用可能
+- UXでは「今何をしているか」の視覚的フィードバックが重要
+
+---
 
 ### 🟠 プレビューでHTMLタグが表示される問題
 
