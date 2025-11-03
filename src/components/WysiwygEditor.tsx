@@ -46,13 +46,54 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
     
     let html = text;
     
-    // HTMLエスケープ（タグ以外）
+    // プレースホルダーマップ（カスタムタグ内のHTMLエスケープ文字を保護）
+    const placeholders: { [key: string]: string } = {};
+    let placeholderCount = 0;
+    
+    // 1. カスタムタグ内の内容を一時的にプレースホルダーに置き換え
+    html = html.replace(/(\[(?:red|blue|green|orange|purple|pink|xsmall|small|large|xlarge)\])(.*?)(\[\/(?:red|blue|green|orange|purple|pink|xsmall|small|large|xlarge)\])/g, (match, openTag, content, closeTag) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return openTag + placeholder + closeTag;
+    });
+    
+    // マークダウン風タグも同様に
+    html = html.replace(/(\*\*)(.*?)(\*\*)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    html = html.replace(/(\*)(.*?)(\*)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    html = html.replace(/(`)(.*?)(`)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    html = html.replace(/(~~)(.*?)(~~)/g, (match, open, content, close) => {
+      const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+      placeholders[placeholder] = content;
+      placeholderCount++;
+      return open + placeholder + close;
+    });
+    
+    // 2. HTMLエスケープ（タグ外の<>を保護）
     html = html
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
     
-    // カスタムタグをHTMLに変換
+    // 3. カスタムタグをHTMLに変換
     html = html
       // 色タグ
       .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c; font-weight: 600;">$1</span>')
@@ -73,6 +114,11 @@ const WysiwygEditor: React.FC<WysiwygEditorProps> = ({
       .replace(/~~(.*?)~~/g, '<del>$1</del>')
       // 改行
       .replace(/\n/g, '<br>');
+    
+    // 4. プレースホルダーを元のコンテンツに戻す
+    Object.keys(placeholders).forEach(placeholder => {
+      html = html.replace(placeholder, placeholders[placeholder]);
+    });
     
     return html;
   };

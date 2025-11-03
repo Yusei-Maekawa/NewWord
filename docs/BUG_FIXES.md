@@ -442,6 +442,140 @@ if (index !== -1) {
 
 ---
 
+### 🟠 書式ボタンを2回押すとタグが重複する問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX  
+**重要度**: 🟠High  
+**日時**: 2025年11月3日
+
+#### 問題
+- 同じテキストに同じ書式を2回適用すると、タグが重複してしまう
+- 例：「テスト」を選択して赤色を2回押すと`[red]テスト[/red]`(すべて赤文字)になる
+- ユーザーは書式のON/OFF切り替え（トグル）を期待している
+
+#### 原因
+- 書式適用時に、既に書式が適用されているかチェックしていなかった
+- 常に新しいタグを追加するだけのロジックだった
+
+```typescript
+// 問題のあったコード
+const formattedText = `[red]${selectedText}[/red]`;
+const newValue = currentValue.substring(0, index) + formattedText + ...;
+// 既存の書式を考慮せず、常に追加
+```
+
+#### 修正内容
+**トグル動作の実装**：
+1. 書式を適用する前に、`currentValue.includes(formatPattern)`で既存書式をチェック
+2. 既に書式が適用されている場合は除去（トグルOFF）
+3. 書式がない場合は適用（トグルON）
+
+```typescript
+// 修正後のコード
+const formatPattern = `[red]${selectedText}[/red]`;
+const isFormatted = currentValue.includes(formatPattern);
+
+if (isFormatted) {
+  // 既に書式が適用されている場合は除去（トグルOFF）
+  newValue = currentValue.replace(formatPattern, selectedText);
+} else {
+  // 書式を適用（トグルON）
+  const index = currentValue.indexOf(selectedText);
+  newValue = currentValue.substring(0, index) + formatPattern + currentValue.substring(index + selectedText.length);
+}
+```
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx` - `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx` - `applyFormatWithSelection`関数
+
+#### 学んだこと
+- UI操作は直感的であるべき（同じボタンを2回押す=元に戻す）
+- 状態のトグル動作はユーザビリティの基本
+- 適用前に現在の状態を確認する習慣が重要
+
+---
+
+### 🔴 `<>`記号があると書式が反映されない問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: データ処理  
+**重要度**: 🔴Critical  
+**日時**: 2025年11月3日 午後
+
+#### 問題
+- テキストに`<>`記号が含まれていると、色・サイズなどの書式が全く反映されない
+- 例：「`<div>`タグ」に赤色を適用しても、赤くならない
+- プログラミング学習アプリとして致命的
+
+#### 原因
+- WysiwygEditorの`tagsToHtml`関数で、処理順序が間違っていた
+- **HTMLエスケープを先に実行** → `<` が `&lt;` に変換される
+- その後カスタムタグを処理 → `[red]&lt;div&gt;[/red]` となり、正規表現がマッチしない
+
+```typescript
+// 問題のあった処理順序
+// 1. HTMLエスケープ（先に実行）
+html = html
+  .replace(/</g, '&lt;')  // <div> → &lt;div&gt;
+  .replace(/>/g, '&gt;');
+
+// 2. カスタムタグ処理（後に実行）
+html = html
+  .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c;">$1</span>');
+  // ❌ [red]<div>[/red] の<>はすでに&lt;&gt;になっているため、マッチしない
+```
+
+#### 修正内容
+**プレースホルダーパターンの導入**：
+1. カスタムタグ内の内容を一時的にプレースホルダー（`___PLACEHOLDER_0___`）に置き換え
+2. HTMLエスケープを実行（プレースホルダーは保護される）
+3. カスタムタグをHTMLに変換
+4. プレースホルダーを元のコンテンツに戻す
+
+```typescript
+// 修正後のコード
+const placeholders: { [key: string]: string } = {};
+let placeholderCount = 0;
+
+// 1. カスタムタグ内の内容をプレースホルダーに置き換え
+html = html.replace(/(\[red\])(.*?)(\[\/red\])/g, (match, openTag, content, closeTag) => {
+  const placeholder = `___PLACEHOLDER_${placeholderCount}___`;
+  placeholders[placeholder] = content; // <div>を保存
+  placeholderCount++;
+  return openTag + placeholder + closeTag; // [red]___PLACEHOLDER_0___[/red]
+});
+
+// 2. HTMLエスケープ（タグ外のみ）
+html = html
+  .replace(/</g, '&lt;')  // プレースホルダー内は保護される
+  .replace(/>/g, '&gt;');
+
+// 3. カスタムタグをHTMLに変換
+html = html
+  .replace(/\[red\](.*?)\[\/red\]/g, '<span style="color: #e74c3c;">$1</span>');
+  // ✅ [red]___PLACEHOLDER_0___[/red] → <span>___PLACEHOLDER_0___</span>
+
+// 4. プレースホルダーを元に戻す
+Object.keys(placeholders).forEach(placeholder => {
+  html = html.replace(placeholder, placeholders[placeholder]); // <div>を復元
+});
+// 最終結果: <span style="color: #e74c3c;"><div></span> ✅ 正しく表示
+```
+
+#### 影響範囲
+- `src/components/WysiwygEditor.tsx` - `tagsToHtml`関数
+
+#### 学んだこと
+- **処理順序が結果を大きく左右する**（特に文字列変換）
+- エスケープ処理は「保護すべき部分」を先に退避させる
+- プレースホルダーパターンは複雑な文字列処理で有効
+- プログラミング学習では`<>`が頻出するため、特別な配慮が必要
+- 同様の問題が過去にもあった（画像タグ問題）→ パターンとして学習すべき
+
+---
+
 ## 今後のバグ修正もここに追記していきます
 
 各バグ修正を記録することで：

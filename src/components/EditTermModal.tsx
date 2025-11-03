@@ -490,70 +490,96 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
     const editor = document.getElementById(field === 'meaning' ? 'editMeaning' : 'editExample');
     if (!editor) return;
 
-    let formattedText = '';
+    const currentValue = formData[field] || '';
+    
+    // 書式のトグル動作：既に書式が適用されている場合は除去
+    let formatPattern = '';
+    let isFormatted = false;
+    
     switch (format) {
       case 'bold':
-        formattedText = `**${selectedText}**`;
+        formatPattern = `**${selectedText}**`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'italic':
-        formattedText = `*${selectedText}*`;
+        formatPattern = `*${selectedText}*`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'code':
-        formattedText = `\`${selectedText}\``;
+        formatPattern = `\`${selectedText}\``;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'strike':
-        formattedText = `~~${selectedText}~~`;
+        formatPattern = `~~${selectedText}~~`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'red':
-        formattedText = `[red]${selectedText}[/red]`;
+        formatPattern = `[red]${selectedText}[/red]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'blue':
-        formattedText = `[blue]${selectedText}[/blue]`;
+        formatPattern = `[blue]${selectedText}[/blue]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'green':
-        formattedText = `[green]${selectedText}[/green]`;
+        formatPattern = `[green]${selectedText}[/green]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'orange':
-        formattedText = `[orange]${selectedText}[/orange]`;
+        formatPattern = `[orange]${selectedText}[/orange]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'purple':
-        formattedText = `[purple]${selectedText}[/purple]`;
+        formatPattern = `[purple]${selectedText}[/purple]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'pink':
-        formattedText = `[pink]${selectedText}[/pink]`;
+        formatPattern = `[pink]${selectedText}[/pink]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'xsmall':
-        formattedText = `[xsmall]${selectedText}[/xsmall]`;
+        formatPattern = `[xsmall]${selectedText}[/xsmall]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'small':
-        formattedText = `[small]${selectedText}[/small]`;
+        formatPattern = `[small]${selectedText}[/small]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'normal':
-        formattedText = `[normal]${selectedText}[/normal]`;
+        formatPattern = `[normal]${selectedText}[/normal]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'large':
-        formattedText = `[large]${selectedText}[/large]`;
+        formatPattern = `[large]${selectedText}[/large]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       case 'xlarge':
-        formattedText = `[xlarge]${selectedText}[/xlarge]`;
+        formatPattern = `[xlarge]${selectedText}[/xlarge]`;
+        isFormatted = currentValue.includes(formatPattern);
         break;
       default:
-        formattedText = selectedText;
+        formatPattern = selectedText;
     }
 
-    // WYSIWYGエディタでは、選択されたテキストをformData内で検索して置き換え
-    const currentValue = formData[field] || '';
-    const index = currentValue.indexOf(selectedText);
+    let newValue = '';
     
-    if (index !== -1) {
-      // 最初に見つかった箇所を置き換え
-      const newValue = currentValue.substring(0, index) + formattedText + currentValue.substring(index + selectedText.length);
-      handleInputChange(field, newValue);
+    if (isFormatted) {
+      // 既に書式が適用されている場合は除去（トグルOFF）
+      newValue = currentValue.replace(formatPattern, selectedText);
     } else {
-      // 見つからない場合は末尾に追加
-      const newValue = currentValue + formattedText;
-      handleInputChange(field, newValue);
+      // 書式を適用（トグルON）
+      const index = currentValue.indexOf(selectedText);
+      
+      if (index !== -1) {
+        // 最初に見つかった箇所を置き換え
+        newValue = currentValue.substring(0, index) + formatPattern + currentValue.substring(index + selectedText.length);
+      } else {
+        // 見つからない場合は末尾に追加
+        newValue = currentValue + formatPattern;
+      }
     }
+    
+    handleInputChange(field, newValue);
     
     // フォーカスを戻す
     setTimeout(() => {
