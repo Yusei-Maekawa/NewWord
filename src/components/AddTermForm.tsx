@@ -123,9 +123,15 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
   const [floatingToolbar, setFloatingToolbar] = useState<{
     anchorEl: HTMLElement | null;
     field: 'meaning' | 'example' | null;
+    selectedText: string;
+    selectionStart: number;
+    selectionEnd: number;
   }>({
     anchorEl: null,
-    field: null
+    field: null,
+    selectedText: '',
+    selectionStart: 0,
+    selectionEnd: 0
   });
 
   // テキストエリアの参照
@@ -356,18 +362,25 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
 
     // テキストが選択されている場合のみツールバーを表示
-    if (start !== end) {
+    if (start !== end && selectedText.length > 0) {
       setFloatingToolbar({
         anchorEl: textarea,
-        field: field
+        field: field,
+        selectedText: selectedText,
+        selectionStart: start,
+        selectionEnd: end
       });
     } else {
       // 選択が解除されたらツールバーを非表示
       setFloatingToolbar({
         anchorEl: null,
-        field: null
+        field: null,
+        selectedText: '',
+        selectionStart: 0,
+        selectionEnd: 0
       });
     }
   };
@@ -376,14 +389,27 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
   const handleCloseFloatingToolbar = () => {
     setFloatingToolbar({
       anchorEl: null,
-      field: null
+      field: null,
+      selectedText: '',
+      selectionStart: 0,
+      selectionEnd: 0
     });
   };
 
   // フローティングツールバーから書式を適用
   const applyFormatFromToolbar = (format: string) => {
     if (!floatingToolbar.field) return;
-    applyFormat(floatingToolbar.field, format);
+    
+    // 保存した選択範囲情報を使用
+    const { field, selectedText, selectionStart, selectionEnd } = floatingToolbar;
+    
+    if (selectedText.length === 0) {
+      alert('テキストを選択してからボタンをクリックしてください。');
+      handleCloseFloatingToolbar();
+      return;
+    }
+
+    applyFormatWithSelection(field, format, selectedText, selectionStart, selectionEnd);
     handleCloseFloatingToolbar();
   };
 
@@ -400,6 +426,20 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       alert('テキストを選択してからボタンをクリックしてください。');
       return;
     }
+
+    applyFormatWithSelection(field, format, selectedText, start, end);
+  };
+
+  // 選択範囲情報を使って書式を適用する共通関数
+  const applyFormatWithSelection = (
+    field: 'meaning' | 'example', 
+    format: string, 
+    selectedText: string, 
+    start: number, 
+    end: number
+  ) => {
+    const textarea = document.getElementById(field) as HTMLTextAreaElement;
+    if (!textarea) return;
 
     let formattedText = '';
     switch (format) {
@@ -733,13 +773,34 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             borderRadius: '8px',
             display: 'flex',
-            flexDirection: 'row',
-            gap: '4px',
-            flexWrap: 'wrap',
+            flexDirection: 'column',
+            gap: '8px',
             maxWidth: '400px'
           }
         }}
       >
+        {/* 選択テキストの表示 */}
+        {floatingToolbar.selectedText && (
+          <div style={{ 
+            padding: '6px 8px', 
+            background: '#f0f0f0', 
+            borderRadius: '4px',
+            fontSize: '13px',
+            color: '#333',
+            maxHeight: '60px',
+            overflow: 'auto',
+            wordBreak: 'break-word',
+            borderLeft: '3px solid #1976d2'
+          }}>
+            <div style={{ fontSize: '11px', color: '#666', marginBottom: '2px' }}>選択中:</div>
+            <div style={{ fontWeight: 500 }}>
+              {floatingToolbar.selectedText.length > 50 
+                ? floatingToolbar.selectedText.substring(0, 50) + '...' 
+                : floatingToolbar.selectedText}
+            </div>
+          </div>
+        )}
+        
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
           {/* 書式ボタン */}
           <Tooltip title="太字">
