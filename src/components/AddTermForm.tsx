@@ -458,8 +458,12 @@ const AddTermForm: React.FC<AddTermFormProps> = ({ onAddTerm, activeCategory, ca
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&');
     
-    // 残りのHTMLタグを除去
-    html = html.replace(/<[^>]+>/g, '');
+    // 残りのHTMLタグを除去（すべて削除されるまで繰り返すことで多重/悪意タグ対策）
+    let previousHtml;
+    do {
+      previousHtml = html;
+      html = html.replace(/<[^>]+>/g, '');
+    } while (html !== previousHtml);
     
     return html;
   };
