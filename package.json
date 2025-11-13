@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "start": "react-scripts start",
-    "dev": "concurrently \"npm run server\" \"npm start\"",
+    "dev": "react-scripts start",
+    "dev:with-server": "concurrently \"npm run server\" \"npm start\"",
     "server": "node server.js",
     "build": "react-scripts build",
     "test": "react-scripts test",

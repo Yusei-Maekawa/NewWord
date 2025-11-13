@@ -169,6 +169,7 @@ import StudyTimeInput from './components/StudyTimeInput';
 import { useTermsFirestore } from './hooks/useTermsFirestore';
 import { useTerms } from './hooks/useTerms';
 import { useCategoriesFirestore } from './hooks/useCategoriesFirestore';
+import { useStudyLogs } from './hooks/useStudyLogs';
 import './styles/App.css';
 import './utils/debugFirestore'; // デバッグツールを読み込む
 import { VERSION_INFO, printVersionInfo } from './version-config';
@@ -239,6 +240,17 @@ const App: React.FC = () => {
     toggleFavorite: toggleCategoryFavorite 
   } = useCategoriesFirestore();
 
+  // ===== 学習ログ管理（Firestore） =====
+  const {
+    studyLogs,
+    loading: logsLoading,
+    error: logsError,
+    addStudyLog,
+    deleteStudyLog,
+    getTotalStudyTime,
+    getStudyStreak,
+  } = useStudyLogs();
+
   // カテゴリデータのデバッグログと循環参照チェック
   React.useEffect(() => {
     if (categories.length > 0) {
@@ -301,12 +313,6 @@ const App: React.FC = () => {
    * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
    */
   const [showSchedule, setShowSchedule] = useState(false);
-
-  /**
-   * 学習ログデータの状態
-   * @type {[StudyLog[], React.Dispatch<React.SetStateAction<StudyLog[]>>]}
-   */
-  const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
 
   // ===== 関数定義 =====
 
@@ -411,22 +417,22 @@ const App: React.FC = () => {
   // 今日の勉強時間（studyLogsから集計）
   const todayTime = studyLogs.filter(log => log.date === today).reduce((sum, log) => sum + log.amount, 0);
 
-  // 勉強時間記録（ストップウォッチ・手動入力）
-  const handleRecordTime = (minutes: number) => {
-    // 例: カテゴリは現在選択中のもの、なければ'all'
-    const category = activeCategory === 'all' ? 'all' : activeCategory;
-    // 既存の同日・同カテゴリがあれば加算
-    setStudyLogs(prev => {
-      const idx = prev.findIndex(log => log.date === today && log.category === category);
-      if (idx !== -1) {
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], amount: updated[idx].amount + minutes };
-        return updated;
-      } else {
-        return [...prev, { date: today, category, amount: minutes }];
-      }
-    });
-    setNotification({ message: `勉強時間を${minutes}分記録しました！`, type: 'success' });
+  // 勉強時間記録（ストップウォッチ・手動入力）- Firestoreに保存
+  const handleRecordTime = async (minutes: number) => {
+    try {
+      const category = activeCategory === 'all' ? 'all' : activeCategory;
+      
+      await addStudyLog({
+        date: today,
+        category,
+        amount: minutes,
+      });
+      
+      setNotification({ message: `勉強時間を${minutes}分記録しました！`, type: 'success' });
+    } catch (error) {
+      console.error('学習時間記録エラー:', error);
+      setNotification({ message: '学習時間の記録に失敗しました', type: 'error' });
+    }
   };
 
   return (
@@ -456,9 +462,18 @@ const App: React.FC = () => {
             terms={terms}
             onBack={() => setShowSchedule(false)}
             studyLogs={studyLogs}
-            onDeleteLog={(date, category) => {
-              setStudyLogs(prev => prev.filter(log => !(log.date === date && log.category === category)));
-              setNotification({ message: '勉強記録を削除しました', type: 'success' });
+            onDeleteLog={async (date, category) => {
+              try {
+                // 該当する学習ログを検索してIDを取得し削除
+                const logToDelete = studyLogs.find(log => log.date === date && log.category === category);
+                if (logToDelete) {
+                  await deleteStudyLog(logToDelete.id);
+                  setNotification({ message: '勉強記録を削除しました', type: 'success' });
+                }
+              } catch (error) {
+                console.error('学習ログ削除エラー:', error);
+                setNotification({ message: '削除に失敗しました', type: 'error' });
+              }
             }}
           />
         ) : (
