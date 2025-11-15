@@ -16,53 +16,6 @@
 - **コミットID**: 関連するgitコミット
 ---
 
-## 2025年11月13日
-
-### 🟡 学習ログの状態管理をFirestoreに移行
-
-**バージョン**: v0.3.1-dev  
-**カテゴリ**: データ処理  
-**ブランチ**: `feature/term-schedule-management`  
-**コミットID**: `55e8cd2`
-
-#### 実装内容
-- `useStudyLogs`カスタムフックを新規作成
-- Firestoreでの学習ログ管理機能を実装
-- `App.tsx`のローカル状態管理をFirestoreベースに変更
-
-#### 変更ファイル
-1. `src/hooks/useStudyLogs.ts`（新規作成）
-   - Firestoreとの連携機能
-   - CRUD操作（追加・更新・削除）
-   - 統計機能（総学習時間、ストリーク、週次・月次集計）
-   
-2. `src/types.ts`
-   - `StudyLog`型に`id`, `createdAt`, `updatedAt`フィールドを追加
-   - `termsCount`フィールドを追加（オプション）
-
-3. `src/App.tsx`
-   - `useStudyLogs`フックのインポート
-   - ローカルの`studyLogs`状態を削除
-   - `handleRecordTime`関数をFirestore保存に変更
-   - `SchedulePage`の`onDeleteLog`をFirestore削除に変更
-
-4. `package.json`
-   - `dev`スクリプトをFirestoreのみで動作するように変更
-   - MySQLサーバー不要に
-
-#### メリット
-✅ リアルタイム同期（複数デバイス間でのデータ共有）
-✅ サーバーレス（バックエンドサーバー不要）
-✅ 自動バックアップ（Firestore側で管理）
-✅ 拡張性の向上（統計機能の追加が容易）
-
-#### 次のステップ
-- [ ] 学習目標設定機能の追加
-- [ ] 統計グラフの可視化（recharts等）
-- [ ] ヒートマップカレンダーの実装
-
----
-
 ## 2025年11月2日
 
 ### 🟠 プレビューでHTMLタグが表示される問題
@@ -835,7 +788,6 @@ const selectedText = getSelectedTextWithTags(selection);
 
 ---
 
-## 2025年11月3日（続き3）
 
 ### 🟠 編集画面で`<>`記号が表示されない問題
 
@@ -1151,6 +1103,21 @@ const handleTextSelection = (field: 'meaning' | 'example') => {
 - 同じ修正を複数のコンポーネント（AddTermForm, EditTermModal）に適用する必要があった
 
 ---
+
+## 2025年11月15日
+## sanitize-html型定義エラーの解決
+
+### 問題
+- ビルド時に `TS7016` エラーが発生
+- `sanitize-html` の型定義が見つからない
+
+### 解決方法
+- `@types/sanitize-html` をインストール
+- コマンド: `npm install --save-dev @types/sanitize-html`
+
+### 影響範囲
+- `src/components/TermList.tsx`
+- WYSIWYGエディタでHTMLサニタイゼーションを使用
 
 ## 今後のバグ修正もここに追記していきます
 
