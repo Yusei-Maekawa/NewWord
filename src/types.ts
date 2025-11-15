@@ -209,3 +209,111 @@ export interface StudySession {
   isActive: boolean;
   showAnswer: boolean;
 }
+
+/**
+ * 行動履歴の型定義
+ * ユーザーの学習行動（語句追加・学習・復習）を記録するデータ構造
+ * 
+ * @interface ActivityLog
+ * @property {string} id - 行動ログの一意の識別子（Firestore document ID）
+ * @property {string} type - 行動の種類（'add_term' | 'study' | 'review'）
+ * @property {string} date - 行動日付（YYYY-MM-DD形式）
+ * @property {string} timestamp - 行動日時（ISO 8601形式）
+ * @property {string} category - カテゴリキー
+ * @property {ActivityData} data - 行動の詳細データ
+ * @property {string} createdAt - 作成日時（ISO 8601形式）
+ * 
+ * @example
+ * ```typescript
+ * const activityLog: ActivityLog = {
+ *   id: "log123",
+ *   type: "add_term",
+ *   date: "2025-11-15",
+ *   timestamp: "2025-11-15T10:30:00Z",
+ *   category: "english",
+ *   data: { termId: "term123", term: "apple" },
+ *   createdAt: "2025-11-15T10:30:00Z"
+ * };
+ * ```
+ */
+export interface ActivityLog {
+  id: string;
+  type: 'add_term' | 'study' | 'review';
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO 8601形式
+  category: string;
+  data: ActivityData;
+  createdAt: string; // ISO 8601形式
+}
+
+/**
+ * 行動データの型（Discriminated Union）
+ */
+export type ActivityData = 
+  | AddTermData
+  | StudyData
+  | ReviewData;
+
+/**
+ * 語句追加データ
+ */
+export interface AddTermData {
+  termId: string;       // 追加した語句のID
+  term: string;         // 語句名
+}
+
+/**
+ * 学習データ
+ */
+export interface StudyData {
+  duration: number;     // 学習時間（分）
+}
+
+/**
+ * 復習データ
+ */
+export interface ReviewData {
+  termId: string;       // 復習した語句のID
+  term: string;         // 語句名
+  isCorrect: boolean;   // 正解/不正解
+}
+
+/**
+ * 日別サマリーの型定義
+ * カレンダー表示用に日別の行動を集計したデータ
+ * 
+ * @interface DailySummary
+ * @property {string} id - サマリーID（YYYY-MM-DD形式）
+ * @property {string} date - 日付（YYYY-MM-DD）
+ * @property {number} totalStudyTime - 合計学習時間（分）
+ * @property {number} termsAdded - 追加した語句数
+ * @property {number} termsReviewed - 復習した語句数
+ * @property {number} correctRate - 正解率（0-100）
+ * @property {CategorySummary} byCategory - カテゴリ別サマリー
+ * @property {string} createdAt - 作成日時（ISO 8601形式）
+ * @property {string} updatedAt - 更新日時（ISO 8601形式）
+ */
+export interface DailySummary {
+  id: string; // YYYY-MM-DD
+  date: string;
+  totalStudyTime: number;
+  termsAdded: number;
+  termsReviewed: number;
+  correctRate: number;
+  byCategory: {
+    [categoryKey: string]: CategorySummary;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * カテゴリ別サマリー
+ */
+export interface CategorySummary {
+  studyTime: number;      // 学習時間（分）
+  termsAdded: number;     // 追加した語句数
+  termsReviewed: number;  // 復習した語句数
+  correctCount: number;   // 正解数
+  incorrectCount: number; // 不正解数
+}
