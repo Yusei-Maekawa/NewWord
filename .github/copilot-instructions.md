@@ -27,6 +27,9 @@ applyTo: "**"
 - **追加した変数、関数、コンポーネント等はその記載しているファイルの上部に一覧としてまとめる** - List added variables, functions, components, etc. at the top of the file where they are defined
 
 - **開発技術スタックや、リポジトリ構成等変わった内容をREADMEに追記する** - Update README with tech stack or repository changes
+
+- **毎回npm start をしないでください(起動しているので)** - Do not run npm start every time (it is already running)
+
 - **エラーやバグの修正を行った場合は、BUG_FIXES.mdにその内容と解決方法を記載する** - Document error fixes and solutions in BUG_FIXES.md
 
 - **常にバックアップを取ることを忘れないでください** - Never forget to take backups

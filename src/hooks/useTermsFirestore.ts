@@ -137,6 +137,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseClient';
 import { Term } from '../types';
+import { useActivityLogs } from './useActivityLogs';
 
 /**
  * Firestore ドキュメントを Term 型に変換
@@ -166,6 +167,7 @@ export const useTermsFirestore = () => {
   const [terms, setTerms] = useState<Term[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { logActivity } = useActivityLogs(); // 行動ログシステムを統合
 
   /**
    * Firestore リアルタイムリスナーをセットアップ
@@ -204,12 +206,18 @@ export const useTermsFirestore = () => {
    */
   const addTerm = async (termData: Omit<Term, 'id' | 'createdAt'>) => {
     try {
-      await addDoc(collection(db, 'terms'), {
+      const docRef = await addDoc(collection(db, 'terms'), {
         word: termData.term,
         meaning: termData.meaning,
         example: termData.example || '',
         categoryId: termData.category,
         created_at: Timestamp.now()
+      });
+      
+      // 行動ログを記録: 語句追加アクティビティ
+      await logActivity('add_term', termData.category, {
+        termId: docRef.id,
+        term: termData.term
       });
     } catch (err: any) {
       console.error('Failed to add term:', err);

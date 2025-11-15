@@ -170,6 +170,7 @@ import { useTermsFirestore } from './hooks/useTermsFirestore';
 import { useTerms } from './hooks/useTerms';
 import { useCategoriesFirestore } from './hooks/useCategoriesFirestore';
 import { useStudyLogs } from './hooks/useStudyLogs';
+import { useActivityLogs } from './hooks/useActivityLogs'; // 行動ログシステムを統合
 import './styles/App.css';
 import './utils/debugFirestore'; // デバッグツールを読み込む
 import { VERSION_INFO, printVersionInfo } from './version-config';
@@ -251,6 +252,9 @@ const App: React.FC = () => {
     getStudyStreak,
   } = useStudyLogs();
 
+  // ===== 行動ログシステム（Firestore） =====
+  const { logActivity } = useActivityLogs();
+
   // カテゴリデータのデバッグログと循環参照チェック
   React.useEffect(() => {
     if (categories.length > 0) {
@@ -313,6 +317,16 @@ const App: React.FC = () => {
    * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
    */
   const [showSchedule, setShowSchedule] = useState(false);
+
+  // 通知を3秒後に自動クリア
+  React.useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // ===== 関数定義 =====
 
@@ -418,19 +432,32 @@ const App: React.FC = () => {
   const todayTime = studyLogs.filter(log => log.date === today).reduce((sum, log) => sum + log.amount, 0);
 
   // 勉強時間記録（ストップウォッチ・手動入力）- Firestoreに保存
-  const handleRecordTime = async (minutes: number) => {
+  const handleRecordTime = async (minutes: number, category: string) => {
     try {
-      const category = activeCategory === 'all' ? 'all' : activeCategory;
+      console.log('🕐 学習時間記録開始:', { minutes, category });
       
+      console.log('📝 studyLog追加中...');
       await addStudyLog({
         date: today,
         category,
         amount: minutes,
       });
+      console.log('✅ studyLog追加完了');
       
-      setNotification({ message: `勉強時間を${minutes}分記録しました！`, type: 'success' });
+      // 行動ログを記録: 学習アクティビティ
+      console.log('📊 activityLog追加中...', { category, duration: minutes });
+      await logActivity('study', category, {
+        duration: minutes
+      });
+      console.log('✅ activityLog追加完了');
+      
+      const categoryName = categories.find(c => c.category_key === category)?.category_name || category;
+      setNotification({ 
+        message: `${categoryName}の勉強時間を${minutes}分記録しました！`, 
+        type: 'success' 
+      });
     } catch (error) {
-      console.error('学習時間記録エラー:', error);
+      console.error('❌ 学習時間記録エラー:', error);
       setNotification({ message: '学習時間の記録に失敗しました', type: 'error' });
     }
   };
@@ -448,7 +475,11 @@ const App: React.FC = () => {
             今日の勉強時間: <span style={{ color: '#28a745', fontWeight: 700 }}>{todayTime}分</span>
           </div>
         </div>
-        <StudyTimeInput onRecord={handleRecordTime} />
+        <StudyTimeInput 
+          onRecord={handleRecordTime} 
+          categories={categories}
+          activeCategory={activeCategory}
+        />
         <Button 
           variant="contained" 
           color="primary" 
