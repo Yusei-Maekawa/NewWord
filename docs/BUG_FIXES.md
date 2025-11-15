@@ -1105,19 +1105,75 @@ const handleTextSelection = (field: 'meaning' | 'example') => {
 ---
 
 ## 2025年11月15日
-## sanitize-html型定義エラーの解決
+### sanitize-html型定義エラーの解決
 
-### 問題
+#### 問題
 - ビルド時に `TS7016` エラーが発生
 - `sanitize-html` の型定義が見つからない
 
-### 解決方法
+#### 解決方法
 - `@types/sanitize-html` をインストール
 - コマンド: `npm install --save-dev @types/sanitize-html`
 
-### 影響範囲
+#### 影響範囲
 - `src/components/TermList.tsx`
 - WYSIWYGエディタでHTMLサニタイゼーションを使用
+
+### 🟠 開発サーバーの起動が遅く、メモリ不足でプロセスが強制終了される問題
+
+**バージョン**: v0.4.0-dev
+**カテゴリ**: パフォーマンス / 開発体験
+**重要度**: 🟠High
+
+#### 問題
+- 開発サーバー（`npm start`）の起動が非常に遅く、起動途中でプロセスが終了（`The build failed because the process exited too early`）する
+- 時折、ポート3000が既に使用中と出て起動できない（古い`react-scripts`プロセスが残っている）
+- 再度起動すると「再接続できない」や「メモリ不足」などのエラーが出る
+
+#### 再現手順
+1. `npm start` で開発サーバーを起動
+2. 起動が遅くなり、途中でプロセスが停止する（非常に時間がかかる、あるいはExit with code 1）
+3. `Something is already running on port 3000` が表示される場合は`lsof -ti:3000`で残りプロセスを確認
+
+#### 原因
+- create-react-app (react-scripts) の dev サーバーは Webpack、TypeScript チェッカー、ESLint など複数のサービスを立ち上げ、メモリを大量に消費する
+- `fork-ts-checker-webpack-plugin` や ESLint の同時実行が起動時に高負荷をかけている
+- `react-scripts` が既存プロセスを上手くクリーンアップしていない場合、port競合が発生する
+
+#### 修正内容（暫定）
+1. **`package.json` に軽量起動スクリプトを追加**
+  - `start:light`: 低メモリ・高速起動（`GENERATE_SOURCEMAP=false`などを指定）
+  - `start:mem`: メモリ割当を増やして起動
+  - `start:prod`: プロダクションビルドを静的に配信（`serve`）して dev サーバーを回避
+
+2. **`.env` に起動最適化フラグを追加**（開発時の負荷を下げる）
+  - `GENERATE_SOURCEMAP=false`
+  - `FAST_REFRESH=false`
+  - `TSC_COMPILE_ON_ERROR=true`
+  - `ESLINT_NO_DEV_ERRORS=true`
+  - `SKIP_PREFLIGHT_CHECK=true`（必要に応じて）
+
+3. **`start` スクリプトのメモリオプションを修正**
+  - `NODE_OPTIONS=--max_old_space_size=4096 react-scripts start` を使用（古い間違ったオプションの修正）
+
+4. **開発時の手順をドキュメント化**
+  - プロセス停止: `lsof -ti:3000 | xargs kill -9` を使用して残プロセスを停止
+  - 確認: `ps aux | egrep 'react-scripts|node'` で怪しいプロセスがないか確認
+  - 軽量起動: `npm run start:light` で低メモリ環境を試す
+
+#### 影響範囲
+- `package.json` のスクリプト追加/変更
+- `.env` の開発設定変更
+- ローカル開発ワークフロー（起動手順）に影響
+
+#### コミットID
+- `feat: 起動スクリプトに start:light, start:mem などの軽量化オプションを追加`（実行時コミット参照）
+
+#### 今後の対応（推奨）
+- Vite への移行を検討（esbuildベースで起動が大幅に高速化される）
+- CI / ローカル用にプロダクションビルドの検証スクリプトを用意して、ローカルで開発サーバーを使わずに動作確認する運用に移行する
+- 開発環境（Codespaces/DevContainer）側のメモリ割当を増やす
+- `fork-ts-checker-webpack-plugin` の並列数を制御 or 無効化してTypeScriptチェックをIDEに移管
 
 ## 今後のバグ修正もここに追記していきます
 
