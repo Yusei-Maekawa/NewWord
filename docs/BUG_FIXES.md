@@ -788,7 +788,6 @@ const selectedText = getSelectedTextWithTags(selection);
 
 ---
 
-## 2025年11月3日（続き3）
 
 ### 🟠 編集画面で`<>`記号が表示されない問題
 
@@ -1104,6 +1103,21 @@ const handleTextSelection = (field: 'meaning' | 'example') => {
 - 同じ修正を複数のコンポーネント（AddTermForm, EditTermModal）に適用する必要があった
 
 ---
+
+## 2025年11月15日
+## sanitize-html型定義エラーの解決
+
+### 問題
+- ビルド時に `TS7016` エラーが発生
+- `sanitize-html` の型定義が見つからない
+
+### 解決方法
+- `@types/sanitize-html` をインストール
+- コマンド: `npm install --save-dev @types/sanitize-html`
+
+### 影響範囲
+- `src/components/TermList.tsx`
+- WYSIWYGエディタでHTMLサニタイゼーションを使用
 
 ## 今後のバグ修正もここに追記していきます
 

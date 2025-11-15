@@ -125,18 +125,39 @@ StudyingEverything/
 
 ## 🎯 主な機能
 
+### ✅ 実装済み機能
+
 - ✅ **用語管理**: 追加・編集・削除・検索
 - ✅ **カテゴリ管理**: 階層構造・お気に入り機能（Firestore永続化）
 - ✅ **お気に入り機能**: 用語・カテゴリのお気に入り登録（再読み込み後も保持）
 - ✅ **親子連動**: 親カテゴリをお気に入りにすると子カテゴリも自動でお気に入りに
-- ✅ **リッチテキスト**: 色・サイズ指定可能
-
-
-
+- ✅ **リッチテキスト**: 色・サイズ指定可能（WYSIWYGエディタ）
+- ✅ **学習ログ管理**: 学習時間の記録・統計・ストリーク計算
+- ✅ **スケジュール機能**: 日付別・カテゴリ別の学習履歴表示
 - ✅ **データ保護**: Firestore + 自動バックアップ体制
 - ✅ **環境選択**: Firestore（デフォルト）/MySQL切り替え可能
 
-### 📝 最新の更新（2025-11-02）
+### 🚧 開発中（MVP機能）
+
+- 🔲 **統計グラフ可視化**: 学習時間の推移グラフ、ヒートマップカレンダー
+- 🔲 **語句学習機能**: フラッシュカード、間隔反復学習（SM-2アルゴリズム）
+- 🔲 **Vercelデプロイ**: 本番環境への自動デプロイ
+
+詳細は [MVP機能設計ドキュメント](docs/MVP_FEATURES_DESIGN.md) を参照してください。
+
+### 📝 最新の更新（2025-11-13）
+
+**スケジュール機能（学習ログ管理）の実装**
+- ✅ `useStudyLogs`カスタムフック実装（Firestore連携）
+- ✅ 学習時間の記録・保存・削除機能
+- ✅ 日付別・カテゴリ別の学習時間集計
+- ✅ 学習ストリーク（連続学習日数）の計算
+- ✅ 週次・月次の学習時間統計
+- ✅ リアルタイムでの学習ログ同期
+- ✅ `StudyLog`型にid, createdAt, updatedAtフィールドを追加
+- ✅ MVP機能設計ドキュメント作成（docs/MVP_FEATURES_DESIGN.md）
+
+### 📝 過去の更新（2025-11-02）
 
 **カテゴリお気に入り機能の完全実装**
 - ✅ `useCategoriesFirestore`フック実装（Firestore永続化）
@@ -175,6 +196,59 @@ src/components/
 - **CategoryManager**: カテゴリの階層管理・色設定
 - **EditTermModal**: 用語の編集・削除機能
 - **StudySection**: 学習モード・復習機能
+- **StudyTimeInput**: 学習時間の記録（ストップウォッチ・手動入力）
+- **SchedulePage**: 学習スケジュール・統計表示
+
+### カスタムフック
+
+```
+src/hooks/
+├── useTermsFirestore.ts       # 語句データ管理（Firestore）
+├── useCategoriesFirestore.ts  # カテゴリ管理（Firestore）
+├── useStudyLogs.ts            # 学習ログ管理（Firestore）
+├── useTerms.ts                # 語句データ管理（MySQL・レガシー）
+└── useStudySession.ts         # 学習セッション管理
+```
+
+### Firestoreデータ構造
+
+```typescript
+// コレクション: terms（語句データ）
+{
+  id: string,              // ドキュメントID（自動生成）
+  category: CategoryKey,   // カテゴリキー
+  term: string,            // 語句
+  meaning: string,         // 意味・説明
+  example?: string,        // 使用例（オプション）
+  imageUrl?: string,       // 画像URL（オプション）
+  isFavorite?: boolean,    // お気に入りフラグ
+  createdAt: Timestamp,    // 作成日時
+  updatedAt?: Timestamp    // 更新日時
+}
+
+// コレクション: categories（カテゴリマスタ）
+{
+  id: string,              // ドキュメントID
+  key: string,             // カテゴリキー
+  name: string,            // 表示名
+  icon: string,            // アイコン（絵文字）
+  color: string,           // カラーコード
+  parentId?: string,       // 親カテゴリID（階層構造用）
+  isFavorite: boolean,     // お気に入りフラグ
+  displayOrder: number     // 表示順序
+}
+
+// コレクション: studyLogs（学習ログ）
+{
+  id: string,              // ドキュメントID（自動生成）
+  date: string,            // 学習日付（YYYY-MM-DD）
+  category: string,        // カテゴリキー
+  amount: number,          // 学習時間（分数）
+  termsCount?: number,     // 追加した語句数（オプション）
+  createdAt: Timestamp,    // 作成日時
+  updatedAt: Timestamp     // 更新日時
+}
+```
 
 ## 🛠️ 技術スタック
 

@@ -110,23 +110,35 @@
  * ユーザーの学習活動を記録するためのデータ構造
  *
  * @interface StudyLog
+ * @property {string} id - 学習ログの一意の識別子（Firestore document ID）
  * @property {string} date - 学習日付（YYYY-MM-DD形式）
  * @property {string} category - 学習したカテゴリ
  * @property {number} amount - 学習時間（分数）
+ * @property {number} [termsCount] - その日に追加した語句数（オプション）
+ * @property {string} createdAt - 作成日時（ISO 8601形式）
+ * @property {string} updatedAt - 更新日時（ISO 8601形式）
  *
  * @example
  * ```typescript
  * const studyLog: StudyLog = {
+ *   id: "abc123",
  *   date: "2025-09-01",
  *   category: "programming",
- *   amount: 60
+ *   amount: 60,
+ *   termsCount: 5,
+ *   createdAt: "2025-09-01T10:00:00Z",
+ *   updatedAt: "2025-09-01T10:00:00Z"
  * };
  * ```
  */
 export interface StudyLog {
+  id: string; // Firestore document ID
   date: string; // YYYY-MM-DD
   category: string;
   amount: number; // 分数
+  termsCount?: number; // その日に追加した語句数
+  createdAt: string; // ISO 8601形式
+  updatedAt: string; // ISO 8601形式
 }
 
 import { CategoryKey } from './data/categories';
