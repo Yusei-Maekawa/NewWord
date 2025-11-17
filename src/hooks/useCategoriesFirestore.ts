@@ -123,6 +123,7 @@
 import { useState, useEffect } from 'react';
 import { collection, doc, updateDoc, onSnapshot, query, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebaseClient';
+import { useActivityLogs } from './useActivityLogs';
 import { categories as staticCategories } from '../data/categories';
 
 interface Category {
@@ -182,6 +183,7 @@ export const useCategoriesFirestore = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState<boolean>(false);
+  const { logActivity } = useActivityLogs();
 
   /**
    * カテゴリの階層構造を作成
@@ -385,6 +387,16 @@ export const useCategoriesFirestore = () => {
 
       await batch.commit();
       console.log(`✅ ${affectedCategories.length}件のカテゴリを更新しました`);
+
+      // 行動ログを記録: カテゴリのお気に入り切替
+      try {
+        await logActivity('toggle_favorite', targetCategory.category_key, {
+          categoryKey: targetCategory.category_key,
+          isFavorite: newFavoriteState
+        });
+      } catch (logErr) {
+        console.warn('Failed to log toggle_favorite activity for category:', logErr);
+      }
 
       return { 
         success: true, 

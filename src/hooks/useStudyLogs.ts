@@ -188,7 +188,7 @@ export const useStudyLogs = () => {
         date: logData.date,
         category: logData.category,
         amount: logData.amount,
-        termsCount: logData.termsCount,
+        termsCount: logData.termsCount || 0, // デフォルト値を0に設定
         createdAt: now,
         updatedAt: now,
       };

@@ -163,11 +163,12 @@ export const useActivityLogs = () => {
    * @returns 作成されたログのID
    */
   const logActivity = async (
-    type: 'add_term' | 'study' | 'review',
+    type: 'add_term' | 'study' | 'review' | 'update_term' | 'delete_term' | 'toggle_favorite',
     category: string,
     data: ActivityData
   ): Promise<string> => {
     try {
+      console.log('📊 logActivity開始:', { type, category, data });
       const now = new Date();
       const date = now.toISOString().split('T')[0];
       const timestamp = Timestamp.now();
@@ -181,15 +182,19 @@ export const useActivityLogs = () => {
         createdAt: timestamp
       };
 
+      console.log('📝 FirestoreへactivityLog保存中...', activityLog);
       // Firestoreに行動ログを保存
       const docRef = await addDoc(collection(db, 'activityLogs'), activityLog);
+      console.log('✅ activityLog保存完了:', docRef.id);
 
+      console.log('📊 dailySummary更新中...');
       // 日別サマリーを更新
       await updateDailySummary(date, type, category, data);
+      console.log('✅ dailySummary更新完了');
 
       return docRef.id;
     } catch (err) {
-      console.error('行動ログ作成エラー:', err);
+      console.error('❌ 行動ログ作成エラー:', err);
       const errorMessage = err instanceof Error ? err.message : '行動ログの作成に失敗しました';
       setError(errorMessage);
       throw err;
@@ -206,7 +211,7 @@ export const useActivityLogs = () => {
    */
   const updateDailySummary = async (
     date: string,
-    type: 'add_term' | 'study' | 'review',
+    type: 'add_term' | 'study' | 'review' | 'update_term' | 'delete_term' | 'toggle_favorite',
     category: string,
     data: ActivityData
   ) => {

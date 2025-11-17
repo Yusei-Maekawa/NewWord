@@ -238,7 +238,7 @@ export interface StudySession {
  */
 export interface ActivityLog {
   id: string;
-  type: 'add_term' | 'study' | 'review';
+  type: 'add_term' | 'study' | 'review' | 'update_term' | 'delete_term' | 'toggle_favorite';
   date: string; // YYYY-MM-DD
   timestamp: string; // ISO 8601形式
   category: string;
@@ -249,10 +249,40 @@ export interface ActivityLog {
 /**
  * 行動データの型（Discriminated Union）
  */
-export type ActivityData = 
+// (Extended ActivityData defined below)
+
+/**
+ * 語句更新データ
+ */
+export interface UpdateTermData {
+  termId: string;
+  term: string;
+}
+
+/**
+ * 語句削除データ
+ */
+export interface DeleteTermData {
+  termId: string;
+  term?: string;
+}
+
+/**
+ * お気に入り切り替えデータ
+ */
+export interface ToggleFavoriteData {
+  termId?: string;
+  categoryKey?: string;
+  isFavorite: boolean;
+}
+
+export type ActivityData =
   | AddTermData
   | StudyData
-  | ReviewData;
+  | ReviewData
+  | UpdateTermData
+  | DeleteTermData
+  | ToggleFavoriteData;
 
 /**
  * 語句追加データ
