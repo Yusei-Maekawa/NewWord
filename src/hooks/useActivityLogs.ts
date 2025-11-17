@@ -163,7 +163,7 @@ export const useActivityLogs = () => {
    * @returns 作成されたログのID
    */
   const logActivity = async (
-    type: 'add_term' | 'study' | 'review',
+    type: 'add_term' | 'study' | 'review' | 'update_term' | 'delete_term' | 'toggle_favorite',
     category: string,
     data: ActivityData
   ): Promise<string> => {
@@ -211,7 +211,7 @@ export const useActivityLogs = () => {
    */
   const updateDailySummary = async (
     date: string,
-    type: 'add_term' | 'study' | 'review',
+    type: 'add_term' | 'study' | 'review' | 'update_term' | 'delete_term' | 'toggle_favorite',
     category: string,
     data: ActivityData
   ) => {

@@ -16,6 +16,7 @@
  */
 
 import React, { useEffect } from 'react';
+import { useActivityLogs } from '../hooks/useActivityLogs';
 import { Term } from '../types';
 import { useStudySession } from '../hooks/useStudySession';
 import { getCategoryName, getCategoryColor } from '../utils/helpers';
@@ -62,6 +63,9 @@ const StudySection: React.FC<StudySectionProps> = ({ terms, activeCategory }) =>
     getProgress,    // 進捗取得関数
     isSessionComplete // セッション完了判定関数
   } = useStudySession();
+
+  // 行動ログ
+  const { logActivity } = useActivityLogs();
 
   /**
    * アクティブカテゴリでフィルタリングされた語句リスト
@@ -217,6 +221,21 @@ const StudySection: React.FC<StudySectionProps> = ({ terms, activeCategory }) =>
     }
   };
 
+  const handleReview = async (isCorrect: boolean) => {
+    if (!currentTerm) return;
+    try {
+      await logActivity('review', currentTerm.category, {
+        termId: currentTerm.id,
+        term: currentTerm.term,
+        isCorrect
+      });
+    } catch (err) {
+      console.warn('Failed to log review activity:', err);
+    }
+    // 次の語句へ進む
+    nextTerm();
+  };
+
   return (
     <section className="section">
       <h2>語句学習</h2>
@@ -242,12 +261,17 @@ const StudySection: React.FC<StudySectionProps> = ({ terms, activeCategory }) =>
               </button>
             ) : (
               <>
-                <button className="btn" onClick={nextTerm}>
-                  次の語句
-                </button>
-                <button className="btn btn-danger" onClick={endSession}>
-                  学習終了
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn btn-success" onClick={() => handleReview(true)}>
+                    覚えた（正解）
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => handleReview(false)}>
+                    覚えてない（不正解）
+                  </button>
+                  <button className="btn btn-danger" onClick={endSession}>
+                    学習終了
+                  </button>
+                </div>
               </>
             )}
           </>

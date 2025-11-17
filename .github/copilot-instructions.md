@@ -28,7 +28,7 @@ applyTo: "**"
 
 - **開発技術スタックや、リポジトリ構成等変わった内容をREADMEに追記する** - Update README with tech stack or repository changes
 
-- **毎回npm start をしないでください(起動しているので)** - Do not run npm start every time (it is already running)
+- **毎回サーバを動かしながら、開発すると動作が重くなったり、Dockerのメモリ不足等が起きるため、開発中はサーバを停止してからコードを書くことを推奨する** - Stop the server during development to avoid performance issues
 
 - **エラーやバグの修正を行った場合は、BUG_FIXES.mdにその内容と解決方法を記載する** - Document error fixes and solutions in BUG_FIXES.md
 
