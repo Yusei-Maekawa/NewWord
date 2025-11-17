@@ -16,6 +16,63 @@
 - **コミットID**: 関連するgitコミット
 ---
 
+## 2025年11月1日
+
+🟠 画像Base64が編集画面に文字列として表示される問題
+
+### 問題の詳細:
+
+画像をBase64形式で貼り付けると、編集画面に長い文字列（data:image/png;base64,iVBORw0KG...）が表示される
+ユーザーにとって非常に見づらく、編集が困難
+プレビューでは画像として表示されるが、編集中は文字列のまま
+
+#### 解決策:
+
+1. プレースホルダーパターンの実装
+```typescript
+// 画像をプレースホルダーに置き換える
+const imagePattern = /<img[^>]*src="data:image\/[^;]+;base64,[^"]*"[^>]*>/g;
+const imageMatches: string[] = [];
+let processedHtml = html.replace(imagePattern, (match) => {
+  imageMatches.push(match);
+  return `___IMAGE_PLACEHOLDER_${imageMatches.length - 1}___`;
+});
+
+
+2.. タグ処理後に画像を復元
+
+```typescript 
+
+// プレースホルダーを元の画像タグに戻す
+imageMatches.forEach((img, i) => {
+  processedHtml = processedHtml.replace(
+    `___IMAGE_PLACEHOLDER_${i}___`,
+    img
+  );
+});
+
+動作フロー:
+
+1. ユーザーが画像を貼り付け
+   ↓
+2. <img src="data:image/png;base64,..." />
+
+3. htmlToTags()で処理
+   ↓ 画像を一時退避
+   ___IMAGE_PLACEHOLDER_0___
+   ↓ カスタムタグ変換
+   [red]テキスト[/red] + ___IMAGE_PLACEHOLDER_0___
+   ↓ 画像を復元
+   [red]テキスト[/red]<img src="data:image/png;base64,..." />
+
+4. tagsToHtml()でレンダリング
+   ↓
+5. 編集画面でも画像が表示される
+
+
+
+
+
 ## 2025年11月2日
 
 ### 🟠 プレビューでHTMLタグが表示される問題
