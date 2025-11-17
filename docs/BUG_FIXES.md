@@ -16,63 +16,6 @@
 - **コミットID**: 関連するgitコミット
 ---
 
-## 2025年11月1日
-
-🟠 画像Base64が編集画面に文字列として表示される問題
-
-### 問題の詳細:
-
-画像をBase64形式で貼り付けると、編集画面に長い文字列（data:image/png;base64,iVBORw0KG...）が表示される
-ユーザーにとって非常に見づらく、編集が困難
-プレビューでは画像として表示されるが、編集中は文字列のまま
-
-#### 解決策:
-
-1. プレースホルダーパターンの実装
-```typescript
-// 画像をプレースホルダーに置き換える
-const imagePattern = /<img[^>]*src="data:image\/[^;]+;base64,[^"]*"[^>]*>/g;
-const imageMatches: string[] = [];
-let processedHtml = html.replace(imagePattern, (match) => {
-  imageMatches.push(match);
-  return `___IMAGE_PLACEHOLDER_${imageMatches.length - 1}___`;
-});
-
-
-2.. タグ処理後に画像を復元
-
-```typescript 
-
-// プレースホルダーを元の画像タグに戻す
-imageMatches.forEach((img, i) => {
-  processedHtml = processedHtml.replace(
-    `___IMAGE_PLACEHOLDER_${i}___`,
-    img
-  );
-});
-
-動作フロー:
-
-1. ユーザーが画像を貼り付け
-   ↓
-2. <img src="data:image/png;base64,..." />
-
-3. htmlToTags()で処理
-   ↓ 画像を一時退避
-   ___IMAGE_PLACEHOLDER_0___
-   ↓ カスタムタグ変換
-   [red]テキスト[/red] + ___IMAGE_PLACEHOLDER_0___
-   ↓ 画像を復元
-   [red]テキスト[/red]<img src="data:image/png;base64,..." />
-
-4. tagsToHtml()でレンダリング
-   ↓
-5. 編集画面でも画像が表示される
-
-
-
-
-
 ## 2025年11月2日
 
 ### 🟠 プレビューでHTMLタグが表示される問題
@@ -845,7 +788,6 @@ const selectedText = getSelectedTextWithTags(selection);
 
 ---
 
-## 2025年11月3日（続き3）
 
 ### 🟠 編集画面で`<>`記号が表示されない問題
 
@@ -934,128 +876,304 @@ Object.keys(placeholders).forEach(placeholder => {
 
 ---
 
-### 🔴 NotionEditor実装: 生のタグがユーザーに見える問題
+### 🟠 色変更時に古い色タグが残る問題
 
 **バージョン**: v0.4.0-dev  
-**カテゴリ**: UI/UX, NotionEditor実装  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
 **ブランチ**: feature/term-management  
-**日時**: 2025年11月3日
+**コミットID**: `cfd5d9f`
 
 #### 問題
-- Notion風エディタで、テキストを選択して書式を適用すると、一瞬`[red]あ[/red]`や`**あ**`などの生のタグがユーザーに見えてしまう
-- 書式適用後、変換されるまでの間に内部フォーマットが露出
-- ユーザーが混乱し、UXが非常に悪い
+- 既に色がついているテキスト（例: `[red]テスト[/red]`）に対して別の色（例: 青）を適用すると、古い色タグが残ってしまう
+- 結果: `[blue][red]テスト[/red][/blue]` のように二重にタグが付く
+- サイズ変更でも同じ問題が発生（例: `[large][small]text[/small][/large]`）
 
 #### 原因
-`applyFormat`関数の処理順序の問題：
+**同一カテゴリのフォーマット間の競合を考慮していなかった**:
 
 ```typescript
 // 問題のあったコード
-// 1. 生のタグをテキストノードとして挿入
-const textNode = document.createTextNode(wrappedText); // "**text**"
-range.insertNode(textNode);
-// → この時点で「**text**」がそのまま表示される
+const formatPattern = `[blue]${selectedText}[/blue]`;
+const isFormatted = currentValue.includes(formatPattern);
 
-// 2. setTimeoutで後から変換を親に通知
-setTimeout(() => {
-  const html = ref.current.innerHTML;
-  const taggedText = htmlToTags(html);
-  onChange(taggedText);
-}, 0);
-// → 親が再レンダリングするまで生のタグが見える
-```
-
-**時間差問題**：
-- テキストノード挿入（生タグ表示）→ 0ms待機 → 親への通知 → 再レンダリング（HTML変換）
-- この間、ユーザーには`**text**`や`[red]text[/red]`が見えてしまう
-
-#### 修正内容
-**即座にHTMLレンダリング方式**：
-
-```typescript
-// 修正後のコード
-const applyFormat = (format: string) => {
-  // 1. 選択範囲の前後のテキストを保存
-  const beforeRange = document.createRange();
-  beforeRange.setStart(ref.current, 0);
-  beforeRange.setEnd(range.startContainer, range.startOffset);
-  const textBefore = beforeRange.toString();
-  
-  const afterRange = document.createRange();
-  afterRange.setStart(range.endContainer, range.endOffset);
-  afterRange.setEnd(ref.current, ref.current.childNodes.length);
-  const textAfter = afterRange.toString();
-  
-  // 2. 新しいテキストを構築（タグ形式）
-  const newText = textBefore + wrappedText + textAfter;
-  
-  // 3. 即座にHTMLに変換してエディタに反映
-  const newHtml = tagsToHtml(newText);
-  ref.current.innerHTML = newHtml;
-  
-  // 4. カーソル位置を復元
-  // ... カーソル位置計算とテキストノード走査 ...
-  
-  // 5. 変更を親に通知
-  onChange(newText);
-};
-```
-
-**動作の流れ**：
-1. ユーザーが「テスト」を選択して赤色ボタンをクリック
-2. `[red]テスト[/red]`を構築（内部フォーマット）
-3. **即座に**`tagsToHtml()`でHTMLに変換：`<span style="color: #e74c3c;">テスト</span>`
-4. エディタのHTMLを更新（ユーザーには赤文字の「テスト」が見える）
-5. カーソル位置を復元
-6. 親に変更を通知
-
-**スラッシュコマンドも同様に修正**：
-- マーカー方式（`｜CURSOR｜`）を使用
-- マーカーを挿入 → `htmlToTags`で変換 → マーカー除去 → `tagsToHtml`でHTML化 → カーソル復元
-
-```typescript
-// スラッシュコマンドの例
-action: () => {
-  const marker = '｜CURSOR｜';
-  const textToInsert = `**${marker}**`;
-  document.execCommand('insertText', false, textToInsert);
-  
-  if (ref.current) {
-    const html = ref.current.innerHTML;
-    const text = htmlToTags(html);
-    const newText = text.replace(marker, '');
-    const cursorPos = text.indexOf(marker);
-    
-    // 即座にHTMLに変換
-    ref.current.innerHTML = tagsToHtml(newText);
-    
-    // カーソル位置を復元
-    // ...
-  }
+if (isFormatted) {
+  newValue = currentValue.replace(formatPattern, selectedText);
+} else {
+  // selectedText が既に [red]text[/red] の場合でも
+  // そのまま [blue][red]text[/red][/blue] になってしまう
+  newValue = currentValue.replace(selectedText, formatPattern);
 }
 ```
 
+#### 修正内容
+**フォーマットカテゴリの概念を導入**:
+
+```typescript
+// 色タグとサイズタグのカテゴリを定義
+const colorFormats = ['red', 'blue', 'green', 'orange', 'purple', 'pink'];
+const sizeFormats = ['xsmall', 'small', 'normal', 'large', 'xlarge'];
+
+const isColorFormat = colorFormats.includes(format);
+const isSizeFormat = sizeFormats.includes(format);
+
+let cleanedText = selectedText;
+
+// 色を変更する場合、既存の色タグを除去
+if (isColorFormat) {
+  colorFormats.forEach(color => {
+    const pattern = `[${color}]`;
+    const endPattern = `[/${color}]`;
+    if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+      cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+    }
+  });
+}
+
+// サイズも同様に処理
+if (isSizeFormat) {
+  sizeFormats.forEach(size => {
+    const pattern = `[${size}]`;
+    const endPattern = `[/${size}]`;
+    if (cleanedText.startsWith(pattern) && cleanedText.endsWith(endPattern)) {
+      cleanedText = cleanedText.substring(pattern.length, cleanedText.length - endPattern.length);
+    }
+  });
+}
+
+// cleanedText を使って新しいフォーマットパターンを作成
+formatPattern = `[blue]${cleanedText}[/blue]`;
+```
+
 #### 影響範囲
-- **修正ファイル**:
-  - `src/components/NotionEditor.tsx`: 
-    - `applyFormat`関数を全面改修（約40行）
-    - `slashCommands`の全アクション関数を改修（約150行）
-  
-- **動作への影響**:
-  - ✅ 生のタグが一切表示されない
-  - ✅ 書式適用が即座に視覚的に反映される
-  - ✅ ユーザーには常に装飾された結果のみが見える
-  - ✅ カーソル位置が正しく復元される
-  - ✅ Undo/Redoが正常に動作する
+- `src/components/AddTermForm.tsx`: `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx`: `applyFormatWithSelection`関数
 
 #### 学んだこと
-1. **WYSIWYG編集の本質**: ユーザーには**決して**内部フォーマットを見せてはいけない
-2. **即座変換の重要性**: タグ→HTML変換は、DOMに挿入する前か、挿入と同時に実行する
-3. **カーソル位置管理**: HTML変換後は、テキストノードを走査してカーソル位置を正確に復元する必要がある
-4. **マーカーパターン**: カーソル位置を保持するために一時的なマーカー（`｜CURSOR｜`）を使う手法は有効
-5. **UXの基本**: 技術的な実装の詳細をユーザーに見せることは、どんな場合でも避けるべき
+- フォーマットにはカテゴリ（排他的グループ）がある
+- ユーザーは「色を追加」ではなく「色を置き換える」ことを期待している
+- 競合する古い値を除去するステップが重要
 
 ---
+
+### 🟠 フォーマット適用後にWYSIWYGエディタが更新されない問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
+**ブランチ**: feature/term-management  
+**コミットID**: `572fa32`
+
+#### 問題
+- 編集画面で色やサイズを変更しても、WYSIWYGエディタに反映されない
+- タグ形式（`[blue]aiueo[/blue]`）がそのまま表示される
+- 内部データは正しく更新されているが、画面表示が追いつかない
+
+#### 原因
+**WYSIWYGエディタの`useEffect`がフォーカス中に更新をスキップ**:
+
+```typescript
+// WysiwygEditor.tsx
+useEffect(() => {
+  if (ref.current && !isFocused) {  // ← !isFocused の条件
+    const html = tagsToHtml(value);
+    if (ref.current.innerHTML !== html) {
+      ref.current.innerHTML = html;
+    }
+  }
+}, [value, isFocused]);
+```
+
+フォーマット適用時、エディタは`isFocused = true`のままなので、`useEffect`が発火しても更新をスキップしてしまう。
+
+#### 修正内容
+**blur/focusパターンで強制再レンダリング**:
+
+```typescript
+handleInputChange(field, newValue);
+
+// WYSIWYGエディタを再レンダリングするため、一時的にフォーカスを外して戻す
+setTimeout(() => {
+  // フォーカスを外す（useEffectが発火してHTMLを更新）
+  editor.blur();
+  
+  // 少し待ってからフォーカスを戻す
+  setTimeout(() => {
+    editor.focus();
+  }, 10);
+}, 0);
+```
+
+**動作の流れ**：
+1. `formData`を更新：`[blue]aiueo[/blue]`
+2. `editor.blur()`でフォーカスを外す → `isFocused = false`
+3. `useEffect`が発火して`tagsToHtml`を実行 → `<span style="color: blue;">aiueo</span>`
+4. `editor.innerHTML`が更新される ✅
+5. 10ms後に`editor.focus()`でフォーカスを戻す
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx`: `applyFormatWithSelection`関数
+- `src/components/EditTermModal.tsx`: `applyFormatWithSelection`関数
+
+#### 学んだこと
+- contentEditable/WYSIWYGではフォーカス状態とReactのstate管理のバランスが重要
+- 非同期処理（blur→更新待ち→focus）で強制再レンダリングが可能
+- useEffectの最適化条件が特定ケースで問題になることがある
+
+---
+
+### 🟡 フローティングツールバーの誤表示問題
+
+**バージョン**: v0.4.0-dev  
+**カテゴリ**: UI/UX, WYSIWYGエディタ  
+**ブランチ**: feature/term-management  
+**コミットID**: (今回のコミット)
+
+#### 問題
+- 編集画面でテキストを選択せず、ただクリックしただけでフローティングツールバーが表示される
+- 範囲選択していないのにツールバーが出るため、ユーザーが混乱する
+- 特に編集中のクリック操作時に頻繁に発生
+
+#### 原因
+**contentEditableの`onSelect`イベントが選択とクリックの両方で発火**:
+
+```typescript
+// 修正前のhandleTextSelection
+const handleTextSelection = (field: 'meaning' | 'example') => {
+  const selection = window.getSelection();
+  if (!selection) return;
+  
+  const selectedText = getSelectedTextWithTags(selection);
+  
+  // selectedText.length > 0 だけではカーソル位置でもtrueになる
+  if (selectedText.length > 0) {
+    setFloatingToolbar({ anchorEl: editor, ... });
+  }
+};
+```
+
+**問題点**:
+- `onSelect`イベントはテキスト選択時だけでなく、クリックによるカーソル移動でも発火する
+- `selectedText.length > 0`のチェックだけでは、カーソル位置（折りたたまれた選択範囲）と実際のテキスト選択を区別できない
+- `selection.isCollapsed`（選択が折りたたまれているか）のチェックが不足していた
+
+#### 修正内容
+**`selection.isCollapsed`チェックを追加**:
+
+```typescript
+const handleTextSelection = (field: 'meaning' | 'example') => {
+  const editor = field === 'meaning' ? meaningTextareaRef.current : exampleTextareaRef.current;
+  if (!editor) return;
+
+  const selection = window.getSelection();
+  if (!selection) {
+    // selectionが取得できない場合はツールバーを非表示
+    setFloatingToolbar({ anchorEl: null, ... });
+    return;
+  }
+
+  const selectedText = getSelectedTextWithTags(selection);
+  
+  // テキストが選択されている かつ 範囲が折りたたまれていない場合のみ表示
+  if (selectedText.length > 0 && !selection.isCollapsed) {
+    setFloatingToolbar({ anchorEl: editor, ... });
+  } else {
+    // 選択が解除されたら、または範囲が折りたたまれている場合はツールバーを非表示
+    setFloatingToolbar({ anchorEl: null, ... });
+  }
+};
+```
+
+**`selection.isCollapsed`とは**:
+- `true`: 選択範囲が折りたたまれている（カーソル位置のみ、範囲なし）
+- `false`: 実際にテキスト範囲が選択されている
+
+**動作の流れ**：
+1. ユーザーがエディタをクリック → `onSelect`発火
+2. `selection.isCollapsed = true` → ツールバー非表示 ✅
+3. ユーザーがテキストをドラッグ選択 → `onSelect`発火
+4. `selectedText.length > 0 && !selection.isCollapsed` → ツールバー表示 ✅
+
+#### 影響範囲
+- `src/components/AddTermForm.tsx`: `handleTextSelection`関数
+- `src/components/EditTermModal.tsx`: `handleTextSelection`関数
+
+#### 学んだこと
+- contentEditableの`onSelect`イベントは選択だけでなくクリックでも発火する
+- `Selection.isCollapsed`プロパティでカーソル位置と範囲選択を区別できる
+- UXを改善するには、イベントが発火するタイミングとユーザーの意図を正確に判断する必要がある
+- 同じ修正を複数のコンポーネント（AddTermForm, EditTermModal）に適用する必要があった
+
+---
+
+## 2025年11月15日
+### sanitize-html型定義エラーの解決
+
+#### 問題
+- ビルド時に `TS7016` エラーが発生
+- `sanitize-html` の型定義が見つからない
+
+#### 解決方法
+- `@types/sanitize-html` をインストール
+- コマンド: `npm install --save-dev @types/sanitize-html`
+
+#### 影響範囲
+- `src/components/TermList.tsx`
+- WYSIWYGエディタでHTMLサニタイゼーションを使用
+
+### 🟠 開発サーバーの起動が遅く、メモリ不足でプロセスが強制終了される問題
+
+**バージョン**: v0.4.0-dev
+**カテゴリ**: パフォーマンス / 開発体験
+**重要度**: 🟠High
+
+#### 問題
+- 開発サーバー（`npm start`）の起動が非常に遅く、起動途中でプロセスが終了（`The build failed because the process exited too early`）する
+- 時折、ポート3000が既に使用中と出て起動できない（古い`react-scripts`プロセスが残っている）
+- 再度起動すると「再接続できない」や「メモリ不足」などのエラーが出る
+
+#### 再現手順
+1. `npm start` で開発サーバーを起動
+2. 起動が遅くなり、途中でプロセスが停止する（非常に時間がかかる、あるいはExit with code 1）
+3. `Something is already running on port 3000` が表示される場合は`lsof -ti:3000`で残りプロセスを確認
+
+#### 原因
+- create-react-app (react-scripts) の dev サーバーは Webpack、TypeScript チェッカー、ESLint など複数のサービスを立ち上げ、メモリを大量に消費する
+- `fork-ts-checker-webpack-plugin` や ESLint の同時実行が起動時に高負荷をかけている
+- `react-scripts` が既存プロセスを上手くクリーンアップしていない場合、port競合が発生する
+
+#### 修正内容（暫定）
+1. **`package.json` に軽量起動スクリプトを追加**
+  - `start:light`: 低メモリ・高速起動（`GENERATE_SOURCEMAP=false`などを指定）
+  - `start:mem`: メモリ割当を増やして起動
+  - `start:prod`: プロダクションビルドを静的に配信（`serve`）して dev サーバーを回避
+
+2. **`.env` に起動最適化フラグを追加**（開発時の負荷を下げる）
+  - `GENERATE_SOURCEMAP=false`
+  - `FAST_REFRESH=false`
+  - `TSC_COMPILE_ON_ERROR=true`
+  - `ESLINT_NO_DEV_ERRORS=true`
+  - `SKIP_PREFLIGHT_CHECK=true`（必要に応じて）
+
+3. **`start` スクリプトのメモリオプションを修正**
+  - `NODE_OPTIONS=--max_old_space_size=4096 react-scripts start` を使用（古い間違ったオプションの修正）
+
+4. **開発時の手順をドキュメント化**
+  - プロセス停止: `lsof -ti:3000 | xargs kill -9` を使用して残プロセスを停止
+  - 確認: `ps aux | egrep 'react-scripts|node'` で怪しいプロセスがないか確認
+  - 軽量起動: `npm run start:light` で低メモリ環境を試す
+
+#### 影響範囲
+- `package.json` のスクリプト追加/変更
+- `.env` の開発設定変更
+- ローカル開発ワークフロー（起動手順）に影響
+
+#### コミットID
+- `feat: 起動スクリプトに start:light, start:mem などの軽量化オプションを追加`（実行時コミット参照）
+
+#### 今後の対応（推奨）
+- Vite への移行を検討（esbuildベースで起動が大幅に高速化される）
+- CI / ローカル用にプロダクションビルドの検証スクリプトを用意して、ローカルで開発サーバーを使わずに動作確認する運用に移行する
+- 開発環境（Codespaces/DevContainer）側のメモリ割当を増やす
+- `fork-ts-checker-webpack-plugin` の並列数を制御 or 無効化してTypeScriptチェックをIDEに移管
 
 ## 今後のバグ修正もここに追記していきます
 

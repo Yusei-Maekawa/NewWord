@@ -169,6 +169,8 @@ import StudyTimeInput from './components/StudyTimeInput';
 import { useTermsFirestore } from './hooks/useTermsFirestore';
 import { useTerms } from './hooks/useTerms';
 import { useCategoriesFirestore } from './hooks/useCategoriesFirestore';
+import { useStudyLogs } from './hooks/useStudyLogs';
+import { useActivityLogs } from './hooks/useActivityLogs'; // 行動ログシステムを統合
 import './styles/App.css';
 import './utils/debugFirestore'; // デバッグツールを読み込む
 import { VERSION_INFO, printVersionInfo } from './version-config';
@@ -239,6 +241,20 @@ const App: React.FC = () => {
     toggleFavorite: toggleCategoryFavorite 
   } = useCategoriesFirestore();
 
+  // ===== 学習ログ管理（Firestore） =====
+  const {
+    studyLogs,
+    loading: logsLoading,
+    error: logsError,
+    addStudyLog,
+    deleteStudyLog,
+    getTotalStudyTime,
+    getStudyStreak,
+  } = useStudyLogs();
+
+  // ===== 行動ログシステム（Firestore） =====
+  const { logActivity } = useActivityLogs();
+
   // カテゴリデータのデバッグログと循環参照チェック
   React.useEffect(() => {
     if (categories.length > 0) {
@@ -302,11 +318,15 @@ const App: React.FC = () => {
    */
   const [showSchedule, setShowSchedule] = useState(false);
 
-  /**
-   * 学習ログデータの状態
-   * @type {[StudyLog[], React.Dispatch<React.SetStateAction<StudyLog[]>>]}
-   */
-  const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
+  // 通知を3秒後に自動クリア
+  React.useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // ===== 関数定義 =====
 
@@ -411,22 +431,35 @@ const App: React.FC = () => {
   // 今日の勉強時間（studyLogsから集計）
   const todayTime = studyLogs.filter(log => log.date === today).reduce((sum, log) => sum + log.amount, 0);
 
-  // 勉強時間記録（ストップウォッチ・手動入力）
-  const handleRecordTime = (minutes: number) => {
-    // 例: カテゴリは現在選択中のもの、なければ'all'
-    const category = activeCategory === 'all' ? 'all' : activeCategory;
-    // 既存の同日・同カテゴリがあれば加算
-    setStudyLogs(prev => {
-      const idx = prev.findIndex(log => log.date === today && log.category === category);
-      if (idx !== -1) {
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], amount: updated[idx].amount + minutes };
-        return updated;
-      } else {
-        return [...prev, { date: today, category, amount: minutes }];
-      }
-    });
-    setNotification({ message: `勉強時間を${minutes}分記録しました！`, type: 'success' });
+  // 勉強時間記録（ストップウォッチ・手動入力）- Firestoreに保存
+  const handleRecordTime = async (minutes: number, category: string) => {
+    try {
+      console.log('🕐 学習時間記録開始:', { minutes, category });
+      
+      console.log('📝 studyLog追加中...');
+      await addStudyLog({
+        date: today,
+        category,
+        amount: minutes,
+      });
+      console.log('✅ studyLog追加完了');
+      
+      // 行動ログを記録: 学習アクティビティ
+      console.log('📊 activityLog追加中...', { category, duration: minutes });
+      await logActivity('study', category, {
+        duration: minutes
+      });
+      console.log('✅ activityLog追加完了');
+      
+      const categoryName = categories.find(c => c.category_key === category)?.category_name || category;
+      setNotification({ 
+        message: `${categoryName}の勉強時間を${minutes}分記録しました！`, 
+        type: 'success' 
+      });
+    } catch (error) {
+      console.error('❌ 学習時間記録エラー:', error);
+      setNotification({ message: '学習時間の記録に失敗しました', type: 'error' });
+    }
   };
 
   return (
@@ -442,7 +475,11 @@ const App: React.FC = () => {
             今日の勉強時間: <span style={{ color: '#28a745', fontWeight: 700 }}>{todayTime}分</span>
           </div>
         </div>
-        <StudyTimeInput onRecord={handleRecordTime} />
+        <StudyTimeInput 
+          onRecord={handleRecordTime} 
+          categories={categories}
+          activeCategory={activeCategory}
+        />
         <Button 
           variant="contained" 
           color="primary" 
@@ -456,9 +493,18 @@ const App: React.FC = () => {
             terms={terms}
             onBack={() => setShowSchedule(false)}
             studyLogs={studyLogs}
-            onDeleteLog={(date, category) => {
-              setStudyLogs(prev => prev.filter(log => !(log.date === date && log.category === category)));
-              setNotification({ message: '勉強記録を削除しました', type: 'success' });
+            onDeleteLog={async (date, category) => {
+              try {
+                // 該当する学習ログを検索してIDを取得し削除
+                const logToDelete = studyLogs.find(log => log.date === date && log.category === category);
+                if (logToDelete) {
+                  await deleteStudyLog(logToDelete.id);
+                  setNotification({ message: '勉強記録を削除しました', type: 'success' });
+                }
+              } catch (error) {
+                console.error('学習ログ削除エラー:', error);
+                setNotification({ message: '削除に失敗しました', type: 'error' });
+              }
             }}
           />
         ) : (

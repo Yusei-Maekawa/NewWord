@@ -137,6 +137,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseClient';
 import { Term } from '../types';
+import { useActivityLogs } from './useActivityLogs';
 
 /**
  * Firestore ドキュメントを Term 型に変換
@@ -166,6 +167,7 @@ export const useTermsFirestore = () => {
   const [terms, setTerms] = useState<Term[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { logActivity } = useActivityLogs(); // 行動ログシステムを統合
 
   /**
    * Firestore リアルタイムリスナーをセットアップ
@@ -204,12 +206,18 @@ export const useTermsFirestore = () => {
    */
   const addTerm = async (termData: Omit<Term, 'id' | 'createdAt'>) => {
     try {
-      await addDoc(collection(db, 'terms'), {
+      const docRef = await addDoc(collection(db, 'terms'), {
         word: termData.term,
         meaning: termData.meaning,
         example: termData.example || '',
         categoryId: termData.category,
         created_at: Timestamp.now()
+      });
+      
+      // 行動ログを記録: 語句追加アクティビティ
+      await logActivity('add_term', termData.category, {
+        termId: docRef.id,
+        term: termData.term
       });
     } catch (err: any) {
       console.error('Failed to add term:', err);
@@ -232,6 +240,15 @@ export const useTermsFirestore = () => {
         categoryId: termData.category,
         updated_at: Timestamp.now()
       });
+      // 行動ログを記録: 語句更新
+      try {
+        await logActivity('update_term', termData.category, {
+          termId: id,
+          term: termData.term
+        });
+      } catch (logErr) {
+        console.warn('Failed to log update_term activity:', logErr);
+      }
     } catch (err: any) {
       console.error('Failed to update term:', err);
       setError(err.message);
@@ -245,7 +262,22 @@ export const useTermsFirestore = () => {
    */
   const deleteTerm = async (id: string) => {
     try {
+      // 先にローカルのterms配列から語句情報を探す（ログ用）
+      const termToDelete = terms.find(t => t.id === id);
+      const categoryKey = termToDelete?.category || 'all';
+      const termName = termToDelete?.term || '';
+
       await deleteDoc(doc(db, 'terms', id));  // 文字列 ID をそのまま使用
+
+      // 行動ログを記録: 語句削除
+      try {
+        await logActivity('delete_term', categoryKey, {
+          termId: id,
+          term: termName
+        });
+      } catch (logErr) {
+        console.warn('Failed to log delete_term activity:', logErr);
+      }
     } catch (err: any) {
       console.error('Failed to delete term:', err);
       setError(err.message);
@@ -266,6 +298,15 @@ export const useTermsFirestore = () => {
         isFavorite: !term.isFavorite,
         updated_at: Timestamp.now()
       });
+      // 行動ログを記録: お気に入り切替
+      try {
+        await logActivity('toggle_favorite', term.category, {
+          termId: id,
+          isFavorite: !term.isFavorite
+        });
+      } catch (logErr) {
+        console.warn('Failed to log toggle_favorite activity:', logErr);
+      }
     } catch (err: any) {
       console.error('Failed to toggle favorite:', err);
       setError(err.message);

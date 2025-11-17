@@ -22,13 +22,14 @@ applyTo: "**"
 
 - **その記事の内容は、後でわかりやすく辿れるように、README等にその作業の手順が進んだら、追記してほしい** - Update README with a link to the article once the work is done
 
-- **やることわからんくなったら、VERSION.mdやDEVELOPMENT_LOG.mdを見返してほしい** - If unsure what to do, refer back to VERSION.md or DEVELOPMENT_LOG.md
-
 ### Change Management
 - **変更を加えた場合は、その理由と影響を明確に説明する** - Clearly explain reasons and impacts of changes
 - **追加した変数、関数、コンポーネント等はその記載しているファイルの上部に一覧としてまとめる** - List added variables, functions, components, etc. at the top of the file where they are defined
 
 - **開発技術スタックや、リポジトリ構成等変わった内容をREADMEに追記する** - Update README with tech stack or repository changes
+
+- **毎回サーバを動かしながら、開発すると動作が重くなったり、Dockerのメモリ不足等が起きるため、開発中はサーバを停止してからコードを書くことを推奨する** - Stop the server during development to avoid performance issues
+
 - **エラーやバグの修正を行った場合は、BUG_FIXES.mdにその内容と解決方法を記載する** - Document error fixes and solutions in BUG_FIXES.md
 
 - **常にバックアップを取ることを忘れないでください** - Never forget to take backups
