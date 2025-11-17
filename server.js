@@ -32,13 +32,30 @@ app.use(cors());
 // JSON形式のリクエストボディをパース
 app.use(express.json());
 
-// MySQLデータベースに接続するための設定
+// MySQL接続設定（環境変数で上書き可能）
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_PORT = parseInt(process.env.DB_PORT || process.env.MYSQL_PORT || '3306', 10);
+const DB_USER = process.env.DB_USER || 'root';
+const DB_PASSWORD = process.env.DB_PASSWORD || '';
+const DB_NAME = process.env.DB_NAME || 'study_app';
+
 const db = mysql.createConnection({
-  host: 'localhost',      // Dockerコンテナのホスト（ホストマシンのlocalhost）
-  user: 'app_user',       // Dockerで作成したユーザー
-  password: 'apppassword', // Dockerで設定したパスワード
-  database: 'studying_app', // Dockerで作成したデータベース名
-  port: 3307              // Dockerでマッピングしたポート
+  host: DB_HOST,
+  port: DB_PORT,
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
+  connectTimeout: 10000
+});
+
+// 接続の確認ログ
+db.connect((err) => {
+  if (err) {
+    console.error(`MySQL接続に失敗しました (${DB_HOST}:${DB_PORT}, user=${DB_USER}):`, err.message || err);
+    console.error('必要なら MySQL を起動するか、環境変数で接続先を指定してください: DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME');
+  } else {
+    console.log(`MySQLに接続しました: ${DB_HOST}:${DB_PORT} (DB=${DB_NAME}, user=${DB_USER})`);
+  }
 });
 
 // 語句一覧を取得するAPI（GETリクエスト）
