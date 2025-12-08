@@ -175,22 +175,27 @@ export const useTermsFirestore = () => {
    * English: Sets up a Firestore listener on the terms collection when component mounts.
    */
   useEffect(() => {
+    console.log('🔥 useTermsFirestore: Firestore リスナー開始...');
     const termsRef = collection(db, 'terms');
     const q = query(termsRef, orderBy('created_at', 'desc'));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        console.log(`🔥 useTermsFirestore: データ取得成功 - ${snapshot.size}件`);
         const fetchedTerms: Term[] = [];
         snapshot.forEach((doc) => {
-          fetchedTerms.push(convertFirestoreToTerm(doc.data(), doc.id));
+          const termData = convertFirestoreToTerm(doc.data(), doc.id);
+          console.log('📝 取得した用語:', termData.term, '(', termData.category, ')');
+          fetchedTerms.push(termData);
         });
+        console.log('✅ useTermsFirestore: 合計', fetchedTerms.length, '件の用語をセット');
         setTerms(fetchedTerms);
         setLoading(false);
         setError(null);
       },
       (err) => {
-        console.error('Firestore listener error:', err);
+        console.error('❌ Firestore listener error:', err);
         setError(err.message);
         setLoading(false);
       }

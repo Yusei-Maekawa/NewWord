@@ -1,0 +1,64 @@
+[debug] [2025-12-06T12:37:04.585Z] ----------------------------------------------------------------------
+[debug] [2025-12-06T12:37:04.612Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Owner\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules
+[debug] [2025-12-06T12:37:04.616Z] CLI Version:   14.23.0
+[debug] [2025-12-06T12:37:04.618Z] Platform:      win32
+[debug] [2025-12-06T12:37:04.619Z] Node Version:  v22.17.1
+[debug] [2025-12-06T12:37:04.622Z] Time:          Sat Dec 06 2025 21:37:04 GMT+0900 (日本標準時)
+[debug] [2025-12-06T12:37:04.623Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-12-06T12:37:04.640Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2025-12-06T12:37:07.485Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-06T12:37:07.492Z] > authorizing via signed-in user (maekawa.yusei8@gmail.com)
+[debug] [2025-12-06T12:37:07.494Z] [iam] checking project newword-f6f1e for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2025-12-06T12:37:07.507Z] Checked if tokens are valid: false, expires at: 1761906185456
+[debug] [2025-12-06T12:37:07.513Z] Checked if tokens are valid: false, expires at: 1761906185456
+[debug] [2025-12-06T12:37:07.516Z] > refreshing access token with scopes: []
+[debug] [2025-12-06T12:37:07.534Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-12-06T12:37:07.534Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-12-06T12:37:07.900Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-12-06T12:37:07.902Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-12-06T12:37:08.045Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/newword-f6f1e:testIamPermissions [none]
+[debug] [2025-12-06T12:37:08.046Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/newword-f6f1e:testIamPermissions x-goog-quota-user=projects/newword-f6f1e
+[debug] [2025-12-06T12:37:08.047Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/newword-f6f1e:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2025-12-06T12:37:08.075Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2025-12-06T12:37:08.077Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2025-12-06T12:37:08.922Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/newword-f6f1e:testIamPermissions 200
+[debug] [2025-12-06T12:37:08.923Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/newword-f6f1e:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'newword-f6f1e'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2025-12-06T12:37:08.970Z] Checked if tokens are valid: true, expires at: 1765028226903
+[debug] [2025-12-06T12:37:08.971Z] Checked if tokens are valid: true, expires at: 1765028226903
+[debug] [2025-12-06T12:37:08.971Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/newword-f6f1e/databases/(default) [none]
+[debug] [2025-12-06T12:37:09.281Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/newword-f6f1e/databases/(default) 200
+[debug] [2025-12-06T12:37:09.282Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/newword-f6f1e/databases/(default) {"name":"projects/newword-f6f1e/databases/(default)","uid":"9c124c42-b5ad-4cf6-8d64-22983ad11e5a","createTime":"2025-10-29T03:21:58.844065Z","updateTime":"2025-10-29T03:21:58.844065Z","locationId":"asia-northeast2","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2025-12-06T11:37:07.681915Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"u","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IMnNz4/9qJEDMOujj5S7yJAD"}
+[info] i  cloud.firestore: checking config/firestore.rules for compilation errors... 
+[debug] [2025-12-06T12:37:09.290Z] Checked if tokens are valid: true, expires at: 1765028226903
+[debug] [2025-12-06T12:37:09.291Z] Checked if tokens are valid: true, expires at: 1765028226903
+[debug] [2025-12-06T12:37:09.295Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/newword-f6f1e:test [none]
+[debug] [2025-12-06T12:37:09.296Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/newword-f6f1e:test [omitted]
+[debug] [2025-12-06T12:37:10.498Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/newword-f6f1e:test 200
+[debug] [2025-12-06T12:37:10.499Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/newword-f6f1e:test {}
+[info] +  cloud.firestore: rules file config/firestore.rules compiled successfully 
+[debug] [2025-12-06T12:37:10.512Z] Checked if tokens are valid: true, expires at: 1765028226903
+[debug] [2025-12-06T12:37:10.513Z] Checked if tokens are valid: true, expires at: 1765028226903
+[debug] [2025-12-06T12:37:10.515Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/newword-f6f1e/releases pageSize=10&pageToken=
+[debug] [2025-12-06T12:37:15.930Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/newword-f6f1e/releases 503
+[debug] [2025-12-06T12:37:15.932Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/newword-f6f1e/releases {"error":{"code":503,"message":"The service is currently unavailable.","status":"UNAVAILABLE"}}
+[error] 
+[error] Error: Request to https://firebaserules.googleapis.com/v1/projects/newword-f6f1e/releases?pageSize=10&pageToken= had HTTP Error: 503, The service is currently unavailable.
+[debug] [2025-12-06T12:37:16.187Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 503,
+      "message": "The service is currently unavailable.",
+      "status": "UNAVAILABLE"
+    }
+  },
+  "response": {
+    "statusCode": 503
+  }
+}
