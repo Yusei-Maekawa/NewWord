@@ -124,7 +124,7 @@ StudyingEverything/
 
 ## 📖 ドキュメント
 
-### 🚀 セットアップガイド
+### 🚀 セットアップガイド　(現在、セットアップ途中での不具合があり)
 - [アプリケーション起動ガイド](docs/guides/getting-started.md) - 基本的な起動手順
 - [Docker環境セットアップ](docs/setup/docker-setup.md) - 推奨環境の構築
 - [XAMPP環境セットアップ](docs/setup/xampp-setup.md) - 従来環境の構築
@@ -498,6 +498,7 @@ interface StudyStats {
   - セマンティックバージョニング採用
   - リリースノート・機能追加履歴
   - 今後のロードマップ
+
 
 
 
