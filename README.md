@@ -172,8 +172,5 @@ StudyingEverything/
 - **Issues**: [GitHub Issues](https://github.com/Yusei-Maekawa/English-Studying/issues)
 - **Documentation**: [docs/](docs/) フォルダ内の各種ガイド
 
-## 📄 ライセンス
 
-このプロジェクトはMITライセンスの下で公開されています。
 
----
