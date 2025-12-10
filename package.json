@@ -62,7 +62,7 @@
   "devDependencies": {
     "@types/sanitize-html": "^2.16.0",
     "concurrently": "^7.6.0",
-    "firebase": "^10.10.0",
+    "firebase": "^12.6.0",
     "firebase-admin": "^13.5.0",
     "mysql2": "^3.14.3"
   }
