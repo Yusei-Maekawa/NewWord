@@ -137,7 +137,9 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseClient';
 import { Term } from '../types';
+import { CategoryKey } from '../data/categories';
 import { useActivityLogs } from './useActivityLogs';
+import { getJSTTimestamp } from '../utils/dateUtils';
 
 /**
  * Firestore ドキュメントを Term 型に変換
@@ -147,7 +149,7 @@ import { useActivityLogs } from './useActivityLogs';
 const convertFirestoreToTerm = (docData: any, docId: string): Term => {
   return {
     id: docId,  // Firestore のドキュメント ID をそのまま使用
-    category: docData.categoryId || docData.category || 'uncategorized',
+    category: (docData.categoryId || docData.category || 'uncategorized') as CategoryKey,
     term: docData.word || docData.term || '',
     meaning: docData.meaning || '',
     example: docData.example || '',
@@ -216,7 +218,7 @@ export const useTermsFirestore = () => {
         meaning: termData.meaning,
         example: termData.example || '',
         categoryId: termData.category,
-        created_at: Timestamp.now()
+        created_at: getJSTTimestamp()  // 日本時間で保存
       });
       
       // 行動ログを記録: 語句追加アクティビティ
@@ -243,7 +245,7 @@ export const useTermsFirestore = () => {
         meaning: termData.meaning,
         example: termData.example || '',
         categoryId: termData.category,
-        updated_at: Timestamp.now()
+        updated_at: getJSTTimestamp()  // 日本時間で保存
       });
       // 行動ログを記録: 語句更新
       try {
@@ -301,7 +303,7 @@ export const useTermsFirestore = () => {
 
       await updateDoc(doc(db, 'terms', id), {
         isFavorite: !term.isFavorite,
-        updated_at: Timestamp.now()
+        updated_at: getJSTTimestamp()  // 日本時間で保存
       });
       // 行動ログを記録: お気に入り切替
       try {
