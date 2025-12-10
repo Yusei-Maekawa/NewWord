@@ -137,7 +137,9 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '../firebaseClient';
 import { Term } from '../types';
+import { CategoryKey } from '../data/categories';
 import { useActivityLogs } from './useActivityLogs';
+import { getJSTTimestamp } from '../utils/dateUtils';
 
 /**
  * Firestore ドキュメントを Term 型に変換
@@ -147,7 +149,7 @@ import { useActivityLogs } from './useActivityLogs';
 const convertFirestoreToTerm = (docData: any, docId: string): Term => {
   return {
     id: docId,  // Firestore のドキュメント ID をそのまま使用
-    category: docData.categoryId || docData.category || 'uncategorized',
+    category: (docData.categoryId || docData.category || 'uncategorized') as CategoryKey,
     term: docData.word || docData.term || '',
     meaning: docData.meaning || '',
     example: docData.example || '',
@@ -175,22 +177,27 @@ export const useTermsFirestore = () => {
    * English: Sets up a Firestore listener on the terms collection when component mounts.
    */
   useEffect(() => {
+    console.log('🔥 useTermsFirestore: Firestore リスナー開始...');
     const termsRef = collection(db, 'terms');
     const q = query(termsRef, orderBy('created_at', 'desc'));
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        console.log(`🔥 useTermsFirestore: データ取得成功 - ${snapshot.size}件`);
         const fetchedTerms: Term[] = [];
         snapshot.forEach((doc) => {
-          fetchedTerms.push(convertFirestoreToTerm(doc.data(), doc.id));
+          const termData = convertFirestoreToTerm(doc.data(), doc.id);
+          console.log('📝 取得した用語:', termData.term, '(', termData.category, ')');
+          fetchedTerms.push(termData);
         });
+        console.log('✅ useTermsFirestore: 合計', fetchedTerms.length, '件の用語をセット');
         setTerms(fetchedTerms);
         setLoading(false);
         setError(null);
       },
       (err) => {
-        console.error('Firestore listener error:', err);
+        console.error('❌ Firestore listener error:', err);
         setError(err.message);
         setLoading(false);
       }
@@ -211,7 +218,7 @@ export const useTermsFirestore = () => {
         meaning: termData.meaning,
         example: termData.example || '',
         categoryId: termData.category,
-        created_at: Timestamp.now()
+        created_at: getJSTTimestamp()  // 日本時間で保存
       });
       
       // 行動ログを記録: 語句追加アクティビティ
@@ -238,7 +245,7 @@ export const useTermsFirestore = () => {
         meaning: termData.meaning,
         example: termData.example || '',
         categoryId: termData.category,
-        updated_at: Timestamp.now()
+        updated_at: getJSTTimestamp()  // 日本時間で保存
       });
       // 行動ログを記録: 語句更新
       try {
@@ -296,7 +303,7 @@ export const useTermsFirestore = () => {
 
       await updateDoc(doc(db, 'terms', id), {
         isFavorite: !term.isFavorite,
-        updated_at: Timestamp.now()
+        updated_at: getJSTTimestamp()  // 日本時間で保存
       });
       // 行動ログを記録: お気に入り切替
       try {

@@ -173,6 +173,7 @@ import { useStudyLogs } from './hooks/useStudyLogs';
 import { useActivityLogs } from './hooks/useActivityLogs'; // 行動ログシステムを統合
 import './styles/App.css';
 import './utils/debugFirestore'; // デバッグツールを読み込む
+import './utils/testFirebaseConnection'; // Firebase接続テストユーティリティ
 import { VERSION_INFO, printVersionInfo } from './version-config';
 import { theme } from './theme/theme';
 

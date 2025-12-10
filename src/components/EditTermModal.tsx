@@ -631,8 +631,8 @@ const EditTermModal: React.FC<EditTermModalProps> = ({ term, isOpen, categories,
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&');
     
-    // 残りのHTMLタグを除去
-    html = sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} });
+    // 残りのHTMLタグを除去（正規表現で対応）
+    html = html.replace(/<[^>]*>/g, '');
     
     return html;
   };

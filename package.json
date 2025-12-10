@@ -1,6 +1,6 @@
 {
   "name": "english-studying",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "英語、応用情報技術者試験、高度情報技術者試験、G検定の学習用語句を効率的に管理・復習するためのWebアプリケーションです。",
   "private": true,
   "scripts": {
@@ -62,7 +62,7 @@
   "devDependencies": {
     "@types/sanitize-html": "^2.16.0",
     "concurrently": "^7.6.0",
-    "firebase": "^10.10.0",
+    "firebase": "^12.6.0",
     "firebase-admin": "^13.5.0",
     "mysql2": "^3.14.3"
   }
