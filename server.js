@@ -27,6 +27,15 @@ const cors = require('cors');       // CORS（他ドメインからのアクセ�
 
 const app = express();
 
+// express-rate-limitによるレートリミッターの導入
+const rateLimit = require('express-rate-limit');
+// 15分あたり最大100リクエスト（必要に応じて調整）
+const deleteCategoryLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: { error: 'カテゴリ削除リクエストが一定回数を超えました。しばらく待ってから再度お試しください。' }
+});
+
 // CORSを有効化（Reactなど別ポートからのリクエストを許可）
 app.use(cors());
 // JSON形式のリクエストボディをパース
@@ -448,7 +457,7 @@ app.put('/api/categories/:id/favorite', (req, res) => {
 
 // カテゴリを削除するAPI（DELETEリクエスト）
 // 例: http://localhost:4000/api/categories/1
-app.delete('/api/categories/:id', (req, res) => {
+app.delete('/api/categories/:id', deleteCategoryLimiter, (req, res) => {
   const { id } = req.params;
   console.log(`カテゴリ削除リクエスト - ID: ${id}`);
   
