@@ -237,12 +237,15 @@ export const useCategoriesFirestore = () => {
    * English: Sets up a Firestore listener on the categories collection.
    */
   useEffect(() => {
+    console.log('📁 useCategoriesFirestore: Firestore リスナー開始...');
     const categoriesRef = collection(db, 'categories');
     const q = query(categoriesRef);
 
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
+        console.log(`📁 useCategoriesFirestore: データ取得 - ${snapshot.size}件`);
+        
         // カテゴリデータが存在しない場合は初期化
         if (snapshot.empty) {
           if (!initialized) {
@@ -253,6 +256,7 @@ export const useCategoriesFirestore = () => {
             // 初期化後は次のスナップショットを待つ
           } else {
             // 初期化済みだがデータが空の場合（削除された場合など）
+            console.log('⚠️ カテゴリデータが削除されています');
             setCategories([]);
             setLoading(false);
           }
@@ -269,7 +273,7 @@ export const useCategoriesFirestore = () => {
             console.warn('⚠️ カテゴリにIDが設定されていません。自動修復します:', data.category_name);
           }
           
-          fetchedCategories.push({
+          const category = {
             id: data.id ?? (data.display_order || index + 1), // IDがない場合はdisplay_orderまたはインデックスを使用
             category_key: data.category_key,
             category_name: data.category_name,
@@ -279,10 +283,14 @@ export const useCategoriesFirestore = () => {
             is_favorite: data.is_favorite || false,
             display_order: data.display_order ?? index + 1,
             created_at: data.created_at
-          });
+          };
+          console.log('📂 取得したカテゴリ:', category.category_name, '(', category.category_key, ')');
+          fetchedCategories.push(category);
           index++;
         });
 
+        console.log('✅ useCategoriesFirestore: 合計', fetchedCategories.length, '件のカテゴリをセット');
+        
         // display_orderでソート
         fetchedCategories.sort((a, b) => a.display_order - b.display_order);
         
